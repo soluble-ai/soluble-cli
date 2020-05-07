@@ -73,3 +73,5 @@ for p in "linux amd64 tar" "windows amd64 zip .exe" "darwin amd64 tar"; do
         fi
     )
 done
+
+ls -l dist/*
