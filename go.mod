@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/fatih/color v1.9.0
 	github.com/go-resty/resty/v2 v2.2.0
-	github.com/hashicorp/hcl/v2 v2.4.0
+	github.com/hashicorp/hcl/v2 v2.5.0
 	github.com/jarcoal/httpmock v1.0.5
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mitchellh/go-homedir v1.1.0
