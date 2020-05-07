@@ -22,7 +22,7 @@ command "group" "agent" {
   }
   command "print_client" "get" {
       short = "Show details of an agent instance"
-      path = "org/{org}/agent/{agentID}"
+      path = "org/{org}/agents/{agentID}"
       method = "GET"
       parameter "agentID" {
           usage = "The agent instance ID"
