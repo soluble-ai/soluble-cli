@@ -45,9 +45,5 @@ green "Upload url for release is $upload_url"
 for f in dist/*; do
     green "Uploading $f"
     url="${upload_url}?name=$(basename $f)"
-    content_type="application/gzip"
-    if [ "${f##.}" = "zip" ]; then
-        content_type="application/zip"
-    fi
-    gc --fail -X POST -d @$f -H "Content-Type: $content_type" "$url" | jq .
+    gc --fail -X POST --data-binary @$f -H "Content-Type: application/octet-stream" "$url" | jq .
 done
