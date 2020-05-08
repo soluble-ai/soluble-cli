@@ -104,7 +104,7 @@ func (c *ProfileT) String() string {
 
 func Save() {
 	log.Infof("Updating {info:%s}\n", ConfigFile)
-	file, err := os.Create(ConfigFile)
+	file, err := os.OpenFile(ConfigFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err == nil {
 		defer file.Close()
 		enc := json.NewEncoder(file)
@@ -142,6 +142,14 @@ func Load() {
 		ConfigFile = os.Getenv("SOLUBLE_CONFIG_FILE")
 		if ConfigFile == "" {
 			ConfigFile, _ = homedir.Expand("~/.soluble_cli")
+		}
+	}
+	if info, err := os.Stat(ConfigFile); err == nil && (info.Mode()&0077) != 0 {
+		if err := os.Chmod(ConfigFile, 0600); err == nil {
+			log.Infof("Removed world & group permissions on config file {info:%s}", ConfigFile)
+		} else {
+			log.Warnf("Config file {info:%s} is world readable could not change permissions: {warning:%s}",
+				ConfigFile, err.Error())
 		}
 	}
 	dat, err := ioutil.ReadFile(ConfigFile)
