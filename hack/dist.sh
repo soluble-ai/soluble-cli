@@ -24,10 +24,10 @@ if ! find dist -type f -name '*.tar.gz' > /dev/null 2>&1; then
     exit 0
 fi
 
-# GITHUB_REF should be the tag of the release
+# GITHUB_REF should be the tag of the release in the form refs/tags/vx.y.z
 # see https://help.github.com/en/actions/reference/events-that-trigger-workflows#release-event-release
 
-tag=$GITHUB_REF
+tag=$(echo $GITHUB_REF | sed 's,.*/v,v,')
 
 if [[ ! $tag =~ ^v[0-9] ]]; then
     green "Tag is not a release tag, skipping dist"

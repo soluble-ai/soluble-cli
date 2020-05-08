@@ -1,16 +1,12 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
   release:
-    types: [ created ]
+    types: [ published ]
 
 jobs:
   build:
@@ -21,19 +17,22 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
-    - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-    - uses: actions/setup-go@v2
+    - name: Fetching tags
+      run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+    - name: Setting up go
+      uses: actions/setup-go@v2
       with:
         go-version: '1.13'
-    - uses: actions/cache@v1
+    - name: Caching go modules
+      uses: actions/cache@v1
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Install golangci-lint
+    - name: Installing golangci-lint
       run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.23.8
-    - name: Build and test
+    - name: Test and build binaries
       run: ./hack/build.sh
     - name: Distribute Release
       run: ./hack/dist.sh
