@@ -12,7 +12,19 @@ To upgrade to the latest version:
 
     brew upgrade soluble-ai/soluble/soluble-cli
 
-At the moment, other platforms must be installed from source.  Assuming you have [go](https://golang.org/) installed:
+On linux, run:
+
+    wget -O - https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/hack/linux-install.sh | sh
+    # or
+    curl https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/hack/linux-install.sh | sh
+
+The install will drop the executable in the current directory.  Move it to wherever is convenient.
+
+Windows executables can be found on the releases page.
+
+## Build from source
+
+It's possible to build from source.  Assuming you have [go](https://golang.org/) installed:
 
     git checkout https://github.com/soluble-ai/soluble-cli.git
     ./hack/build.sh
