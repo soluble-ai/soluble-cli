@@ -34,7 +34,7 @@ It's possible to build from source.  Assuming you have [go](https://golang.org/)
 
 You'll need to generate an access token from the [UI](https://app.soluble.cloud/admin/tokens/access).  Copy the access token and run:
 
-    soluble auth set-access-token --acces-token <your-access-token>
+    soluble auth set-access-token --access-token <your-access-token>
 
 If successful the CLI will show your user profile.
 
