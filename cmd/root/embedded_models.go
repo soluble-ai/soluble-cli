@@ -12,30 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package model
+package root
 
-type ContextValueSupplier func(string) (string, error)
+import "github.com/soluble-ai/soluble-cli/pkg/model"
 
-var contextValueSuppliers = map[string]ContextValueSupplier{}
+var (
+	embeddedModelsSource model.Source
+)
 
-type ContextValues struct {
-	values map[string]string
-}
-
-func NewContextValues() *ContextValues {
-	return &ContextValues{
-		values: map[string]string{},
+func getEmbeddedModelsSource() model.Source {
+	if embeddedModelsSource == nil {
+		embeddedModelsSource = &model.FileSystemSource{
+			Filesystem: embeddedFS,
+			RootPath:   "<internal>",
+		}
 	}
-}
-
-func AddContextValueSupplier(name string, supplier ContextValueSupplier) {
-	contextValueSuppliers[name] = supplier
-}
-
-func (c *ContextValues) Get(name string) (string, error) {
-	supplier := contextValueSuppliers[name]
-	if supplier != nil {
-		return supplier(name)
-	}
-	return c.values[name], nil
+	return embeddedModelsSource
 }

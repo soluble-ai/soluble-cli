@@ -28,6 +28,11 @@ func (opts *PrintClientOpts) Register(cmd *cobra.Command) {
 	opts.ClientOpts.Register(cmd)
 }
 
+func (opts *PrintClientOpts) SetContextValues(context map[string]string) {
+	opts.PrintOpts.SetContextValues(context)
+	opts.ClientOpts.SetContextValues(context)
+}
+
 type PrintClusterOpts struct {
 	PrintOpts
 	ClusterOpts
@@ -36,4 +41,9 @@ type PrintClusterOpts struct {
 func (opts *PrintClusterOpts) Register(cmd *cobra.Command) {
 	opts.PrintOpts.Register(cmd)
 	opts.ClusterOpts.Register(cmd)
+}
+
+func (opts *PrintClusterOpts) SetContextValues(context map[string]string) {
+	opts.PrintOpts.SetContextValues(context)
+	opts.ClusterOpts.SetContextValues(context)
 }

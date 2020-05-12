@@ -12,30 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package model
+package options
 
-type ContextValueSupplier func(string) (string, error)
+import (
+	"testing"
+	"time"
 
-var contextValueSuppliers = map[string]ContextValueSupplier{}
+	"github.com/soluble-ai/go-jnode"
+)
 
-type ContextValues struct {
-	values map[string]string
-}
-
-func NewContextValues() *ContextValues {
-	return &ContextValues{
-		values: map[string]string{},
+func TestFormatters(t *testing.T) {
+	now := time.Date(2020, 5, 11, 10, 5, 45, 0, time.UTC)
+	formatterNow = &now
+	formatterLocation = time.FixedZone("test", -8*60*60)
+	n := jnode.NewObjectNode().Put("ts", "2020-05-08T11:18:33Z")
+	if s := TimestampFormatter(n, "ts"); s != "2020-05-08T03:18:33-08:00" {
+		t.Error("timestamp wrong", n, s)
 	}
-}
-
-func AddContextValueSupplier(name string, supplier ContextValueSupplier) {
-	contextValueSuppliers[name] = supplier
-}
-
-func (c *ContextValues) Get(name string) (string, error) {
-	supplier := contextValueSuppliers[name]
-	if supplier != nil {
-		return supplier(name)
+	if s := RelativeTimestampFormatter(n, "ts"); s != "2d22h47m12s" {
+		t.Error("relative ts wrong", n, s)
 	}
-	return c.values[name], nil
 }

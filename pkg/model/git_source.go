@@ -26,7 +26,7 @@ import (
 )
 
 type GitSource struct {
-	fileSystemSource
+	FileSystemSource
 	version string
 }
 
@@ -73,9 +73,9 @@ func GetGitSource(url string) (Source, error) {
 	}
 
 	source := &GitSource{
-		fileSystemSource: fileSystemSource{
-			filesystem: http.Dir(dir),
-			rootPath:   url,
+		FileSystemSource: FileSystemSource{
+			Filesystem: http.Dir(dir),
+			RootPath:   url,
 		},
 		version: headVersion(dir),
 	}

@@ -14,28 +14,13 @@
 
 package model
 
-type ContextValueSupplier func(string) (string, error)
+const (
+	GetMethod    = "GET"
+	PostMethod   = "POST"
+	PatchMethod  = "PATCH"
+	DeleteMethod = "DELETE"
+)
 
-var contextValueSuppliers = map[string]ContextValueSupplier{}
-
-type ContextValues struct {
-	values map[string]string
-}
-
-func NewContextValues() *ContextValues {
-	return &ContextValues{
-		values: map[string]string{},
-	}
-}
-
-func AddContextValueSupplier(name string, supplier ContextValueSupplier) {
-	contextValueSuppliers[name] = supplier
-}
-
-func (c *ContextValues) Get(name string) (string, error) {
-	supplier := contextValueSuppliers[name]
-	if supplier != nil {
-		return supplier(name)
-	}
-	return c.values[name], nil
+var validMethods = []string{
+	GetMethod, PostMethod, PatchMethod, DeleteMethod,
 }

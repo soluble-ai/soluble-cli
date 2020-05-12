@@ -20,19 +20,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type HasClientOpts interface {
-	GetClientOpts() *ClientOpts
-}
-
 type ClientOpts struct {
 	client.Config
 	AuthNotRequired bool
 }
 
-var _ HasClientOpts = &ClientOpts{}
+var _ Interface = &ClientOpts{}
 
-func (opts *ClientOpts) GetClientOpts() *ClientOpts {
-	return opts
+func (opts *ClientOpts) SetContextValues(context map[string]string) {
+	context["organizationID"] = opts.GetOrganization()
 }
 
 func (opts *ClientOpts) Register(cmd *cobra.Command) {

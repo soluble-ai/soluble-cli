@@ -8,17 +8,17 @@ command "group" "cluster" {
     path   = "org/{org}/clusters/{clusterID}"
   }
   command "print_cluster" "set-name" {
-    short = "Change the name of a cluster"
+    short  = "Change the name of a cluster"
     method = "PATCH"
-    path = "org/{org}/clusters/{clusterID}"
+    path   = "org/{org}/clusters/{clusterID}"
     parameter "displayName" {
       required = true
-      usage = "The new display name for the cluster"
+      usage    = "The new display name for the cluster"
     }
   }
   command "print_cluster" "delete" {
-    short = "Delete a cluster"
-    path = "org/{org}/clusters/{clusterID}"
+    short  = "Delete a cluster"
+    path   = "org/{org}/clusters/{clusterID}"
     method = "DELETE"
   }
 }

@@ -14,8 +14,11 @@
 
 package options
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 type Interface interface {
 	Register(cmd *cobra.Command)
+	SetContextValues(context map[string]string)
 }

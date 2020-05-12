@@ -21,10 +21,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type HasClusterOpts interface {
-	GetClusterOpts() *ClusterOpts
-}
-
 type ClusterOpts struct {
 	ClientOpts
 	ClusterID         string
@@ -32,13 +28,16 @@ type ClusterOpts struct {
 	SetDefault        bool
 }
 
-func (opts *ClusterOpts) GetClusterOpts() *ClusterOpts {
-	return opts
+var _ Interface = &ClusterOpts{}
+
+func (opts *ClusterOpts) SetContextValues(context map[string]string) {
+	opts.ClientOpts.SetContextValues(context)
+	context["clusterID"] = opts.GetClusterID()
 }
 
 func (opts *ClusterOpts) Register(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&opts.ClusterID, "cluster-id", "", "The cluster id.  May omit the organization id part.")
-	cmd.Flags().BoolVar(&opts.SetDefault, "set-default", false, "Set the default cluster-id")
+	cmd.Flags().StringVar(&opts.ClusterID, "cluster-id", "", "The cluster id.")
+	cmd.Flags().BoolVar(&opts.SetDefault, "set-default", false, "Set the default cluster-id to the value --cluster-id")
 	opts.ClientOpts.Register(cmd)
 	AddPreRunE(cmd, func(cmd *cobra.Command, args []string) error {
 		flag := cmd.Flag("cluster-id")
