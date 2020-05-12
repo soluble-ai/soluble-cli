@@ -14,9 +14,9 @@ To upgrade to the latest version:
 
 On linux, run:
 
-    wget -O - https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/hack/linux-install.sh | sh
+    wget -O - https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/linux-install.sh | sh
     # or
-    curl https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/hack/linux-install.sh | sh
+    curl https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/linux-install.sh | sh
 
 The install will drop the executable in the current directory.  Move it to wherever is convenient.
 
