@@ -63,8 +63,6 @@ func Command() *cobra.Command {
 			if profile != "" {
 				config.SelectProfile(profile)
 			}
-			log.Infof("Using profile {info:%s} - {primary:%s}", config.GlobalConfig.CurrentProfile,
-				config.Config.APIServer)
 			return nil
 		},
 	}

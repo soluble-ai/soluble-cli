@@ -26,7 +26,7 @@ func TestModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(model.Models) != 5 {
+	if len(model.Models) < 5 {
 		t.Error("wrong # of models found")
 	}
 	var orgModel *model.Model

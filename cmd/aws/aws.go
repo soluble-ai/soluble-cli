@@ -54,7 +54,7 @@ func setupCommand() *cobra.Command {
 		},
 	}
 	opts.Register(c)
-	c.Flags().StringVar(&awsAccount, "aws-account", "", "The AWS account number (required)")
-	_ = c.MarkFlagRequired("aws-account")
+	c.Flags().StringVar(&awsAccount, "account", "", "The AWS account number (required)")
+	_ = c.MarkFlagRequired("account")
 	return c
 }
