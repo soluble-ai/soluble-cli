@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package root
+package model
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ModelCommand() *cobra.Command {
+func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "model",
 		Short: "Manage API models",

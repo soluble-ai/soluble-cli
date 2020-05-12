@@ -25,10 +25,10 @@ import (
 
 func main() {
 	err := vfsgen.Generate(http.Dir("models"), vfsgen.Options{
-		PackageName:  "model",
+		PackageName:  "root",
 		BuildTags:    "ci",
 		VariableName: "embeddedFS",
-		Filename:     "pkg/model/embed_vfsgen.go",
+		Filename:     "cmd/root/embed_vfsgen.go",
 	})
 	if err != nil {
 		log.Fatalln(err)

@@ -17,28 +17,16 @@ package model
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 	"unicode"
 
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
-	"github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
-
-type modelLoader struct {
-	models      []*Model
-	diagnostics hcl.Diagnostics
-	parser      *hclparse.Parser
-}
 
 type Model struct {
 	Command       CommandModel `hcl:"command,block"`
@@ -65,17 +53,6 @@ type CommandModel struct {
 	model             *Model
 }
 
-const (
-	GetMethod    = "GET"
-	PostMethod   = "POST"
-	PatchMethod  = "PATCH"
-	DeleteMethod = "DELETE"
-)
-
-var validMethods = []string{
-	GetMethod, PostMethod, PatchMethod, DeleteMethod,
-}
-
 type ResultModel struct {
 	Path        *[]string          `hcl:"path"`
 	Columns     *[]string          `hcl:"columns"`
@@ -97,96 +74,11 @@ type ParameterModel struct {
 
 var Models []*Model
 
-func Load(source Source) error {
-	log.Debugf("Loading models from {info:%s}", source)
-	m := &modelLoader{
-		parser: hclparse.NewParser(),
-	}
-	if err := m.loadModels(source, ""); err != nil {
-		return err
-	}
-	wr := hcl.NewDiagnosticTextWriter(
-		os.Stdout,        // writer to send messages to
-		m.parser.Files(), // the parser's file cache, for source snippets
-		78,               // wrapping width
-		true,             // generate colored/highlighted output
-	)
-	_ = wr.WriteDiagnostics(m.diagnostics)
-	if m.diagnostics.HasErrors() {
-		return fmt.Errorf("some models have errors")
-	}
-	for _, model := range m.models {
-		if model.MinCLIVersion != nil && !version.IsCompatible(*model.MinCLIVersion) {
-			log.Warnf("The model in %s is not compatible with this version of the CLI (require %s)",
-				model.FileName, *model.MinCLIVersion)
-		}
-		if err := model.validate(); err != nil {
-			return err
-		}
-	}
-	Models = append(Models, m.models...)
-	return nil
-}
-
-func (m *modelLoader) loadModels(source Source, dirName string) error {
-	dir, err := source.GetFileSystem().Open(dirName)
-	if err != nil {
-		return err
-	}
-	defer dir.Close()
-	fileInfos, err := dir.Readdir(0)
-	if err != nil {
-		return err
-	}
-	for _, fileInfo := range fileInfos {
-		path := dirName + "/" + fileInfo.Name()
-		if fileInfo.IsDir() {
-			err := m.loadModels(source, path)
-			if err != nil {
-				return err
-			}
-		} else if strings.HasSuffix(fileInfo.Name(), ".hcl") {
-			err := m.loadModel(source, path)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (m *modelLoader) loadModel(source Source, name string) error {
-	f, err := source.GetFileSystem().Open(name)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	src, err := ioutil.ReadAll(f)
-	if err != nil {
-		return err
-	}
-	file, diag := m.parser.ParseHCL(src, source.GetPath(name))
-	m.diagnostics = m.diagnostics.Extend(diag)
-	if !diag.HasErrors() {
-		model := &Model{
-			FileName: source.GetPath(name),
-			Version:  source.GetVersion(name, src),
-		}
-		diag = gohcl.DecodeBody(file.Body, nil, model)
-		m.diagnostics = m.diagnostics.Extend(diag)
-		if !diag.HasErrors() {
-			m.models = append(m.models, model)
-			log.Debugf("%s defines command %s", model.FileName, model.Command.Name)
-		}
-	}
-	return nil
-}
-
 func (m *Model) validate() error {
 	return m.Command.validate(m)
 }
 
-func (cm *CommandModel) GetCommand() *cobra.Command {
+func (cm *CommandModel) GetCommand() Command {
 	c := &cobra.Command{
 		Use:   cm.Name,
 		Short: cm.Short,
@@ -197,19 +89,16 @@ func (cm *CommandModel) GetCommand() *cobra.Command {
 	if cm.Aliases != nil {
 		c.Aliases = *cm.Aliases
 	}
-	if cm.GetCommandType().IsGroup() {
-		for i := range cm.Commands {
-			c.AddCommand(cm.Commands[i].GetCommand())
-		}
-	} else {
-		opts := cm.createOptions()
+
+	command := cm.GetCommandType().makeCommand(c, cm)
+	if !cm.GetCommandType().IsGroup() {
 		c.RunE = func(cmd *cobra.Command, args []string) error {
-			return cm.run(opts, cmd, args)
+			return cm.run(command, cmd, args)
 		}
-		opts.Register(c)
-		cm.createFlags(c)
 	}
-	return c
+	cm.createFlags(c)
+
+	return command
 }
 
 func (cm *CommandModel) createFlags(c *cobra.Command) {
@@ -231,33 +120,13 @@ func (cm *CommandModel) createFlags(c *cobra.Command) {
 	}
 }
 
-func (cm *CommandModel) createOptions() options.Interface {
-	opts := cm.GetCommandType().createOptions()
-	if has, ok := opts.(options.HasClientOpts); ok {
-		clientOpts := has.GetClientOpts()
-		clientOpts.AuthNotRequired = (cm.Unauthenticated != nil && *cm.Unauthenticated) ||
-			(cm.AuthNotRequired != nil && *cm.AuthNotRequired)
-		clientOpts.APIPrefix = cm.model.APIPrefix
-	}
-	if has, ok := opts.(options.HasClusterOpts); ok {
-		has.GetClusterOpts().ClusterIDOptional = cm.ClusterIDOptional != nil && *cm.ClusterIDOptional
-	}
-	if has, ok := opts.(options.HasPrintOpts); ok {
-		printOpts := has.GetPrintOpts()
-		if cm.Result != nil {
-			cm.Result.setPrintOpts(printOpts)
-		}
-	}
-	return opts
-}
-
 func (cm *CommandModel) validate(m *Model) error {
 	cm.model = m
 	if cm.Use != nil && strings.HasPrefix(*cm.Use, cm.Name+" ") {
 		return fmt.Errorf("use must begin with with name %s", cm.Name)
 	}
 	if err := cm.GetCommandType().validate(); err != nil {
-		return err
+		return fmt.Errorf("invalid command type for %s: %w", cm.Name, err)
 	}
 	if !cm.GetCommandType().IsGroup() {
 		if cm.Method == nil || !util.StringSliceContains(validMethods, *cm.Method) {
@@ -289,54 +158,44 @@ func (cm *CommandModel) GetCommandType() CommandType {
 	return CommandType(cm.Type)
 }
 
-func (cm *CommandModel) run(opts options.Interface, cmd *cobra.Command, args []string) error {
+func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) error {
 	var result *jnode.Node
-	contextValues := &ContextValues{}
-	if hasClusterOpts, ok := opts.(options.HasClusterOpts); ok {
-		clusterID := hasClusterOpts.GetClusterOpts().GetClusterID()
-		contextValues.Set("clusterID", clusterID)
-		log.Debugf("clusterID = %s", clusterID)
+	contextValues := NewContextValues()
+	command.SetContextValues(contextValues.values)
+	parameters, err := cm.processParameters(cmd, contextValues)
+	if err != nil {
+		return err
 	}
-	if hasClientOpts, ok := opts.(options.HasClientOpts); ok {
-		clientOpts := hasClientOpts.GetClientOpts()
-		contextValues.Set("organizationID", clientOpts.GetOrganization())
-		parameters, err := cm.getParameterValues(cmd, contextValues)
-		if err != nil {
-			return err
-		}
-		path := cm.getPath(contextValues)
-		var apiClient client.Interface
-		if cm.Unauthenticated != nil && *cm.Unauthenticated {
-			apiClient = clientOpts.GetUnauthenticatedAPIClient()
-		} else {
-			apiClient = clientOpts.GetAPIClient()
-		}
-		switch *cm.Method {
-		case GetMethod:
-			result, err = apiClient.GetWithParams(path, parameters)
-		case DeleteMethod:
-			result, err = apiClient.Delete(path)
-		case PostMethod:
-			result, err = apiClient.Post(path, toBody(parameters))
-		case PatchMethod:
-			result, err = apiClient.Patch(path, toBody(parameters))
-		default:
-			return fmt.Errorf("unknown method %s", *cm.Method)
-		}
-		if err != nil {
-			return err
-		}
+	path := cm.getPath(contextValues)
+	var apiClient client.Interface
+	if cm.Unauthenticated != nil && *cm.Unauthenticated {
+		apiClient = command.GetUnauthenticatedAPIClient()
+	} else {
+		apiClient = command.GetAPIClient()
+	}
+	switch *cm.Method {
+	case GetMethod:
+		result, err = apiClient.GetWithParams(path, parameters)
+	case DeleteMethod:
+		result, err = apiClient.Delete(path)
+	case PostMethod:
+		result, err = apiClient.Post(path, toBody(parameters))
+	case PatchMethod:
+		result, err = apiClient.Patch(path, toBody(parameters))
+	default:
+		panic(fmt.Errorf("unknown method %s", *cm.Method))
+	}
+	if err != nil {
+		return err
 	}
 	if cm.Result != nil && cm.Result.LocalAction != nil {
 		var err error
-		result, err = LocalAction(*cm.Result.LocalAction).Run(opts, result)
+		result, err = LocalActionType(*cm.Result.LocalAction).Run(command, result)
 		if err != nil {
 			return err
 		}
 	}
-	if hasPrintOpts, ok := opts.(options.HasPrintOpts); ok {
-		hasPrintOpts.GetPrintOpts().PrintResult(result)
-	}
+	command.PrintResult(result)
 	log.Debugf("Command %s successful", cm.Name)
 	return nil
 }
@@ -357,7 +216,7 @@ func (cm *CommandModel) getPath(contextValues *ContextValues) string {
 	return path
 }
 
-func (cm *CommandModel) getParameterValues(cmd *cobra.Command, contextValues *ContextValues) (map[string]string, error) {
+func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *ContextValues) (map[string]string, error) {
 	values := map[string]string{}
 	for _, p := range cm.Parameters {
 		var value string
@@ -374,7 +233,7 @@ func (cm *CommandModel) getParameterValues(cmd *cobra.Command, contextValues *Co
 		}
 		switch p.getDisposition() {
 		case ContextDisposition:
-			contextValues.Set(p.Name, value)
+			contextValues.values[p.Name] = value
 		default:
 			values[p.Name] = value
 		}
@@ -430,14 +289,14 @@ func (r *ResultModel) validate() error {
 		return fmt.Errorf("if path is given columns must also be specified")
 	}
 	if r.Formatters != nil {
-		for column := range *r.Formatters {
-			if !r.getFormatter(column).isValid() {
-				return fmt.Errorf("invalid formatter %s for column %s", r.getFormatter(column), column)
+		for column, formatterName := range *r.Formatters {
+			if err := ColumnFormatterType(formatterName).validate(); err != nil {
+				return fmt.Errorf("invalid formatter for column %s: %w", column, err)
 			}
 		}
 	}
 	if r.LocalAction != nil {
-		err := LocalAction(*r.LocalAction).validate()
+		err := LocalActionType(*r.LocalAction).validate()
 		if err != nil {
 			return err
 		}
@@ -445,30 +304,9 @@ func (r *ResultModel) validate() error {
 	return nil
 }
 
-func (r *ResultModel) setPrintOpts(opts *options.PrintOpts) {
-	if r.Path != nil {
-		opts.Path = *r.Path
-		opts.Columns = *r.Columns
-	}
-	if r.WideColumns != nil {
-		opts.WideColumns = *r.WideColumns
-	}
-	if r.Sort != nil {
-		opts.SortBy = *r.Sort
-	}
+func (r *ResultModel) GetFormatter(column string) options.Formatter {
 	if r.Formatters != nil {
-		for column := range *r.Formatters {
-			if opts.Formatters == nil {
-				opts.Formatters = make(map[string]options.Formatter)
-			}
-			opts.Formatters[column] = r.getFormatter(column).getFormatter(opts)
-		}
+		return ColumnFormatterType((*r.Formatters)[column]).GetFormatter()
 	}
-}
-
-func (r *ResultModel) getFormatter(column string) ColumnFormatter {
-	if r.Formatters != nil {
-		return ColumnFormatter((*r.Formatters)[column])
-	}
-	return ColumnFormatter("")
+	return nil
 }

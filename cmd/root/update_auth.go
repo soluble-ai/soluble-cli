@@ -18,15 +18,13 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 )
 
-func updateAuthAction(opts options.Interface, result *jnode.Node) (*jnode.Node, error) {
-	if has, ok := opts.(options.HasClientOpts); ok {
-		cfg := has.GetClientOpts().GetAPIClientConfig()
-		config.Config.APIServer = cfg.APIServer
-		config.Config.TLSNoVerify = cfg.TLSNoVerify
-	}
+func updateAuthAction(command model.Command, result *jnode.Node) (*jnode.Node, error) {
+	opts := command.(*model.OptionsCommand).ClientOpts
+	cfg := opts.GetAPIClientConfig()
+	config.Config.APIServer = cfg.APIServer
+	config.Config.TLSNoVerify = cfg.TLSNoVerify
 	config.Config.APIToken = result.Path("token").AsText()
 	config.Config.Email = result.Path("user").Path("email").AsText()
 	org := config.Config.Organization

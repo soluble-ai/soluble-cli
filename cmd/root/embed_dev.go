@@ -14,11 +14,12 @@
 
 // +build !ci
 
-package model
+package root
 
 import (
 	"net/http"
 
+	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
@@ -33,8 +34,8 @@ func init() {
 	}
 	name := root + "/models"
 	embeddedFS = http.Dir(name)
-	embeddedSource = &fileSystemSource{
-		filesystem: embeddedFS,
-		rootPath:   name,
+	embeddedModelsSource = &model.FileSystemSource{
+		Filesystem: embeddedFS,
+		RootPath:   name,
 	}
 }

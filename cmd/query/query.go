@@ -116,9 +116,9 @@ func runCommand() *cobra.Command {
 					opts.WideColumns = append(opts.WideColumns, name)
 				}
 				if hasDisplayHint(field, "TS") {
-					opts.SetFormatter(name, opts.TimestampFormatter)
+					opts.SetFormatter(name, options.TimestampFormatter)
 				} else if hasDisplayHint(field, "RELATIVE_TS") {
-					opts.SetFormatter(name, opts.RelativeTimestampFormatter)
+					opts.SetFormatter(name, options.RelativeTimestampFormatter)
 				}
 			}
 			opts.PrintResult(result)

@@ -22,7 +22,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/cluster"
-	"github.com/soluble-ai/soluble-cli/cmd/kubernetes"
+	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
+	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
@@ -78,7 +79,7 @@ func Command() *cobra.Command {
 	addBuiltinCommands(rootCmd)
 	loadModels()
 	for _, model := range model.Models {
-		mergeCommands(rootCmd, model.Command.GetCommand(), model.FileName)
+		mergeCommands(rootCmd, model.Command.GetCommand().GetCobraCommand(), model.FileName)
 	}
 
 	return rootCmd
@@ -90,9 +91,8 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		agent.Command(),
 		aws.Command(),
 		cluster.Command(),
-		kubernetes.Command(),
-		ConfigCommand(),
-		ModelCommand(),
+		configcmd.Command(),
+		modelcmd.Command(),
 		version.Command(),
 		query.Command(),
 	}
@@ -102,7 +102,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 }
 
 func loadModels() {
-	if err := model.Load(model.GetEmbeddedSource()); err != nil {
+	if err := model.Load(getEmbeddedModelsSource()); err != nil {
 		panic(err)
 	}
 	for _, location := range config.GetModelLocations() {

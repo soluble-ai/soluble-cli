@@ -18,26 +18,25 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 )
 
-type LocalAction string
+type LocalActionType string
 
-type Action func(opts options.Interface, n *jnode.Node) (*jnode.Node, error)
+type LocalAction func(command Command, n *jnode.Node) (*jnode.Node, error)
 
-var actions = map[string]Action{}
+var actions = map[string]LocalAction{}
 
-func (a LocalAction) validate() error {
+func (a LocalActionType) validate() error {
 	if a == "" || actions[string(a)] != nil {
 		return nil
 	}
 	return fmt.Errorf("unknown local_action %s", a)
 }
 
-func (a LocalAction) Run(opts options.Interface, n *jnode.Node) (*jnode.Node, error) {
-	return actions[string(a)](opts, n)
+func (a LocalActionType) Run(command Command, n *jnode.Node) (*jnode.Node, error) {
+	return actions[string(a)](command, n)
 }
 
-func RegisterAction(name string, action Action) {
+func RegisterAction(name string, action LocalAction) {
 	actions[name] = action
 }

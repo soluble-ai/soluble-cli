@@ -22,7 +22,6 @@ import (
 	"sort"
 	"strings"
 	"text/tabwriter"
-	"time"
 	"unicode"
 
 	"github.com/soluble-ai/go-jnode"
@@ -48,8 +47,9 @@ type PrintOpts struct {
 	Formatters  map[string]Formatter
 	Transformer func(*jnode.Node) *jnode.Node
 	w           *tabwriter.Writer
-	now         *time.Time
 }
+
+var _ Interface = &PrintOpts{}
 
 type rowsSort struct {
 	values []*jnode.Node
@@ -93,6 +93,7 @@ func (p *PrintOpts) Register(cmd *cobra.Command) {
 		if p.WideColumns != nil {
 			cmd.Flags().BoolVar(&p.Wide, "wide", false, "Display more columns")
 		}
+		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", nil, "Sort by these columns")
 	}
 }
 
@@ -195,52 +196,11 @@ func (p *PrintOpts) Format(columnName string, n *jnode.Node) string {
 	var s string
 	switch {
 	case strings.HasSuffix(columnName, "Ts+"):
-		return p.RelativeTimestampFormatter(n, columnName)
+		return RelativeTimestampFormatter(n, columnName)
 	case strings.HasSuffix(columnName, "Ts"):
-		return p.TimestampFormatter(n, columnName)
+		return TimestampFormatter(n, columnName)
 	default:
 		s = n.Path(columnName).AsText()
-	}
-	return s
-}
-
-func (p *PrintOpts) TimestampFormatter(n *jnode.Node, columnName string) string {
-	s := n.Path(columnName).AsText()
-	// try and render timestamps in the local timezone
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
-		return t.Local().Format(time.RFC3339)
-	}
-	return s
-}
-
-func (p *PrintOpts) RelativeTimestampFormatter(n *jnode.Node, columnName string) string {
-	// render timestamp as relative time
-	if columnName[len(columnName)-1] == '+' {
-		columnName = columnName[:len(columnName)-1]
-	}
-	s := n.Path(columnName).AsText()
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
-		if p.now == nil {
-			n := time.Now()
-			p.now = &n
-		}
-		d := p.now.Sub(t)
-		var prefix string
-		if d < 0 {
-			prefix = "+"
-			d = -d
-		}
-		if d > 365*24*time.Hour {
-			years := int64(d) / int64(365*24*time.Hour)
-			d -= time.Duration(365*24*years) * time.Hour
-			prefix += fmt.Sprintf("%dy", years)
-		}
-		if d > 24*time.Hour {
-			days := int64(d) / int64(24*time.Hour)
-			d -= time.Duration(24*days) * time.Hour
-			prefix += fmt.Sprintf("%dd", days)
-		}
-		return prefix + d.Round(time.Second).String()
 	}
 	return s
 }
@@ -291,4 +251,7 @@ func toHeader(c string) string {
 		}
 	}
 	return w.String()
+}
+
+func (p *PrintOpts) SetContextValues(context map[string]string) {
 }

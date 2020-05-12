@@ -15,31 +15,32 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
-type ColumnFormatter string
+type ColumnFormatterType string
 
-const (
-	TSFormat         = "ts"
-	RelativeTSFormat = "relative_ts"
-)
+var columnFormatters = map[string]options.Formatter{}
 
-var validFormatters = []string{
-	"", TSFormat, RelativeTSFormat,
-}
-
-func (t ColumnFormatter) isValid() bool {
-	return util.StringSliceContains(validFormatters, string(t))
-}
-
-func (t ColumnFormatter) getFormatter(opts *options.PrintOpts) options.Formatter {
-	switch t {
-	case TSFormat:
-		return opts.TimestampFormatter
-	case RelativeTSFormat:
-		return opts.RelativeTimestampFormatter
+func (t ColumnFormatterType) validate() error {
+	if _, ok := columnFormatters[string(t)]; !ok {
+		return fmt.Errorf("invalid column formatter %s", t)
 	}
 	return nil
+}
+
+func (t ColumnFormatterType) GetFormatter() options.Formatter {
+	return columnFormatters[string(t)]
+}
+
+func RegisterColumnFormatter(name string, formatter options.Formatter) {
+	columnFormatters[name] = formatter
+}
+
+func init() {
+	RegisterColumnFormatter("", nil)
+	RegisterColumnFormatter("ts", options.TimestampFormatter)
+	RegisterColumnFormatter("relative_ts", options.RelativeTimestampFormatter)
 }

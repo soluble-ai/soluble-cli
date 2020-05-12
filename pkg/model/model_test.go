@@ -15,33 +15,72 @@
 package model
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/spf13/afero"
 )
 
+var testModelSource = `
+api_prefix = "/foo"
+command "group" "foo" {
+  short = "Grouping of commands"
+  command "print_client" "ping" {
+	  short = "ping server"
+	  method = "GET"
+	  path = "ping/{dummyID}"
+	  parameter "dummyID" {
+		  usage = "dummy value"
+		  disposition = "context"
+	  }
+	  parameter "action" {
+		  usage = "action"
+	  }
+	  result {
+		  path = [ "data" ]
+		  columns = [ "col1", "col1" ]
+	  }
+  }
+}`
+
 func TestModel(t *testing.T) {
-	err := Load(GetEmbeddedSource())
+	fs := afero.NewMemMapFs()
+	if err := afero.WriteFile(fs, "test.hcl", []byte(testModelSource), 0644); err != nil {
+		t.Fatal(err)
+	}
+	source := &FileSystemSource{
+		Filesystem: afero.NewHttpFs(fs),
+		RootPath:   "test",
+	}
+	err := Load(source)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(Models) != 1 || len(Models[0].Command.Commands) != 1 {
+		t.Error(Models)
+	}
+	pingModel := Models[0].Command.Commands[0]
+	if pingModel.Name != "ping" {
+		t.Fatal(pingModel)
+	}
+	ping := pingModel.GetCommand()
+	f := ping.GetCobraCommand().Flag("dummy-id")
+	if f == nil || f.Usage != "dummy value" {
+		t.Error(f)
+	}
+	_ = f.Value.Set("1")
+	_ = ping.GetCobraCommand().Flag("action").Value.Set("update")
+	context := NewContextValues()
+	params, err := pingModel.processParameters(ping.GetCobraCommand(), context)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(Models) != 4 {
-		t.Error("wrong # of models found")
+	if params["action"] != "update" {
+		t.Error(params)
 	}
-	var orgModel *Model
-	for _, model := range Models {
-		if strings.HasSuffix(model.FileName, "/org.hcl") {
-			if model.APIPrefix != "/api/v1" {
-				t.Error(model)
-			}
-			orgModel = model
-			break
-		}
+	if val, err := context.Get("dummyID"); err != nil || val != "1" {
+		t.Error(err, val)
 	}
-	if orgModel == nil {
-		t.Fatal("can't find org model")
+	if path := pingModel.getPath(context); path != "ping/1" {
+		t.Error(path)
 	}
-	if orgModel.Command.Type != "group" || !orgModel.Command.GetCommandType().IsGroup() {
-		t.Error()
-	}
-	_ = orgModel.Command.GetCommand()
 }

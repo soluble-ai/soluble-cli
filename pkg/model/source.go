@@ -30,40 +30,26 @@ type Source interface {
 	String() string
 }
 
-type fileSystemSource struct {
-	filesystem http.FileSystem
-	rootPath   string
+type FileSystemSource struct {
+	Filesystem http.FileSystem
+	RootPath   string
 }
 
-var (
-	embeddedSource Source
-)
-
-func GetEmbeddedSource() Source {
-	if embeddedSource == nil {
-		embeddedSource = &fileSystemSource{
-			filesystem: embeddedFS,
-			rootPath:   "<internal>",
-		}
-	}
-	return embeddedSource
+func (s *FileSystemSource) GetPath(name string) string {
+	return s.RootPath + "/" + name
 }
 
-func (s *fileSystemSource) GetPath(name string) string {
-	return s.rootPath + name
+func (s *FileSystemSource) GetFileSystem() http.FileSystem {
+	return s.Filesystem
 }
 
-func (s *fileSystemSource) GetFileSystem() http.FileSystem {
-	return s.filesystem
-}
-
-func (s *fileSystemSource) GetVersion(name string, content []byte) string {
+func (s *FileSystemSource) GetVersion(name string, content []byte) string {
 	h := sha256.Sum256(content)
 	return fmt.Sprintf("%012x", h[0:6])
 }
 
-func (s *fileSystemSource) String() string {
-	return s.rootPath
+func (s *FileSystemSource) String() string {
+	return s.RootPath
 }
 
 func GetModelDir(url string) (string, error) {

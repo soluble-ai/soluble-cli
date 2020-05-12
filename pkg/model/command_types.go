@@ -16,21 +16,38 @@ package model
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/spf13/cobra"
 )
 
 type CommandType string
 
-var validCommandTypes = []string{
-	"group", "print_cluster", "print_client", "cluster", "client",
+type CommandMaker func(c *cobra.Command, cm *CommandModel) Command
+
+type Command interface {
+	SetContextValues(context map[string]string)
+	GetAPIClient() client.Interface
+	GetUnauthenticatedAPIClient() client.Interface
+	PrintResult(n *jnode.Node)
+	GetCobraCommand() *cobra.Command
+}
+
+type GroupCommand struct {
+	CobraCommand *cobra.Command
+	Commands     []Command
+}
+
+var commandTypes = map[string]CommandMaker{}
+
+func RegisterCommandType(name string, creator CommandMaker) {
+	commandTypes[name] = creator
 }
 
 func (t CommandType) validate() error {
-	if !util.StringSliceContains(validCommandTypes, string(t)) {
-		return fmt.Errorf("invalid type %s, must be one of %s", t, strings.Join(validCommandTypes, " "))
+	if _, ok := commandTypes[string(t)]; !ok {
+		return fmt.Errorf("invalid type %s", t)
 	}
 	return nil
 }
@@ -39,18 +56,32 @@ func (t CommandType) IsGroup() bool {
 	return t == "group"
 }
 
-func (t CommandType) createOptions() options.Interface {
-	switch t {
-	case "group":
-		return nil
-	case "print_cluster":
-		return &options.PrintClusterOpts{}
-	case "print_client":
-		return &options.PrintClientOpts{}
-	case "cluster":
-		return &options.ClusterOpts{}
-	case "client":
-		return &options.ClientOpts{}
-	}
+func (t CommandType) makeCommand(c *cobra.Command, cm *CommandModel) Command {
+	return commandTypes[string(t)](c, cm)
+}
+
+func (g *GroupCommand) SetContextValues(context map[string]string) {}
+func (g *GroupCommand) GetAPIClient() client.Interface {
 	return nil
+}
+func (g *GroupCommand) GetUnauthenticatedAPIClient() client.Interface {
+	return nil
+}
+func (g *GroupCommand) PrintResult(n *jnode.Node) {}
+func (g *GroupCommand) GetCobraCommand() *cobra.Command {
+	return g.CobraCommand
+}
+
+func init() {
+	RegisterCommandType("group", func(c *cobra.Command, cm *CommandModel) Command {
+		g := &GroupCommand{
+			CobraCommand: c,
+		}
+		for i := range cm.Commands {
+			command := cm.Commands[i].GetCommand()
+			g.Commands = append(g.Commands, command)
+			c.AddCommand(command.GetCobraCommand())
+		}
+		return g
+	})
 }

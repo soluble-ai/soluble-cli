@@ -80,10 +80,10 @@ func TestFormat(t *testing.T) {
 
 func TestTs(t *testing.T) {
 	now := time.Now()
+	formatterNow = &now
 	opts := PrintOpts{
 		Path:    []string{"rows"},
 		Columns: []string{"updateTs+", "createTs"},
-		now:     &now,
 	}
 	n := jnode.NewObjectNode()
 	a := n.PutArray("rows")
