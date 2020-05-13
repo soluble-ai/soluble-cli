@@ -25,7 +25,7 @@ type ClusterOpts struct {
 	ClientOpts
 	ClusterID         string
 	ClusterIDOptional bool
-	SetDefault        bool
+	SetClusterID      string
 }
 
 var _ Interface = &ClusterOpts{}
@@ -37,20 +37,21 @@ func (opts *ClusterOpts) SetContextValues(context map[string]string) {
 
 func (opts *ClusterOpts) Register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&opts.ClusterID, "cluster-id", "", "The cluster id.")
-	cmd.Flags().BoolVar(&opts.SetDefault, "set-default", false, "Set the default cluster-id to the value --cluster-id")
+	cmd.Flags().StringVar(&opts.SetClusterID, "set-cluster-id", "", "The cluster id (and make it the default)")
 	opts.ClientOpts.Register(cmd)
 	AddPreRunE(cmd, func(cmd *cobra.Command, args []string) error {
-		flag := cmd.Flag("cluster-id")
-		if flag.Value.String() == "" && !opts.ClusterIDOptional {
+		setClusterIDFlag := cmd.Flag("set-cluster-id")
+		if setClusterIDFlag.Value.String() != "" {
+			config.Config.DefaultClusterID = setClusterIDFlag.Value.String()
+			config.Save()
+		}
+		clusterIDFlag := cmd.Flag("cluster-id")
+		if clusterIDFlag.Value.String() == "" && !opts.ClusterIDOptional {
 			clusterID := config.Config.DefaultClusterID
 			if clusterID == "" {
 				return fmt.Errorf("no --cluster-id flag given, and no default cluster set (set a default cluster with 'config set defaultclusterid')")
 			}
-			_ = flag.Value.Set(clusterID)
-		}
-		if opts.SetDefault && flag.Value.String() != "" {
-			config.Config.DefaultClusterID = flag.Value.String()
-			config.Save()
+			_ = clusterIDFlag.Value.Set(clusterID)
 		}
 		return nil
 	})
