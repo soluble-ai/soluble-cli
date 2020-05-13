@@ -34,8 +34,68 @@ command "group" "kubernetes" {
       required = true
     }
     result {
-      path    = ["data"]
-      columns = ["kind", "name", "namespace", "creationTimestamp", "clusterId", "clusterDisplayName", "updateTs+", ]
+      path = ["data"]
+      columns = [
+        "kind", "name", "namespace", "creationTimestamp", "clusterId", "clusterDisplayName",
+        "updateTs+",
+      ]
     }
+  }
+  command "print_cluster" "get-events" {
+    short  = "Display events for a kubenetes resource"
+    path   = "org/{org}/kubernetes/resources/urn:kubernetes:{organizationID}:{clusterID}:{kind}:{namespace}:{name}/events"
+    method = "GET"
+    parameter "namespace" {
+      usage         = "Namespace of the object"
+      default_value = "default"
+      disposition   = "context"
+    }
+    parameter "name" {
+      usage       = "Name of the object"
+      disposition = "context"
+      required    = true
+    }
+    parameter "kind" {
+      usage       = "The kind of object"
+      disposition = "context"
+      required    = true
+    }
+    result {
+      path = ["data"]
+      columns = [
+        "type", "reason", "message", "count", "firstTimestamp", "lastTimestamp"
+      ]
+      formatters = {
+        firstTimestamp : "relative_ts"
+        lastTimestamp : "relative_ts"
+      }
+    }
+  }
+  command "print_cluster" "get-owners" {
+    short  = "Display the ownership chain of a kubernetes resource"
+    path   = "org/{org}/kubernetes/resources/urn:kubernetes:{organizationID}:{clusterID}:{kind}:{namespace}:{name}/owners"
+    method = "GET"
+    parameter "namespace" {
+      usage         = "Namespace of the object"
+      default_value = "default"
+      disposition   = "context"
+    }
+    parameter "name" {
+      usage       = "Name of the object"
+      disposition = "context"
+      required    = true
+    }
+    parameter "kind" {
+      usage       = "The kind of object"
+      disposition = "context"
+      required    = true
+    }
+    result {
+      path = ["data"]
+      columns = [
+        "kind", "name", "updateTs+"
+      ]
+    }
+
   }
 }
