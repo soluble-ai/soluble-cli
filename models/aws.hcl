@@ -55,8 +55,8 @@ command "group" "aws" {
       required    = true
     }
   }
-  command "print_client" "schedule-scan" {
-    short  = "Schedule a scan of all AWS accounts"
+  command "print_client" "schedule-sync" {
+    short  = "Start synchronizing state with all of the organization's AWS accounts"
     method = "POST"
     path   = "org/{organizationID}/aws/accounts/schedule-scan"
   }
