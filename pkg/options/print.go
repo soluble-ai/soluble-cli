@@ -37,16 +37,17 @@ type HasPrintOpts interface {
 }
 
 type PrintOpts struct {
-	Output      io.Writer
-	Full        bool
-	Wide        bool
-	Path        []string
-	Columns     []string
-	WideColumns []string
-	SortBy      []string
-	Formatters  map[string]Formatter
-	Transformer func(*jnode.Node) *jnode.Node
-	w           *tabwriter.Writer
+	Output        io.Writer
+	Full          bool
+	Wide          bool
+	Path          []string
+	Columns       []string
+	WideColumns   []string
+	SortBy        []string
+	DefaultSortBy []string
+	Formatters    map[string]Formatter
+	Transformer   func(*jnode.Node) *jnode.Node
+	w             *tabwriter.Writer
 }
 
 var _ Interface = &PrintOpts{}
@@ -93,7 +94,7 @@ func (p *PrintOpts) Register(cmd *cobra.Command) {
 		if p.WideColumns != nil {
 			cmd.Flags().BoolVar(&p.Wide, "wide", false, "Display more columns")
 		}
-		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", nil, "Sort by these columns")
+		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy, "Sort by these columns")
 	}
 }
 
