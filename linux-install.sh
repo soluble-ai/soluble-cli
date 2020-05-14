@@ -24,7 +24,7 @@ http_download () {
 }
 else
 http_get () {
-    wget --header "$1" -q "$2"
+    wget -O - --header "$1" -q "$2"
 }
 http_download () {
     wget -O - --header "$1" "$2"
