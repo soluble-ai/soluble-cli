@@ -49,7 +49,7 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 				opts.WideColumns = *r.WideColumns
 			}
 			if r.Sort != nil {
-				opts.SortBy = *r.Sort
+				opts.DefaultSortBy = *r.Sort
 			}
 			if r.Formatters != nil {
 				for columnName := range *r.Formatters {

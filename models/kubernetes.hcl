@@ -71,9 +71,9 @@ command "group" "kubernetes" {
       }
     }
   }
-  command "print_cluster" "get-owners" {
-    short  = "Display the ownership chain of a kubernetes resource"
-    path   = "org/{org}/kubernetes/resources/urn:kubernetes:{organizationID}:{clusterID}:{kind}:{namespace}:{name}/owners"
+  command "print_cluster" "get-owner-group" {
+    short  = "Display the ownership group of a kubernetes resource"
+    path   = "org/{org}/kubernetes/resources/urn:kubernetes:{organizationID}:{clusterID}:{kind}:{namespace}:{name}/owner-group"
     method = "GET"
     parameter "namespace" {
       usage         = "Namespace of the object"
@@ -93,9 +93,41 @@ command "group" "kubernetes" {
     result {
       path = ["data"]
       columns = [
-        "kind", "name", "updateTs+"
+        "kind", "name", "updateTs+", "ownerKind", "ownerName",
       ]
+      sort_by = ["ownerKind", "ownerName", "name"]
     }
-
+  }
+  command "print_cluster" "get-owner-group-events" {
+    short  = "Display the events for objects in an ownership group"
+    path   = "org/{org}/kubernetes/resources/urn:kubernetes:{organizationID}:{clusterID}:{kind}:{namespace}:{name}/owner-group-events"
+    method = "GET"
+    parameter "namespace" {
+      usage         = "Namespace of the object"
+      default_value = "default"
+      disposition   = "context"
+    }
+    parameter "name" {
+      usage       = "Name of the object"
+      disposition = "context"
+      required    = true
+    }
+    parameter "kind" {
+      usage       = "The kind of object"
+      disposition = "context"
+      required    = true
+    }
+    result {
+        path = ["data"]
+        columns = [ 
+            "kind", "name", "type", "reason", "message", "count",
+            "firstTimestamp", "lastTimestamp"
+      ]
+      formatters = {
+        firstTimestamp : "relative_ts"
+        lastTimestamp : "relative_ts"
+      }
+      sort_by = ["ownerKind", "ownerName", "name"]
+    }
   }
 }
