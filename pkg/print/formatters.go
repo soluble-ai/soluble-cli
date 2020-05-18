@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package options
+package print
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
@@ -25,6 +26,27 @@ var (
 	formatterNow      *time.Time
 	formatterLocation *time.Location
 )
+
+type Formatters map[string]Formatter
+
+func (f Formatters) Format(columnName string, n *jnode.Node) string {
+	if f != nil {
+		formatter := f[columnName]
+		if formatter != nil {
+			return formatter(n, columnName)
+		}
+	}
+	var s string
+	switch {
+	case strings.HasSuffix(columnName, "Ts+"):
+		return RelativeTimestampFormatter(n, columnName)
+	case strings.HasSuffix(columnName, "Ts"):
+		return TimestampFormatter(n, columnName)
+	default:
+		s = n.Path(columnName).AsText()
+	}
+	return s
+}
 
 func TimestampFormatter(n *jnode.Node, columnName string) string {
 	s := n.Path(columnName).AsText()

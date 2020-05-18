@@ -170,5 +170,5 @@ func setConfigCmd() *cobra.Command {
 
 func printConfig(opts *options.PrintOpts) {
 	log.Infof("Current profile {primary:%s} loaded from {info:%s}", config.GlobalConfig.CurrentProfile, config.ConfigFile)
-	fmt.Fprintln(opts.GetOutput(), config.Config.String())
+	fmt.Println(config.Config.String())
 }

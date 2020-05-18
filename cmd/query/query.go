@@ -19,6 +19,7 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
 )
 
@@ -116,9 +117,9 @@ func runCommand() *cobra.Command {
 					opts.WideColumns = append(opts.WideColumns, name)
 				}
 				if hasDisplayHint(field, "TS") {
-					opts.SetFormatter(name, options.TimestampFormatter)
+					opts.SetFormatter(name, print.TimestampFormatter)
 				} else if hasDisplayHint(field, "RELATIVE_TS") {
-					opts.SetFormatter(name, options.RelativeTimestampFormatter)
+					opts.SetFormatter(name, print.RelativeTimestampFormatter)
 				}
 			}
 			opts.PrintResult(result)
