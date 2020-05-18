@@ -18,12 +18,19 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	"github.com/soluble-ai/go-colorize"
 	"github.com/soluble-ai/soluble-cli/cmd/root"
 )
 
 func main() {
+	if opts := os.Getenv("SOLUBLE_OPTS"); opts != "" {
+		args := []string{os.Args[0]}
+		args = append(args, strings.Split(opts, " ")...)
+		args = append(args, os.Args[1:]...)
+		os.Args = args
+	}
 	cmd := root.Command()
 	if err := cmd.Execute(); err != nil {
 		colorize.Colorize("{danger:Error:} {warning:%s}\n", err)
