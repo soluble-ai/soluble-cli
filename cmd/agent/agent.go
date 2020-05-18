@@ -23,6 +23,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +40,7 @@ func pingClusterCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			opts.PrintResultYAML(result)
+			opts.PrintResult(result)
 
 			messageID := result.Path("messageId").AsText()
 
@@ -55,7 +56,7 @@ func pingClusterCmd() *cobra.Command {
 						log.Warnf("%s", err)
 						return err
 					}
-					opts.PrintResultYAML(result)
+					opts.PrintResult(result)
 					return nil
 				}, retry.Delay(10*time.Second), retry.DelayType(retry.FixedDelay),
 				retry.LastErrorOnly(true), retry.Attempts(6),
@@ -124,14 +125,15 @@ func listCmd() *cobra.Command {
 			Path: []string{"agents"},
 			Columns: []string{"agentInstanceId", "clusterId", "agentVersion", "agentStartTs", "updateTs+",
 				"agentRemoteIp", "message"},
-			Transformer: func(n *jnode.Node) *jnode.Node {
-				// pick the first message, and if it's JSON use the "msg" field
-				s := n.Path("messages").Get(0).Path("message").AsText()
-				if m, err := jnode.FromJSON([]byte(s)); err == nil {
-					s = m.Path("msg").AsText()
-				}
-				n.Put("message", s)
-				return n
+			Formatters: map[string]print.Formatter{
+				"message": func(n *jnode.Node, columnName string) string {
+					// pick the first message, and if it's JSON use the "msg" field
+					s := n.Path("messages").Get(0).Path("message").AsText()
+					if m, err := jnode.FromJSON([]byte(s)); err == nil {
+						s = m.Path("msg").AsText()
+					}
+					return s
+				},
 			},
 		},
 		ClusterOpts: options.ClusterOpts{

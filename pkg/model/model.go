@@ -23,7 +23,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -304,7 +304,7 @@ func (r *ResultModel) validate() error {
 	return nil
 }
 
-func (r *ResultModel) GetFormatter(column string) options.Formatter {
+func (r *ResultModel) GetFormatter(column string) print.Formatter {
 	if r.Formatters != nil {
 		return ColumnFormatterType((*r.Formatters)[column]).GetFormatter()
 	}

@@ -17,12 +17,12 @@ package model
 import (
 	"fmt"
 
-	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 )
 
 type ColumnFormatterType string
 
-var columnFormatters = map[string]options.Formatter{}
+var columnFormatters = map[string]print.Formatter{}
 
 func (t ColumnFormatterType) validate() error {
 	if _, ok := columnFormatters[string(t)]; !ok {
@@ -31,16 +31,16 @@ func (t ColumnFormatterType) validate() error {
 	return nil
 }
 
-func (t ColumnFormatterType) GetFormatter() options.Formatter {
+func (t ColumnFormatterType) GetFormatter() print.Formatter {
 	return columnFormatters[string(t)]
 }
 
-func RegisterColumnFormatter(name string, formatter options.Formatter) {
+func RegisterColumnFormatter(name string, formatter print.Formatter) {
 	columnFormatters[name] = formatter
 }
 
 func init() {
 	RegisterColumnFormatter("", nil)
-	RegisterColumnFormatter("ts", options.TimestampFormatter)
-	RegisterColumnFormatter("relative_ts", options.RelativeTimestampFormatter)
+	RegisterColumnFormatter("ts", print.TimestampFormatter)
+	RegisterColumnFormatter("relative_ts", print.RelativeTimestampFormatter)
 }

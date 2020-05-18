@@ -18,6 +18,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +38,7 @@ func newListClustersCommand() *cobra.Command {
 			Columns: []string{
 				"default", "displayName", "clusterId", "clusterEndpoint", "updateTs+", "clusterManager", "kubeGitVersion", "agentVersion",
 			},
-			Formatters: map[string]options.Formatter{
+			Formatters: map[string]print.Formatter{
 				"default": func(n *jnode.Node, columnName string) string {
 					if isDefaultClusterID(n.Path("clusterId").AsText()) {
 						return "   *"

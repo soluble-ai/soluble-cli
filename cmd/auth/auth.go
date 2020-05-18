@@ -50,7 +50,7 @@ func profileCmd() *cobra.Command {
 			if config.UpdateFromServerProfile(result) {
 				config.Save()
 			}
-			opts.PrintResultYAML(result)
+			opts.PrintResult(result)
 			return nil
 		},
 	}
