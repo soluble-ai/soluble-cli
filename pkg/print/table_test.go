@@ -21,8 +21,8 @@ func TestHeader(t *testing.T) {
 func TestTable(t *testing.T) {
 	w := &bytes.Buffer{}
 	printer := &TablePrinter{
-		Path:    []string{"results"},
-		Columns: []string{"name", "value"},
+		PathSupport: PathSupport{Path: []string{"results"}},
+		Columns:     []string{"name", "value"},
 	}
 	n := jnode.NewObjectNode()
 	n.PutArray("results").Append(nv("greeting", "hello")).
@@ -39,8 +39,8 @@ func nv(n, v string) *jnode.Node {
 
 func TestFormat(t *testing.T) {
 	printer := &TablePrinter{
-		Path:    []string{"rows"},
-		Columns: []string{"v1", "v2"},
+		PathSupport: PathSupport{Path: []string{"rows"}},
+		Columns:     []string{"v1", "v2"},
 		Formatters: map[string]Formatter{
 			"v1": func(n *jnode.Node, columnName string) string {
 				return "xxx"
@@ -63,8 +63,8 @@ func TestTs(t *testing.T) {
 	now := time.Now()
 	formatterNow = &now
 	opts := TablePrinter{
-		Path:    []string{"rows"},
-		Columns: []string{"updateTs+", "createTs"},
+		PathSupport: PathSupport{Path: []string{"rows"}},
+		Columns:     []string{"updateTs+", "createTs"},
 	}
 	n := jnode.NewObjectNode()
 	a := n.PutArray("rows")
