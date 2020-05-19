@@ -12,6 +12,7 @@ import (
 )
 
 type TablePrinter struct {
+	Filter
 	NoHeaders  bool
 	Path       []string
 	Columns    []string
@@ -40,6 +41,9 @@ func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) {
 		sort.Sort(&rowsSort{rows, p.SortBy})
 	}
 	for _, row := range rows {
+		if !p.matches(row) {
+			continue
+		}
 		for i, c := range p.Columns {
 			if i > 0 {
 				fmt.Fprint(w, "\t")
