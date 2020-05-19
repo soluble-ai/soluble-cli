@@ -17,6 +17,7 @@ package options
 import (
 	"io"
 	"os"
+	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -45,13 +46,17 @@ func (p *PrintOpts) Register(cmd *cobra.Command) {
 	if p.Path == nil {
 		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json")
 	} else {
-		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: table, yaml, json, csv")
+		cmd.Flags().StringVar(&p.OutputFormat, "format", "",
+			`Use this output format, where format is one of: table,
+yaml, json, csv, or value(name).  The value(name) form prints the value
+of the attribute 'name'.`)
 		cmd.Flags().BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
 		cmd.Flags().StringVar(&p.Filter, "filter", "",
-			`Restrict results to those that pass filter.  The filter string 
-can be in the form 'attribute=glob-pattern' or 'attribute!=glob-pattern' to
-search on attributes, or 'attribute=' to search for rows that contain an
-attribute, or just 'glob-pattern' to search all attributes`)
+			`Restrict results to those that pass filter.  The filter
+string can be in the form 'attribute=glob-pattern' or
+'attribute!=glob-pattern' to search on attributes, or 'attribute=' to
+search for rows that contain an attribute, or just 'glob-pattern' to
+search all attributes`)
 		if p.WideColumns != nil {
 			cmd.Flags().BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
 		}
@@ -72,19 +77,25 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 		}
 		p.Wide = true
 		return &print.CSVPrinter{
-			NoHeaders:  p.NoHeaders,
-			Columns:    p.getEffectiveColumns(),
-			Path:       p.Path,
-			SortBy:     p.SortBy,
+			NoHeaders: p.NoHeaders,
+			Columns:   p.getEffectiveColumns(),
+			PathSupport: print.PathSupport{
+				Path:   p.Path,
+				SortBy: p.SortBy,
+			},
 			Formatters: p.Formatters,
 			Filter:     print.NewFilter(p.Filter),
 		}
+	case len(p.Path) > 0 && strings.HasPrefix(p.OutputFormat, "value("):
+		return print.NewValuePrinter(p.OutputFormat, p.Path)
 	case len(p.Path) > 0 && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
-			NoHeaders:  p.NoHeaders,
-			Columns:    p.getEffectiveColumns(),
-			Path:       p.Path,
-			SortBy:     p.SortBy,
+			NoHeaders: p.NoHeaders,
+			Columns:   p.getEffectiveColumns(),
+			PathSupport: print.PathSupport{
+				Path:   p.Path,
+				SortBy: p.SortBy,
+			},
 			Formatters: p.Formatters,
 			Filter:     print.NewFilter(p.Filter),
 		}

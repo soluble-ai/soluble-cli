@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sort"
 	"text/tabwriter"
 	"unicode"
 
@@ -12,11 +11,10 @@ import (
 )
 
 type TablePrinter struct {
+	PathSupport
 	Filter
 	NoHeaders  bool
-	Path       []string
 	Columns    []string
-	SortBy     []string
 	Formatters Formatters
 }
 
@@ -32,14 +30,7 @@ func (p *TablePrinter) PrintResult(w io.Writer, result *jnode.Node) {
 }
 
 func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) {
-	r := result
-	for _, p := range p.Path {
-		r = r.Path(p)
-	}
-	rows := r.Elements()
-	if p.SortBy != nil {
-		sort.Sort(&rowsSort{rows, p.SortBy})
-	}
+	rows := p.getRows(result)
 	for _, row := range rows {
 		if !p.matches(row) {
 			continue

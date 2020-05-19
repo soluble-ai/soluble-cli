@@ -9,11 +9,10 @@ import (
 )
 
 type CSVPrinter struct {
+	PathSupport
 	Filter
 	NoHeaders  bool
-	Path       []string
 	Columns    []string
-	SortBy     []string
 	Formatters Formatters
 }
 
