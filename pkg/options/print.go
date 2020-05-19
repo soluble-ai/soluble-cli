@@ -34,6 +34,7 @@ type PrintOpts struct {
 	WideColumns   []string
 	SortBy        []string
 	DefaultSortBy []string
+	Filter        string
 	Formatters    map[string]print.Formatter
 	output        io.Writer
 }
@@ -41,9 +42,16 @@ type PrintOpts struct {
 var _ Interface = &PrintOpts{}
 
 func (p *PrintOpts) Register(cmd *cobra.Command) {
-	if p.Path != nil {
+	if p.Path == nil {
+		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json")
+	} else {
 		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: table, yaml, json, csv")
 		cmd.Flags().BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
+		cmd.Flags().StringVar(&p.Filter, "filter", "",
+			`Restrict results to those that pass filter.  The filter string 
+can be in the form 'attribute=glob-pattern' or 'attribute!=glob-pattern' to
+search on attributes, or 'attribute=' to search for rows that contain an
+attribute, or just 'glob-pattern' to search all attributes`)
 		if p.WideColumns != nil {
 			cmd.Flags().BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
 		}
@@ -52,40 +60,38 @@ func (p *PrintOpts) Register(cmd *cobra.Command) {
 }
 
 func (p *PrintOpts) GetPrinter() print.Interface {
-	switch p.OutputFormat {
-	case "json":
+	switch {
+	case p.OutputFormat == "json":
 		return &print.JSONPrinter{}
-	case "yaml":
+	case len(p.Path) == 0 && (p.OutputFormat == "" || p.OutputFormat == "yaml"):
 		return &print.YAMLPrinter{}
-	case "csv":
+	case len(p.Path) > 0 && p.OutputFormat == "csv":
 		if len(p.Path) == 0 {
 			log.Errorf("This command does not support the {danger:csv} format")
 			os.Exit(2)
 		}
+		p.Wide = true
 		return &print.CSVPrinter{
 			NoHeaders:  p.NoHeaders,
 			Columns:    p.getEffectiveColumns(),
 			Path:       p.Path,
 			SortBy:     p.SortBy,
 			Formatters: p.Formatters,
+			Filter:     print.NewFilter(p.Filter),
 		}
-	case "table":
-		fallthrough
-	default:
-		if len(p.Path) == 0 {
-			if p.OutputFormat == "table" {
-				log.Errorf("This command does not support the {danger:table} format")
-				os.Exit(2)
-			}
-			return &print.YAMLPrinter{}
-		}
+	case len(p.Path) > 0 && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
 			NoHeaders:  p.NoHeaders,
 			Columns:    p.getEffectiveColumns(),
 			Path:       p.Path,
 			SortBy:     p.SortBy,
 			Formatters: p.Formatters,
+			Filter:     print.NewFilter(p.Filter),
 		}
+	default:
+		log.Errorf("This command does not support the {danger:%s} format", p.OutputFormat)
+		os.Exit(2)
+		return nil
 	}
 }
 
@@ -99,13 +105,24 @@ func (p *PrintOpts) PrintResult(result *jnode.Node) {
 	p.GetPrinter().PrintResult(w, result)
 }
 
+// Returns all the columns that should be included in the result,
+// in order.  If Wide is set, then union(p.Columns, p.WideColumns).
+// Otherwise all p.Columns not in p.WideColumns.
 func (p *PrintOpts) getEffectiveColumns() []string {
 	if p.Wide {
-		return p.Columns
+		result := util.NewStringSet()
+		for _, c := range p.Columns {
+			result.Add(c)
+		}
+		for _, wc := range p.WideColumns {
+			result.Add(wc)
+		}
+		return result.Values()
 	}
+	wc := util.NewStringSet().AddAll(p.WideColumns...)
 	columns := make([]string, 0, len(p.Columns))
 	for _, c := range p.Columns {
-		if !util.StringSliceContains(p.WideColumns, c) {
+		if !wc.Contains(c) {
 			columns = append(columns, c)
 		}
 	}

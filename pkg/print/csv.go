@@ -9,6 +9,7 @@ import (
 )
 
 type CSVPrinter struct {
+	Filter
 	NoHeaders  bool
 	Path       []string
 	Columns    []string
@@ -45,6 +46,9 @@ func (p *CSVPrinter) printRows(w *csv.Writer, result *jnode.Node) {
 		sort.Sort(&rowsSort{rows, p.SortBy})
 	}
 	for _, row := range rows {
+		if !p.matches(row) {
+			continue
+		}
 		rec := make([]string, len(p.Columns))
 		for i, c := range p.Columns {
 			rec[i] = p.Formatters.Format(c, row)
