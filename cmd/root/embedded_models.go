@@ -25,6 +25,7 @@ func getEmbeddedModelsSource() model.Source {
 		embeddedModelsSource = &model.FileSystemSource{
 			Filesystem: embeddedFS,
 			RootPath:   "<internal>",
+			Embedded:   true,
 		}
 	}
 	return embeddedModelsSource

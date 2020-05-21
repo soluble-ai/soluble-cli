@@ -34,6 +34,8 @@ func (opts *ClientOpts) SetContextValues(context map[string]string) {
 func (opts *ClientOpts) Register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&opts.APIServer, "api-server", "", "Soluble API server endpoint (e.g. https://api.soluble.cloud)")
 	cmd.Flags().BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
+	cmd.Flags().IntVar(&opts.TimeoutSeconds, "timeout", 0, "The timeout (in seconds) for requests (0 means no timeout)")
+	cmd.Flags().IntVar(&opts.RetryCount, "retry", 0, "The number of times to retry the request")
 	if !opts.AuthNotRequired {
 		cmd.Flags().StringVar(&opts.Organization, "organization", "", "The organization to use.")
 		cmd.Flags().StringVar(&opts.APIToken, "token", "", "The authentication token (read from profile by default)")
@@ -42,6 +44,7 @@ func (opts *ClientOpts) Register(cmd *cobra.Command) {
 
 func (opts *ClientOpts) GetAPIClientConfig() *client.Config {
 	cfg := opts.Config
+
 	if cfg.Organization == "" {
 		cfg.Organization = config.Config.Organization
 	}
