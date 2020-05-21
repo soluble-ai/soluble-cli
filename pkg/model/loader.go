@@ -59,6 +59,7 @@ func Load(source Source) error {
 		if err := model.validate(); err != nil {
 			return err
 		}
+		model.Source = source
 	}
 	Models = append(Models, m.models...)
 	return nil

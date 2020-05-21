@@ -37,5 +37,6 @@ func init() {
 	embeddedModelsSource = &model.FileSystemSource{
 		Filesystem: embeddedFS,
 		RootPath:   name,
+		Embedded:   true,
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
@@ -30,12 +31,14 @@ const (
 )
 
 type Config struct {
-	Organization string
-	APIToken     string
-	APIServer    string
-	APIPrefix    string
-	Debug        bool
-	TLSNoVerify  bool
+	Organization   string
+	APIToken       string
+	APIServer      string
+	APIPrefix      string
+	Debug          bool
+	TLSNoVerify    bool
+	TimeoutSeconds int
+	RetryCount     int
 }
 
 type Option func(*resty.Request)
@@ -112,7 +115,8 @@ func NewClient(config *Config) Interface {
 			r.Request.URL, r.StatusCode())
 		return nil
 	})
-
+	c.SetTimeout(time.Duration(config.TimeoutSeconds) * time.Second)
+	c.SetRetryCount(config.RetryCount)
 	return c
 }
 

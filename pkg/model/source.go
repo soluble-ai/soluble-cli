@@ -28,11 +28,13 @@ type Source interface {
 	GetPath(file string) string
 	GetVersion(file string, content []byte) string
 	String() string
+	IsEmbedded() bool
 }
 
 type FileSystemSource struct {
 	Filesystem http.FileSystem
 	RootPath   string
+	Embedded   bool
 }
 
 func (s *FileSystemSource) GetPath(name string) string {
@@ -46,6 +48,10 @@ func (s *FileSystemSource) GetFileSystem() http.FileSystem {
 func (s *FileSystemSource) GetVersion(name string, content []byte) string {
 	h := sha256.Sum256(content)
 	return fmt.Sprintf("%012x", h[0:6])
+}
+
+func (s *FileSystemSource) IsEmbedded() bool {
+	return s.Embedded
 }
 
 func (s *FileSystemSource) String() string {

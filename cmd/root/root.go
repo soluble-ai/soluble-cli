@@ -77,7 +77,7 @@ func Command() *cobra.Command {
 	addBuiltinCommands(rootCmd)
 	loadModels()
 	for _, model := range model.Models {
-		mergeCommands(rootCmd, model.Command.GetCommand().GetCobraCommand(), model.FileName)
+		mergeCommands(rootCmd, model.Command.GetCommand().GetCobraCommand(), model)
 	}
 
 	return rootCmd
@@ -117,7 +117,7 @@ func loadModels() {
 	}
 }
 
-func mergeCommands(root, cmd *cobra.Command, fileName string) {
+func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 	for _, existingCommand := range root.Commands() {
 		if existingCommand.Use == cmd.Use {
 			subCommands := cmd.Commands()
@@ -126,10 +126,13 @@ func mergeCommands(root, cmd *cobra.Command, fileName string) {
 				break
 			}
 			for _, subCommand := range subCommands {
-				mergeCommands(existingCommand, subCommand, fileName)
+				mergeCommands(existingCommand, subCommand, m)
 			}
 			return
 		}
+	}
+	if !m.Source.IsEmbedded() {
+		cmd.Short += " (" + m.Source.String() + ")"
 	}
 	root.AddCommand(cmd)
 }

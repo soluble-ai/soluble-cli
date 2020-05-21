@@ -34,6 +34,7 @@ type Model struct {
 	MinCLIVersion *string      `hcl:"min_cli_version"`
 	FileName      string
 	Version       string
+	Source        Source
 }
 
 type CommandModel struct {
