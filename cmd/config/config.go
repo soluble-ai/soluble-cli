@@ -20,7 +20,6 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -135,13 +134,28 @@ func listProfilesCmd() *cobra.Command {
 	return c
 }
 
+type PrintConfigOpts options.PrintOpts
+
+func (opts *PrintConfigOpts) Register(c *cobra.Command) {
+	(*options.PrintOpts)(opts).Register(c)
+	opts.NoHeaders = true
+	opts.Path = []string{"data"}
+	opts.Columns = []string{"text"}
+}
+
+func (opts *PrintConfigOpts) PrintConfig() {
+	n := jnode.NewObjectNode()
+	n.PutArray("data").AppendObject().Put("text", config.Config.String())
+	(*options.PrintOpts)(opts).PrintResult(n)
+}
+
 func showConfigCmd() *cobra.Command {
-	var opts options.PrintOpts
+	var opts PrintConfigOpts
 	c := &cobra.Command{
 		Use:   "show",
 		Short: "Show the configuration of the CLI",
 		Run: func(cmd *cobra.Command, args []string) {
-			printConfig(&opts)
+			opts.PrintConfig()
 		},
 	}
 	opts.Register(c)
@@ -149,7 +163,7 @@ func showConfigCmd() *cobra.Command {
 }
 
 func setConfigCmd() *cobra.Command {
-	var opts options.PrintOpts
+	var opts PrintConfigOpts
 	c := &cobra.Command{
 		Use:   "set name value",
 		Short: "Set a CLI configuration parameter",
@@ -160,15 +174,10 @@ func setConfigCmd() *cobra.Command {
 				return err
 			}
 			config.Save()
-			printConfig(&opts)
+			opts.PrintConfig()
 			return nil
 		},
 	}
 	opts.Register(c)
 	return c
-}
-
-func printConfig(opts *options.PrintOpts) {
-	log.Infof("Current profile {primary:%s} loaded from {info:%s}", config.GlobalConfig.CurrentProfile, config.ConfigFile)
-	fmt.Println(config.Config.String())
 }

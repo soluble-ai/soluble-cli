@@ -36,6 +36,8 @@ func (opts *ClientOpts) Register(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
 	cmd.Flags().IntVar(&opts.TimeoutSeconds, "timeout", 0, "The timeout (in seconds) for requests (0 means no timeout)")
 	cmd.Flags().IntVar(&opts.RetryCount, "retry", 0, "The number of times to retry the request")
+	cmd.Flags().Float64Var(&opts.RetryWaitSeconds, "retry-wait", 0, "The initial time in seconds to wait between retry attempts, e.g. 0.5 to wait 500 millis")
+	cmd.Flags().StringSliceVar(&opts.Headers, "header", nil, "Set custom headers on request")
 	if !opts.AuthNotRequired {
 		cmd.Flags().StringVar(&opts.Organization, "organization", "", "The organization to use.")
 		cmd.Flags().StringVar(&opts.APIToken, "token", "", "The authentication token (read from profile by default)")

@@ -44,15 +44,15 @@ var _ Interface = &PrintOpts{}
 
 func (p *PrintOpts) Register(cmd *cobra.Command) {
 	if p.Path == nil {
-		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json")
+		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json or none")
 	} else {
 		cmd.Flags().StringVar(&p.OutputFormat, "format", "",
 			`Use this output format, where format is one of: table,
-yaml, json, csv, or value(name).  The value(name) form prints the value
-of the attribute 'name'.`)
+yaml, json, none, csv, or value(name).  The value(name) form prints
+the value of the attribute 'name'.`)
 		cmd.Flags().BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
 		cmd.Flags().StringVar(&p.Filter, "filter", "",
-			`Restrict results to those that pass filter.  The filter
+			`Restrict results to those that match a filter.  The filter
 string can be in the form 'attribute=glob-pattern' or
 'attribute!=glob-pattern' to search on attributes, or 'attribute=' to
 search for rows that contain an attribute, or just 'glob-pattern' to
@@ -66,6 +66,8 @@ search all attributes`)
 
 func (p *PrintOpts) GetPrinter() print.Interface {
 	switch {
+	case p.OutputFormat == "none":
+		return &print.NonePrinter{}
 	case p.OutputFormat == "json":
 		return &print.JSONPrinter{}
 	case len(p.Path) == 0 && (p.OutputFormat == "" || p.OutputFormat == "yaml"):
@@ -87,7 +89,7 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 			Filter:     print.NewFilter(p.Filter),
 		}
 	case len(p.Path) > 0 && strings.HasPrefix(p.OutputFormat, "value("):
-		return print.NewValuePrinter(p.OutputFormat, p.Path)
+		return print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
 	case len(p.Path) > 0 && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
 			NoHeaders: p.NoHeaders,

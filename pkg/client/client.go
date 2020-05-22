@@ -31,14 +31,16 @@ const (
 )
 
 type Config struct {
-	Organization   string
-	APIToken       string
-	APIServer      string
-	APIPrefix      string
-	Debug          bool
-	TLSNoVerify    bool
-	TimeoutSeconds int
-	RetryCount     int
+	Organization     string
+	APIToken         string
+	APIServer        string
+	APIPrefix        string
+	Debug            bool
+	TLSNoVerify      bool
+	TimeoutSeconds   int
+	RetryCount       int
+	RetryWaitSeconds float64
+	Headers          []string
 }
 
 type Option func(*resty.Request)
@@ -117,6 +119,13 @@ func NewClient(config *Config) Interface {
 	})
 	c.SetTimeout(time.Duration(config.TimeoutSeconds) * time.Second)
 	c.SetRetryCount(config.RetryCount)
+	if config.RetryWaitSeconds > 0 {
+		c.SetRetryWaitTime(time.Duration(config.RetryWaitSeconds*1000) * time.Millisecond)
+	}
+	for _, header := range config.Headers {
+		nv := strings.Split(header, ":")
+		c.SetHeader(nv[0], nv[1])
+	}
 	return c
 }
 
