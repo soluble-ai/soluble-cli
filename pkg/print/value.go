@@ -19,14 +19,14 @@ var _ Interface = &ValuePrinter{}
 
 var valueSpecRe = regexp.MustCompile(`value\((.*)\)`)
 
-func NewValuePrinter(format string, path []string) *ValuePrinter {
+func NewValuePrinter(format string, path []string, sortBy []string) *ValuePrinter {
 	m := valueSpecRe.FindStringSubmatch(format)
 	if m[1] == "" {
 		log.Warnf("invalid value specifier {warning:%s} - must be in the form 'value(name)'", format)
 		os.Exit(2)
 	}
 	return &ValuePrinter{
-		PathSupport: PathSupport{Path: path},
+		PathSupport: PathSupport{Path: path, SortBy: sortBy},
 		Name:        m[1],
 	}
 }
