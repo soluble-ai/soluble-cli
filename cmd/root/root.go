@@ -49,6 +49,9 @@ func Command() *cobra.Command {
 			if f, _ := cmd.Flags().GetBool("no-color"); f {
 				color.NoColor = true
 			}
+			if f, _ := cmd.Flags().GetBool("force-color"); f {
+				color.NoColor = false
+			}
 			if f, _ := cmd.Flags().GetBool("quiet"); f {
 				log.Level = log.Error
 			}
@@ -72,6 +75,7 @@ func Command() *cobra.Command {
 	rootCmd.PersistentFlags().Bool("debug", false, "Run with debug logging")
 	rootCmd.PersistentFlags().Bool("quiet", false, "Run with no logging")
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
+	rootCmd.PersistentFlags().Bool("force-color", false, "Enable color output")
 
 	config.Load()
 	addBuiltinCommands(rootCmd)

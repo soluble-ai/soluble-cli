@@ -35,6 +35,7 @@ type PrintOpts struct {
 	WideColumns   []string
 	SortBy        []string
 	DefaultSortBy []string
+	Limit         int
 	Filter        string
 	Formatters    map[string]print.Formatter
 	output        io.Writer
@@ -44,7 +45,7 @@ var _ Interface = &PrintOpts{}
 
 func (p *PrintOpts) Register(cmd *cobra.Command) {
 	if p.Path == nil {
-		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json or none")
+		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json, value or none")
 	} else {
 		cmd.Flags().StringVar(&p.OutputFormat, "format", "",
 			`Use this output format, where format is one of: table,
@@ -61,6 +62,7 @@ search all attributes`)
 			cmd.Flags().BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
 		}
 		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy, "Sort by these columns (table, csv)")
+		cmd.Flags().IntVar(&p.Limit, "print-limit", 0, "Print no more than this number of rows")
 	}
 }
 
@@ -88,7 +90,7 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 			Formatters: p.Formatters,
 			Filter:     print.NewFilter(p.Filter),
 		}
-	case len(p.Path) > 0 && strings.HasPrefix(p.OutputFormat, "value("):
+	case strings.HasPrefix(p.OutputFormat, "value("):
 		return print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
 	case len(p.Path) > 0 && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
