@@ -32,10 +32,17 @@ func NewValuePrinter(format string, path []string, sortBy []string) *ValuePrinte
 }
 
 func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) {
-	for _, row := range p.getRows(result) {
-		n := row.Path(p.Name)
+	if len(p.Path) == 0 {
+		n := result.Path(p.Name)
 		if !n.IsMissing() {
 			fmt.Fprintln(w, n.AsText())
+		}
+	} else {
+		for _, row := range p.getRows(result) {
+			n := row.Path(p.Name)
+			if !n.IsMissing() {
+				fmt.Fprintln(w, n.AsText())
+			}
 		}
 	}
 }
