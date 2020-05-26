@@ -26,7 +26,6 @@ import (
 
 type TablePrinter struct {
 	PathSupport
-	Filter
 	NoHeaders  bool
 	Columns    []string
 	Formatters Formatters
@@ -46,9 +45,6 @@ func (p *TablePrinter) PrintResult(w io.Writer, result *jnode.Node) {
 func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) {
 	rows := p.getRows(result)
 	for _, row := range rows {
-		if !p.matches(row) {
-			continue
-		}
 		for i, c := range p.Columns {
 			if i > 0 {
 				fmt.Fprint(w, "\t")

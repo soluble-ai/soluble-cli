@@ -84,24 +84,26 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 			NoHeaders: p.NoHeaders,
 			Columns:   p.getEffectiveColumns(),
 			PathSupport: print.PathSupport{
+				Filter: print.NewFilter(p.Filter),
 				Path:   p.Path,
 				SortBy: p.SortBy,
 			},
 			Formatters: p.Formatters,
-			Filter:     print.NewFilter(p.Filter),
 		}
 	case strings.HasPrefix(p.OutputFormat, "value("):
-		return print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
+		vp := print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
+		vp.Filter = print.NewFilter(p.Filter)
+		return vp
 	case len(p.Path) > 0 && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
 			NoHeaders: p.NoHeaders,
 			Columns:   p.getEffectiveColumns(),
 			PathSupport: print.PathSupport{
+				Filter: print.NewFilter(p.Filter),
 				Path:   p.Path,
 				SortBy: p.SortBy,
 			},
 			Formatters: p.Formatters,
-			Filter:     print.NewFilter(p.Filter),
 		}
 	default:
 		log.Errorf("This command does not support the {danger:%s} format", p.OutputFormat)
