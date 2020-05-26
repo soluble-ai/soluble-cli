@@ -17,14 +17,12 @@ package print
 import (
 	"encoding/csv"
 	"io"
-	"sort"
 
 	"github.com/soluble-ai/go-jnode"
 )
 
 type CSVPrinter struct {
 	PathSupport
-	Filter
 	NoHeaders  bool
 	Columns    []string
 	Formatters Formatters
@@ -50,18 +48,8 @@ func (p *CSVPrinter) printHeaders(w *csv.Writer) {
 }
 
 func (p *CSVPrinter) printRows(w *csv.Writer, result *jnode.Node) {
-	r := result
-	for _, p := range p.Path {
-		r = r.Path(p)
-	}
-	rows := r.Elements()
-	if p.SortBy != nil {
-		sort.Sort(&rowsSort{rows, p.SortBy})
-	}
+	rows := p.getRows(result)
 	for _, row := range rows {
-		if !p.matches(row) {
-			continue
-		}
 		rec := make([]string, len(p.Columns))
 		for i, c := range p.Columns {
 			rec[i] = p.Formatters.Format(c, row)

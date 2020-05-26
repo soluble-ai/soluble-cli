@@ -21,6 +21,7 @@ import (
 )
 
 type PathSupport struct {
+	Filter
 	Path   []string
 	SortBy []string
 	Limit  int
@@ -28,7 +29,14 @@ type PathSupport struct {
 
 func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
 	r := nav(result, p.Path)
-	rows := r.Elements()
+	rows := []*jnode.Node{}
+	for _, row := range r.Elements() {
+		if !p.matches(row) {
+			continue
+		}
+		rows = append(rows, row)
+	}
+
 	if p.SortBy != nil {
 		sort.Sort(&rowsSort{rows, p.SortBy})
 	}
