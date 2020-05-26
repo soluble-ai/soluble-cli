@@ -15,32 +15,27 @@
 package print
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/soluble-ai/go-jnode"
 )
 
-func TestFilter(t *testing.T) {
-	row := jnode.NewObjectNode().Put("name", "value").Put("greeting", "hello")
-	if n := NewFilter("hello"); n.name != "" || n.g == nil || !n.matches(row) {
-		t.Error(n)
+func TestValue(t *testing.T) {
+	vp := NewValuePrinter("value(x.y)", []string{"data"}, nil)
+	n := jnode.NewObjectNode()
+	n.PutObject("a").Put("b", "hello")
+	a := n.PutArray("data")
+	a.AppendObject().PutObject("x").Put("y", 1)
+	w := &bytes.Buffer{}
+	vp.PrintResult(w, n)
+	if s := w.String(); s != "1\n" {
+		t.Error(s)
 	}
-	if n := NewFilter("name="); n.name != "name" || !n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter(""); !n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("world"); n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("name=joe*"); n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("name=v*"); !n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("name!=value"); n.matches(row) {
-		t.Error(n)
+	vp = NewValuePrinter("value(a.b)", nil, nil)
+	w.Reset()
+	vp.PrintResult(w, n)
+	if s := w.String(); s != "hello\n" {
+		t.Error(s)
 	}
 }

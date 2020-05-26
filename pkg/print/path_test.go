@@ -20,27 +20,22 @@ import (
 	"github.com/soluble-ai/go-jnode"
 )
 
-func TestFilter(t *testing.T) {
-	row := jnode.NewObjectNode().Put("name", "value").Put("greeting", "hello")
-	if n := NewFilter("hello"); n.name != "" || n.g == nil || !n.matches(row) {
-		t.Error(n)
+func TestPathSupport(t *testing.T) {
+	ps := &PathSupport{
+		Path:   []string{"a", "b"},
+		Limit:  2,
+		SortBy: []string{"x"},
 	}
-	if n := NewFilter("name="); n.name != "name" || !n.matches(row) {
-		t.Error(n)
+	n := jnode.NewObjectNode()
+	a := n.PutObject("a").PutArray("b")
+	a.Append(jnode.NewObjectNode().Put("x", 1))
+	a.Append(jnode.NewObjectNode().Put("x", 3))
+	a.Append(jnode.NewObjectNode().Put("x", 2))
+	rows := ps.getRows(n)
+	if len(rows) != 2 {
+		t.Error(rows)
 	}
-	if n := NewFilter(""); !n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("world"); n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("name=joe*"); n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("name=v*"); !n.matches(row) {
-		t.Error(n)
-	}
-	if n := NewFilter("name!=value"); n.matches(row) {
-		t.Error(n)
+	if rows[1].Path("x").AsInt() != 2 {
+		t.Error(rows)
 	}
 }
