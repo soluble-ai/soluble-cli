@@ -28,9 +28,9 @@ import (
 )
 
 type modelLoader struct {
-	models      []*Model
-	diagnostics hcl.Diagnostics
-	parser      *hclparse.Parser
+	models []*Model
+
+	parser *hclparse.Parser
 }
 
 func Load(source Source) error {
@@ -47,21 +47,26 @@ func Load(source Source) error {
 		78,               // wrapping width
 		true,             // generate colored/highlighted output
 	)
-	_ = wr.WriteDiagnostics(m.diagnostics)
-	if m.diagnostics.HasErrors() {
-		return fmt.Errorf("some models have errors")
-	}
+	var modelsWithErrors []string
 	for _, model := range m.models {
 		if model.MinCLIVersion != nil && !version.IsCompatible(*model.MinCLIVersion) {
 			log.Warnf("The model in %s is not compatible with this version of the CLI (require %s)",
 				model.FileName, *model.MinCLIVersion)
+			continue
+		}
+		if model.diagnostics.HasErrors() {
+			_ = wr.WriteDiagnostics(model.diagnostics)
+			modelsWithErrors = append(modelsWithErrors, model.FileName)
 		}
 		if err := model.validate(); err != nil {
 			return err
 		}
 		model.Source = source
+		Models = append(Models, model)
 	}
-	Models = append(Models, m.models...)
+	if len(modelsWithErrors) > 0 {
+		return fmt.Errorf("the following models have errors: %s", strings.Join(modelsWithErrors, " "))
+	}
 	return nil
 }
 
@@ -108,16 +113,16 @@ func (m *modelLoader) loadModel(source Source, name string) error {
 		return err
 	}
 	file, diag := m.parser.ParseHCL(src, source.GetPath(name))
-	m.diagnostics = m.diagnostics.Extend(diag)
+	model := &Model{
+		FileName:    source.GetPath(name),
+		Version:     source.GetVersion(name, src),
+		diagnostics: diag,
+	}
+	m.models = append(m.models, model)
 	if !diag.HasErrors() {
-		model := &Model{
-			FileName: source.GetPath(name),
-			Version:  source.GetVersion(name, src),
-		}
 		diag = gohcl.DecodeBody(file.Body, nil, model)
-		m.diagnostics = m.diagnostics.Extend(diag)
+		model.diagnostics = model.diagnostics.Extend(diag)
 		if !diag.HasErrors() {
-			m.models = append(m.models, model)
 			log.Debugf("%s defines command %s", model.FileName, model.Command.Name)
 		}
 	}

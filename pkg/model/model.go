@@ -20,6 +20,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -35,6 +36,7 @@ type Model struct {
 	FileName      string
 	Version       string
 	Source        Source
+	diagnostics   hcl.Diagnostics
 }
 
 type CommandModel struct {
@@ -49,6 +51,7 @@ type CommandModel struct {
 	ClusterIDOptional *bool             `hcl:"cluster_id_optional"`
 	AuthNotRequired   *bool             `hcl:"auth_not_required"`
 	Unauthenticated   *bool             `hcl:"unauthenticated"`
+	DefaultTimeout    *int              `hcl:"default_timeout"`
 	Result            *ResultModel      `hcl:"result,block"`
 	Commands          []*CommandModel   `hcl:"command,block"`
 	model             *Model
@@ -68,6 +71,7 @@ type ParameterModel struct {
 	Shorthand    *string `hcl:"shorthand"`
 	Usage        *string `hcl:"usage"`
 	Required     *bool   `hcl:"required"`
+	LiteralValue *string `hcl:"literal_value"`
 	ContextValue *string `hcl:"context_value"`
 	DefaultValue *string `hcl:"default_value"`
 	Disposition  *string `hcl:"disposition"`
@@ -222,10 +226,13 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 	for _, p := range cm.Parameters {
 		var value string
 		flagName := p.getFlagName()
-		if flagName != "" {
+		switch {
+		case flagName != "":
 			flag := cmd.Flag(flagName)
 			value = flag.Value.String()
-		} else {
+		case p.LiteralValue != nil:
+			value = *p.LiteralValue
+		default:
 			v, err := contextValues.Get(*p.ContextValue)
 			if err != nil {
 				return nil, err
@@ -243,7 +250,7 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 }
 
 func (p *ParameterModel) getFlagName() string {
-	if p.ContextValue != nil {
+	if p.ContextValue != nil || p.LiteralValue != nil {
 		return ""
 	}
 	w := &bytes.Buffer{}
@@ -269,8 +276,12 @@ func (p *ParameterModel) getFlagName() string {
 }
 
 func (p *ParameterModel) validate() error {
-	if p.ContextValue == nil && p.Usage == nil {
+	if p.ContextValue == nil && p.LiteralValue == nil && p.Usage == nil {
 		return fmt.Errorf("parameter '%s' must have usage", p.Name)
+	}
+	if p.ContextValue != nil && p.LiteralValue != nil {
+		return fmt.Errorf("parameter '%s' cannot set both context_value and literal_value",
+			p.Name)
 	}
 	if err := p.getDisposition().validate(); err != nil {
 		return err

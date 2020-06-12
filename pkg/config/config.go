@@ -61,6 +61,20 @@ func SelectProfile(name string) bool {
 	return result
 }
 
+func CopyProfile(sourceName string) error {
+	if GlobalConfig.CurrentProfile == "" {
+		return fmt.Errorf("no current profile to copy to")
+	}
+	source := GlobalConfig.Profiles[sourceName]
+	if source == nil {
+		return fmt.Errorf("no source profile %s to copy from", sourceName)
+	}
+	copy := *source
+	GlobalConfig.Profiles[GlobalConfig.CurrentProfile] = &copy
+	SelectProfile(GlobalConfig.CurrentProfile)
+	return nil
+}
+
 func DeleteProfile(name string) bool {
 	if GlobalConfig.Profiles[name] == nil {
 		log.Warnf("Deleting non-existent profile {warning:%s} has no effect", name)

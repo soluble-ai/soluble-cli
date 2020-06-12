@@ -66,18 +66,29 @@ func getProfiles() *jnode.Node {
 
 func setProfileCmd() *cobra.Command {
 	opts := newProfileOpts()
-	var name string
+	var (
+		name     string
+		copyFrom string
+	)
 	c := &cobra.Command{
-		Use:   "set-profile",
-		Short: "Set the current profile",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:     "set-profile",
+		Aliases: []string{"new-profile"},
+		Short:   "Set the current profile (or create a new one)",
+		RunE: func(cmd *cobra.Command, args []string) error {
 			config.SelectProfile(name)
+			if copyFrom != "" {
+				if err := config.CopyProfile(copyFrom); err != nil {
+					return err
+				}
+			}
 			config.Save()
 			opts.PrintResult(getProfiles())
+			return nil
 		},
 	}
 	opts.Register(c)
 	c.Flags().StringVar(&name, "name", "", "The name of the profile")
+	c.Flags().StringVar(&copyFrom, "copy-from", "", "Copy the profile from another")
 	_ = c.MarkFlagRequired("name")
 	return c
 }
