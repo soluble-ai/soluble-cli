@@ -7,7 +7,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/gobwas/glob v0.2.3
-	github.com/hashicorp/hcl/v2 v2.5.1
+	github.com/hashicorp/hcl/v2 v2.6.0
 	github.com/jarcoal/httpmock v1.0.5
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mitchellh/go-homedir v1.1.0
