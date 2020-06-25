@@ -43,4 +43,5 @@ func init() {
 	RegisterColumnFormatter("", nil)
 	RegisterColumnFormatter("ts", print.TimestampFormatter)
 	RegisterColumnFormatter("relative_ts", print.RelativeTimestampFormatter)
+	RegisterColumnFormatter("bytes", print.BytesFormatter)
 }

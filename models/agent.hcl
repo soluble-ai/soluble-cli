@@ -46,4 +46,22 @@ command "group" "agent" {
       usage = "The base repository to upgrade to"
     }
   }
+  command "print_cluster" "list" {
+    short = "List agents"
+    cluster_id_optional = true
+    path = "org/{org}/agents"
+    method = "GET"
+    result {
+      path = [ "agents" ]
+      columns = [
+        "agentInstanceId", "clusterId", "agentVersion", "agentStartTs", "updateTs",
+        "agentRemoteIp", "memAlloc", "message"
+      ]
+      formatters = {
+        "memAlloc": "bytes"
+        "updateTs": "relative_ts"
+        "message": "first_message"
+      }
+    }
+  }
 }
