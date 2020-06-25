@@ -39,6 +39,7 @@ var ConfigFile string
 const Redacted = "*** redacted ***"
 
 type ProfileT struct {
+	ProfileName      string `json:"-"`
 	APIServer        string
 	APIToken         string
 	TLSNoVerify      bool
@@ -58,6 +59,7 @@ func SelectProfile(name string) bool {
 		result = true
 	}
 	GlobalConfig.CurrentProfile = name
+	Config.ProfileName = name
 	return result
 }
 
@@ -70,6 +72,7 @@ func CopyProfile(sourceName string) error {
 		return fmt.Errorf("no source profile %s to copy from", sourceName)
 	}
 	copy := *source
+	copy.ProfileName = GlobalConfig.CurrentProfile
 	GlobalConfig.Profiles[GlobalConfig.CurrentProfile] = &copy
 	SelectProfile(GlobalConfig.CurrentProfile)
 	return nil
@@ -99,6 +102,7 @@ func RenameProfile(name, rename string) error {
 		return fmt.Errorf("cannot rename non-existent profile %s", name)
 	}
 	GlobalConfig.Profiles[rename] = p
+	p.ProfileName = rename
 	delete(GlobalConfig.Profiles, name)
 	if GlobalConfig.CurrentProfile == name {
 		GlobalConfig.CurrentProfile = rename
@@ -176,6 +180,9 @@ func Load() {
 	Config = GlobalConfig.Profiles[GlobalConfig.CurrentProfile]
 	if Config == nil {
 		SelectProfile("default")
+	}
+	if Config.ProfileName == "" {
+		Config.ProfileName = GlobalConfig.CurrentProfile
 	}
 }
 

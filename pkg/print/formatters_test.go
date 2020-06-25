@@ -21,7 +21,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 )
 
-func TestFormatters(t *testing.T) {
+func TestTimestampFormatters(t *testing.T) {
 	now := time.Date(2020, 5, 11, 10, 5, 45, 0, time.UTC)
 	formatterNow = &now
 	formatterLocation = time.FixedZone("test", -8*60*60)
@@ -31,5 +31,25 @@ func TestFormatters(t *testing.T) {
 	}
 	if s := RelativeTimestampFormatter(n, "ts"); s != "2d22h47m12s" {
 		t.Error("relative ts wrong", n, s)
+	}
+}
+
+var bytesTestCases = []struct {
+	value    int
+	expected string
+}{
+	{10, "10"},
+	{1536, "1.5K"},
+	{1258291, "1.2M"},
+	{2684354560, "2.5G"},
+}
+
+func TestBytesFormatter(t *testing.T) {
+	for _, c := range bytesTestCases {
+		n := jnode.NewObjectNode().Put("n", c.value)
+		s := BytesFormatter(n, "n")
+		if s != c.expected {
+			t.Error(c.value, c.expected, s)
+		}
 	}
 }

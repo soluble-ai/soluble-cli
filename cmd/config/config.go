@@ -44,12 +44,13 @@ func newProfileOpts() *options.PrintOpts {
 	}
 }
 
-func getProfiles() *jnode.Node {
+func getProfiles(names []string) *jnode.Node {
 	n := jnode.NewObjectNode()
 	a := n.PutArray("profiles")
-	names := []string{}
-	for name := range config.GlobalConfig.Profiles {
-		names = append(names, name)
+	if names == nil {
+		for name := range config.GlobalConfig.Profiles {
+			names = append(names, name)
+		}
 	}
 	sort.Strings(names)
 	for _, name := range names {
@@ -82,7 +83,7 @@ func setProfileCmd() *cobra.Command {
 				}
 			}
 			config.Save()
-			opts.PrintResult(getProfiles())
+			opts.PrintResult(getProfiles([]string{name}))
 			return nil
 		},
 	}
@@ -121,7 +122,7 @@ func updateProfileCmd() *cobra.Command {
 			default:
 				return fmt.Errorf("either --delete or --rename must be given")
 			}
-			opts.PrintResult(getProfiles())
+			opts.PrintResult(getProfiles(nil))
 			return nil
 		},
 	}
@@ -138,7 +139,7 @@ func listProfilesCmd() *cobra.Command {
 		Use:   "list-profiles",
 		Short: "Lists the CLI profiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			opts.PrintResult(getProfiles())
+			opts.PrintResult(getProfiles(nil))
 		},
 	}
 	opts.Register(c)

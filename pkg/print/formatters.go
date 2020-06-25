@@ -27,6 +27,12 @@ var (
 	formatterLocation *time.Location
 )
 
+const (
+	kb = float64(int64(1) << 10)
+	mb = float64(int64(1) << 20)
+	gb = float64(int64(1) << 30)
+)
+
 type Formatters map[string]Formatter
 
 func (f Formatters) Format(columnName string, n *jnode.Node) string {
@@ -90,4 +96,17 @@ func RelativeTimestampFormatter(n *jnode.Node, columnName string) string {
 		return prefix + d.Round(time.Second).String()
 	}
 	return s
+}
+
+func BytesFormatter(n *jnode.Node, columnName string) string {
+	val := n.Path(columnName).AsFloat()
+	switch {
+	case val >= gb:
+		return fmt.Sprintf("%.1fG", val/gb)
+	case val >= mb:
+		return fmt.Sprintf("%.1fM", val/mb)
+	case val >= kb:
+		return fmt.Sprintf("%.1fK", val/kb)
+	}
+	return n.Path(columnName).AsText()
 }

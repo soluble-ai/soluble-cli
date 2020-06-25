@@ -22,8 +22,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
 )
 
@@ -119,49 +119,6 @@ func deployAgentCmd() *cobra.Command {
 	return c
 }
 
-func listCmd() *cobra.Command {
-	opts := options.PrintClusterOpts{
-		PrintOpts: options.PrintOpts{
-			Path: []string{"agents"},
-			Columns: []string{"agentInstanceId", "clusterId", "agentVersion", "agentStartTs", "updateTs+",
-				"agentRemoteIp", "message"},
-			Formatters: map[string]print.Formatter{
-				"message": func(n *jnode.Node, columnName string) string {
-					// pick the first message, and if it's JSON use the "msg" field
-					s := n.Path("messages").Get(0).Path("message").AsText()
-					if m, err := jnode.FromJSON([]byte(s)); err == nil {
-						s = m.Path("msg").AsText()
-					}
-					return s
-				},
-			},
-		},
-		ClusterOpts: options.ClusterOpts{
-			ClusterIDOptional: true,
-		},
-	}
-	c := &cobra.Command{
-		Use:   "list",
-		Short: "List agents",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient := opts.GetAPIClient()
-			params := map[string]string{}
-			clusterID := opts.GetClusterID()
-			if clusterID != "" {
-				params["clusterId"] = clusterID
-			}
-			result, err := apiClient.GetWithParams("org/{org}/agents", params)
-			if err != nil {
-				return err
-			}
-			opts.PrintResult(result)
-			return nil
-		},
-	}
-	opts.Register(c)
-	return c
-}
-
 func Command() *cobra.Command {
 	agent := &cobra.Command{
 		Use:   "agent",
@@ -169,6 +126,18 @@ func Command() *cobra.Command {
 	}
 	agent.AddCommand(pingClusterCmd())
 	agent.AddCommand(deployAgentCmd())
-	agent.AddCommand(listCmd())
 	return agent
+}
+
+func firstMessageFormatter(n *jnode.Node, columnName string) string {
+	// pick the first message, and if it's JSON use the "msg" field
+	s := n.Path("messages").Get(0).Path("message").AsText()
+	if m, err := jnode.FromJSON([]byte(s)); err == nil {
+		s = m.Path("msg").AsText()
+	}
+	return s
+}
+
+func init() {
+	model.RegisterColumnFormatter("first_message", firstMessageFormatter)
 }
