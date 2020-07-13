@@ -51,6 +51,9 @@ command "group" "agent" {
     cluster_id_optional = true
     path = "org/{org}/agents"
     method = "GET"
+    parameter "clusterId" {
+      context_value = "clusterID"
+    }
     result {
       path = [ "agents" ]
       columns = [
