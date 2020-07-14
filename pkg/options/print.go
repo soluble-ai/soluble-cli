@@ -72,10 +72,10 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 		return &print.NonePrinter{}
 	case p.OutputFormat == "json":
 		return &print.JSONPrinter{}
-	case len(p.Path) == 0 && (p.OutputFormat == "" || p.OutputFormat == "yaml"):
+	case p.Path == nil && (p.OutputFormat == "" || p.OutputFormat == "yaml"):
 		return &print.YAMLPrinter{}
-	case len(p.Path) > 0 && p.OutputFormat == "csv":
-		if len(p.Path) == 0 {
+	case p.OutputFormat == "csv":
+		if p.Path == nil {
 			log.Errorf("This command does not support the {danger:csv} format")
 			os.Exit(2)
 		}
@@ -94,7 +94,7 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 		vp := print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
 		vp.Filter = print.NewFilter(p.Filter)
 		return vp
-	case len(p.Path) > 0 && (p.OutputFormat == "" || p.OutputFormat == "table"):
+	case p.Path != nil && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
 			NoHeaders: p.NoHeaders,
 			Columns:   p.getEffectiveColumns(),

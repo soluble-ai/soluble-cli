@@ -19,6 +19,7 @@ command "group" "cinderella" {
       formatters = {
         "expirationTs": "relative_ts"
       }
+      sort_by = [ "-createTs" ]
     }
   }
 }
