@@ -18,10 +18,8 @@ require (
 	github.com/soluble-ai/go-jnode v0.1.10
 	github.com/spf13/afero v1.3.2
 	github.com/spf13/cobra v1.0.0
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/apimachinery v0.18.5 // indirect
-	k8s.io/client-go v0.18.3
+	k8s.io/client-go v0.18.5
 	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19 // indirect
 )
