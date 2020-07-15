@@ -8,6 +8,7 @@ require (
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/gobwas/glob v0.2.3
 	github.com/hashicorp/hcl/v2 v2.6.0
+	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/jarcoal/httpmock v1.0.5
 	github.com/mattn/go-colorable v0.1.7
 	github.com/mitchellh/go-homedir v1.1.0
@@ -20,4 +21,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
+	k8s.io/apimachinery v0.18.5 // indirect
+	k8s.io/client-go v0.18.3
+	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19 // indirect
 )

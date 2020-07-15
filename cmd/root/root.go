@@ -23,6 +23,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/cluster"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
+	"github.com/soluble-ai/soluble-cli/cmd/elevate"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
@@ -97,6 +98,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		modelcmd.Command(),
 		version.Command(),
 		query.Command(),
+		elevate.Command(),
 	}
 	for _, c := range commands {
 		rootCmd.AddCommand(c)
@@ -128,6 +130,10 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 			if len(subCommands) == 0 {
 				root.RemoveCommand(existingCommand)
 				break
+			}
+			if existingCommand.Short == "" && cmd.Short != "" {
+				// take short from model if present
+				existingCommand.Short = cmd.Short
 			}
 			for _, subCommand := range subCommands {
 				mergeCommands(existingCommand, subCommand, m)
