@@ -13,10 +13,10 @@ command "group" "elevate" {
     result {
         path = [ "data" ]
         columns = [
-            "requestId", "state", "solubleUser", "roleKind", "roleName", "namespace",
-            "subjectName", "durationMinutes", "createTs", "sessionName"
+            "sessionId", "state", "solubleUser", "roleKind", "roleName", "namespace",
+            "subjectName", "durationMinutes", "createTs"
         ]
-        wide_columns = [ "subjectName", "roleKind", "durationMinutes" ]
+        wide_columns = [ "roleKind", "durationMinutes" ]
     }
   }
   command "print_cluster" "request" {
@@ -38,9 +38,15 @@ command "group" "elevate" {
     parameter "durationMintues" {
         usage = "The duration of the elevated session, in minutes."
     }
-    parameter "sessionName" {
-        usage = "The name of the elevated session"
-        required = true
-    }
+  }
+  command "print_cluster" "revoke" {
+      short = "Revoke an elevated session in a cluster"
+      path = "org/{org}/cluster/{clusterID}/elevate/{sessionId}"
+      method = "DELETE"
+      parameter "sessionId" {
+          usage = "The elevate session ID to revoke"
+          disposition = "context"
+          required = true
+      }
   }
 }
