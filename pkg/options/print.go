@@ -27,27 +27,28 @@ import (
 )
 
 type PrintOpts struct {
-	OutputFormat  string
-	NoHeaders     bool
-	Wide          bool
-	Path          []string
-	Columns       []string
-	WideColumns   []string
-	SortBy        []string
-	DefaultSortBy []string
-	Limit         int
-	Filter        string
-	Formatters    map[string]print.Formatter
-	output        io.Writer
+	OutputFormat        string
+	DefaultOutputFormat string
+	NoHeaders           bool
+	Wide                bool
+	Path                []string
+	Columns             []string
+	WideColumns         []string
+	SortBy              []string
+	DefaultSortBy       []string
+	Limit               int
+	Filter              string
+	Formatters          map[string]print.Formatter
+	output              io.Writer
 }
 
 var _ Interface = &PrintOpts{}
 
 func (p *PrintOpts) Register(cmd *cobra.Command) {
 	if p.Path == nil {
-		cmd.Flags().StringVar(&p.OutputFormat, "format", "", "Use this output format, where format is one of: yaml, json, value or none")
+		cmd.Flags().StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat, "Use this output format, where format is one of: yaml, json, value or none")
 	} else {
-		cmd.Flags().StringVar(&p.OutputFormat, "format", "",
+		cmd.Flags().StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
 			`Use this output format, where format is one of: table,
 yaml, json, none, csv, or value(name).  The value(name) form prints
 the value of the attribute 'name'.`)

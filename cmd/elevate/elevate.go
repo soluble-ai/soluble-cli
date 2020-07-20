@@ -22,19 +22,21 @@ func getKubernetesUser(name string) (string, error) {
 	if authInfo.Username != "" {
 		return authInfo.Username, nil
 	}
-	if len(authInfo.ClientCertificateData) == 0 {
-		return "", fmt.Errorf("only client certificate identities are currently supported")
+	if len(authInfo.ClientCertificateData) > 0 {
+		block, _ := pem.Decode(authInfo.ClientCertificateData)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return "", err
+		}
+		return cert.Subject.CommonName, nil
 	}
-	block, _ := pem.Decode(authInfo.ClientCertificateData)
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return "", err
-	}
-	return cert.Subject.CommonName, nil
+	return "", fmt.Errorf("unsupported auth info in kubecontext")
 }
 
 func whoAmICommand() *cobra.Command {
-	opts := &options.PrintOpts{}
+	opts := &options.PrintOpts{
+		DefaultOutputFormat: "value(user)",
+	}
 	c := &cobra.Command{
 		Use:   "who-am-i",
 		Short: "Display the name of the current kuberentes user",
