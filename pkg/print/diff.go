@@ -42,13 +42,14 @@ func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) {
 	if len(rows) == 1 {
 		v0 = 0
 	}
+	width := getLabelWidth(d.LabelColumns)
 	for i := len(rows) - 1; i >= v0; i-- {
 		if i != len(rows)-1 {
 			fmt.Fprintln(w)
 		}
 		row := rows[i]
 		for _, column := range d.LabelColumns {
-			fmt.Fprintf(w, "%s: %s\n", column, d.Format(column, row))
+			printLabel(w, column, width, d.Format(column, row))
 		}
 		fmt.Fprintln(w, diffs[i])
 	}
