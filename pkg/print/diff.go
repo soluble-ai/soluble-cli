@@ -29,8 +29,8 @@ func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) {
 		diff := difflib.UnifiedDiff{
 			A:        previousContent,
 			B:        content,
-			FromFile: fmt.Sprintf("%s=%s", d.VersionColumn, previousRow.Path(d.VersionColumn).AsText()),
-			ToFile:   fmt.Sprintf("%s=%s", d.VersionColumn, row.Path(d.VersionColumn).AsText()),
+			FromFile: fmt.Sprintf("%s=%s", d.VersionColumn, d.Format(d.VersionColumn, previousRow)),
+			ToFile:   fmt.Sprintf("%s=%s", d.VersionColumn, d.Format(d.VersionColumn, row)),
 			Context:  d.Context,
 		}
 		previousContent = content

@@ -25,6 +25,8 @@ import (
 var (
 	formatterNow      *time.Time
 	formatterLocation *time.Location
+
+	hundredYearsFuture = time.Date(2120, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
 const (
@@ -77,6 +79,9 @@ func RelativeTimestampFormatter(n *jnode.Node, columnName string) string {
 			n := time.Now()
 			formatterNow = &n
 		}
+		if t.After(hundredYearsFuture) {
+			return ">100y"
+		}
 		d := formatterNow.Sub(t)
 		var prefix string
 		if d < 0 {
@@ -109,4 +114,9 @@ func BytesFormatter(n *jnode.Node, columnName string) string {
 		return fmt.Sprintf("%.1fK", val/kb)
 	}
 	return n.Path(columnName).AsText()
+}
+
+func NumberFormatter(n *jnode.Node, columnName string) string {
+	val := n.Path(columnName).AsFloat()
+	return fmt.Sprintf("%d", int64(val))
 }
