@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
 
 type Source interface {
@@ -46,8 +47,7 @@ func (s *FileSystemSource) GetFileSystem() http.FileSystem {
 }
 
 func (s *FileSystemSource) GetVersion(name string, content []byte) string {
-	h := sha256.Sum256(content)
-	return fmt.Sprintf("%012x", h[0:6])
+	return version.Version
 }
 
 func (s *FileSystemSource) IsEmbedded() bool {
