@@ -32,6 +32,10 @@ func TestTimestampFormatters(t *testing.T) {
 	if s := RelativeTimestampFormatter(n, "ts"); s != "2d22h47m12s" {
 		t.Error("relative ts wrong", n, s)
 	}
+	n = jnode.NewObjectNode().Put("ts", "9999-12-31T15:59:59-08:00")
+	if s := RelativeTimestampFormatter(n, "ts"); s != ">100y" {
+		t.Error("long relative time is wrong", n, s)
+	}
 }
 
 var bytesTestCases = []struct {
