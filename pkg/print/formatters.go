@@ -83,24 +83,28 @@ func RelativeTimestampFormatter(n *jnode.Node, columnName string) string {
 			return ">100y"
 		}
 		d := formatterNow.Sub(t)
-		var prefix string
-		if d < 0 {
-			prefix = "+"
-			d = -d
-		}
-		if d > 365*24*time.Hour {
-			years := int64(d) / int64(365*24*time.Hour)
-			d -= time.Duration(365*24*years) * time.Hour
-			prefix += fmt.Sprintf("%dy", years)
-		}
-		if d > 24*time.Hour {
-			days := int64(d) / int64(24*time.Hour)
-			d -= time.Duration(24*days) * time.Hour
-			prefix += fmt.Sprintf("%dd", days)
-		}
-		return prefix + d.Round(time.Second).String()
+		return formatDuration(d)
 	}
 	return s
+}
+
+func formatDuration(d time.Duration) string {
+	var prefix string
+	if d < 0 {
+		prefix = "+"
+		d = -d
+	}
+	if d > 365*24*time.Hour {
+		years := int64(d) / int64(365*24*time.Hour)
+		d -= time.Duration(365*24*years) * time.Hour
+		prefix += fmt.Sprintf("%dy", years)
+	}
+	if d > 24*time.Hour {
+		days := int64(d) / int64(24*time.Hour)
+		d -= time.Duration(24*days) * time.Hour
+		prefix += fmt.Sprintf("%dd", days)
+	}
+	return prefix + d.Round(time.Second).String()
 }
 
 func BytesFormatter(n *jnode.Node, columnName string) string {
@@ -119,4 +123,14 @@ func BytesFormatter(n *jnode.Node, columnName string) string {
 func NumberFormatter(n *jnode.Node, columnName string) string {
 	val := n.Path(columnName).AsFloat()
 	return fmt.Sprintf("%d", int64(val))
+}
+
+func DurationMillisFormatter(n *jnode.Node, columnName string) string {
+	vn := n.Path(columnName)
+	if vn.IsMissing() {
+		return ""
+	}
+	val := vn.AsFloat()
+	d := time.Millisecond * time.Duration(val)
+	return formatDuration(d)
 }
