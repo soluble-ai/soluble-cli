@@ -58,12 +58,15 @@ type CommandModel struct {
 }
 
 type ResultModel struct {
-	Path        *[]string          `hcl:"path"`
-	Columns     *[]string          `hcl:"columns"`
-	WideColumns *[]string          `hcl:"wide_columns"`
-	Sort        *[]string          `hcl:"sort_by"`
-	Formatters  *map[string]string `hcl:"formatters"`
-	LocalAction *string            `hcl:"local_action"`
+	Path                *[]string          `hcl:"path"`
+	Columns             *[]string          `hcl:"columns"`
+	WideColumns         *[]string          `hcl:"wide_columns"`
+	Sort                *[]string          `hcl:"sort_by"`
+	Formatters          *map[string]string `hcl:"formatters"`
+	LocalAction         *string            `hcl:"local_action"`
+	DiffColumn          *string            `hcl:"diff_column"`
+	VersionColumn       *string            `hcl:"version_column"`
+	DefaultOutputFormat *string            `hcl:"default_output_format"`
 }
 
 type ParameterModel struct {

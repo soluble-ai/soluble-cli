@@ -47,6 +47,12 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 			if r.Path != nil {
 				opts.Path = *r.Path
 				opts.Columns = *r.Columns
+				if r.DiffColumn != nil {
+					opts.DiffColumn = *r.DiffColumn
+				}
+				if r.VersionColumn != nil {
+					opts.VersionColumn = *r.VersionColumn
+				}
 			}
 			if r.WideColumns != nil {
 				opts.WideColumns = *r.WideColumns
@@ -61,6 +67,9 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 						return formatter(n, columnName)
 					})
 				}
+			}
+			if r.DefaultOutputFormat != nil {
+				opts.DefaultOutputFormat = *r.DefaultOutputFormat
 			}
 		}
 	}

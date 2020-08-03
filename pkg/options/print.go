@@ -34,11 +34,14 @@ type PrintOpts struct {
 	Path                []string
 	Columns             []string
 	WideColumns         []string
+	DiffColumn          string
+	VersionColumn       string
 	SortBy              []string
 	DefaultSortBy       []string
 	Limit               int
 	Filter              string
 	Formatters          map[string]print.Formatter
+	DiffContextSize     int
 	output              io.Writer
 }
 
@@ -64,6 +67,7 @@ search all attributes`)
 		}
 		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy, "Sort by these columns (table, csv)")
 		cmd.Flags().IntVar(&p.Limit, "print-limit", 0, "Print no more than this number of rows")
+		cmd.Flags().IntVar(&p.DiffContextSize, "diff-context-size", 3, "When printing diffs, the number of lines to print before and after a a diff.")
 	}
 }
 
@@ -82,14 +86,10 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 		}
 		p.Wide = true
 		return &print.CSVPrinter{
-			NoHeaders: p.NoHeaders,
-			Columns:   p.getEffectiveColumns(),
-			PathSupport: print.PathSupport{
-				Filter: print.NewFilter(p.Filter),
-				Path:   p.Path,
-				SortBy: p.SortBy,
-			},
-			Formatters: p.Formatters,
+			NoHeaders:   p.NoHeaders,
+			Columns:     p.getEffectiveColumns(),
+			PathSupport: p.getPathSupport(),
+			Formatters:  p.Formatters,
 		}
 	case strings.HasPrefix(p.OutputFormat, "value("):
 		vp := print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
@@ -97,19 +97,42 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 		return vp
 	case p.Path != nil && (p.OutputFormat == "" || p.OutputFormat == "table"):
 		return &print.TablePrinter{
-			NoHeaders: p.NoHeaders,
-			Columns:   p.getEffectiveColumns(),
-			PathSupport: print.PathSupport{
-				Filter: print.NewFilter(p.Filter),
-				Path:   p.Path,
-				SortBy: p.SortBy,
-			},
-			Formatters: p.Formatters,
+			NoHeaders:   p.NoHeaders,
+			Columns:     p.getEffectiveColumns(),
+			PathSupport: p.getPathSupport(),
+			Formatters:  p.Formatters,
+		}
+	case p.Path != nil && p.OutputFormat == "diff":
+		if p.DiffColumn == "" {
+			log.Errorf("This command does not support diff output")
+			os.Exit(2)
+		}
+		return &print.DiffPrinter{
+			PathSupport:   p.getPathSupport(),
+			DiffColumn:    p.DiffColumn,
+			VersionColumn: p.VersionColumn,
+			LabelColumns:  p.Columns,
+			Context:       p.DiffContextSize,
+			Formatters:    p.Formatters,
+		}
+	case p.Path != nil && p.OutputFormat == "vertical":
+		return &print.VerticalPrinter{
+			PathSupport: p.getPathSupport(),
+			Columns:     p.getEffectiveColumns(),
+			Formatters:  p.Formatters,
 		}
 	default:
 		log.Errorf("This command does not support the {danger:%s} format", p.OutputFormat)
 		os.Exit(2)
 		return nil
+	}
+}
+
+func (p *PrintOpts) getPathSupport() print.PathSupport {
+	return print.PathSupport{
+		Filter: print.NewFilter(p.Filter),
+		Path:   p.Path,
+		SortBy: p.SortBy,
 	}
 }
 
