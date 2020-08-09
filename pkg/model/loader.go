@@ -50,8 +50,12 @@ func Load(source Source) error {
 	var modelsWithErrors []string
 	for _, model := range m.models {
 		if model.MinCLIVersion != nil && !version.IsCompatible(*model.MinCLIVersion) {
-			log.Warnf("The model in %s is not compatible with this version of the CLI (require %s)",
-				model.FileName, *model.MinCLIVersion)
+			s, ok := model.Source.(*GitSource)
+			if !ok || !s.WasFetched {
+				// only log this if the model was fetched
+				log.Warnf("The model in %s is not compatible with this version of the CLI (require %s)",
+					model.FileName, *model.MinCLIVersion)
+			}
 			continue
 		}
 		if model.diagnostics.HasErrors() {
