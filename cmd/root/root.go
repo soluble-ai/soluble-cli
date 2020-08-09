@@ -109,16 +109,26 @@ func loadModels() {
 	if err := model.Load(getEmbeddedModelsSource()); err != nil {
 		panic(err)
 	}
-	for _, location := range config.GetModelLocations() {
-		source, err := model.GetGitSource(location)
-		if err != nil {
-			log.Warnf("Could not get models from {info:%s}: {warning:%s}", location, err.Error())
-			continue
-		}
-		err = model.Load(source)
-		if err != nil {
-			log.Warnf("Could not load models from {info:%s}: {warning:%s}", location, err)
-			continue
+	sources := make(chan model.Source)
+	for _, loc := range config.GetModelLocations() {
+		location := loc
+		go func() {
+			source, err := model.GetGitSource(location)
+			if err != nil {
+				log.Warnf("Could not get models from {info:%s}: {warning:%s}", location, err.Error())
+			} else {
+				sources <- source
+			}
+		}()
+	}
+	for i := len(config.GetModelLocations()); i > 0; i-- {
+		source := <-sources
+		if source != nil {
+			err := model.Load(source)
+			if err != nil {
+				log.Warnf("Could not load models from {info:%s}: {warning:%s}", source.String(), err)
+				continue
+			}
 		}
 	}
 }

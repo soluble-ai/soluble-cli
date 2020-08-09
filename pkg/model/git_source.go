@@ -27,7 +27,8 @@ import (
 
 type GitSource struct {
 	FileSystemSource
-	version string
+	WasFetched bool
+	version    string
 }
 
 func GetGitSource(url string) (Source, error) {
@@ -46,6 +47,7 @@ func GetGitSource(url string) (Source, error) {
 	if gitConfig != nil {
 		fetchHead, _ = os.Stat(filepath.Join(dir, ".git", "FETCH_HEAD"))
 	}
+	var wasFetched bool
 	switch {
 	case gitConfig == nil:
 		// repo doesn't exist, clone the repo
@@ -65,6 +67,8 @@ func GetGitSource(url string) (Source, error) {
 		case err = <-done:
 			if err != nil {
 				log.Warnf("Could not fetch {primary:%s}: {warning:%s}", url, err.Error())
+			} else {
+				wasFetched = true
 			}
 		case <-time.After(15 * time.Second):
 			log.Warnf("Fetching {primary:%s} is taking a while, killing the fetch", url)
@@ -77,7 +81,8 @@ func GetGitSource(url string) (Source, error) {
 			Filesystem: http.Dir(dir),
 			RootPath:   url,
 		},
-		version: headVersion(dir),
+		WasFetched: wasFetched,
+		version:    headVersion(dir),
 	}
 	return source, nil
 }

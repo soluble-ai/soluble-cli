@@ -16,6 +16,7 @@ package log
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/fatih/color"
 	"github.com/mattn/go-colorable"
@@ -29,16 +30,21 @@ const (
 	Debug
 )
 
-var Level = Info
-var levelNames = map[int]string{
-	Error:   "Error",
-	Warning: " Warn",
-	Info:    " Info",
-	Debug:   "Debug",
-}
+var (
+	Level      = Info
+	levelNames = map[int]string{
+		Error:   "Error",
+		Warning: " Warn",
+		Info:    " Info",
+		Debug:   "Debug",
+	}
+	lock sync.Mutex
+)
 
 func Log(level int, template string, args ...interface{}) {
 	if level <= Level {
+		lock.Lock()
+		defer lock.Unlock()
 		colorize.Colorize("{secondary:[%s]} ", levelNames[level])
 		colorize.Colorize(template, args...)
 		if template[len(template)-1] != '\n' {
