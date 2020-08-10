@@ -40,7 +40,7 @@ func getLabelWidth(columnNames []string) int {
 
 func printLabel(w io.Writer, columnName string, labelWidth int, val string) {
 	if isMultiline(val) {
-		fmt.Fprintf(w, "%s\n%s\n", columnName, val)
+		fmt.Fprintf(w, "%s:\n%s\n", columnName, val)
 	} else {
 		fmt.Fprintf(w, fmt.Sprintf("%%-%ds %%s\n", labelWidth), fmt.Sprintf("%s:", columnName),
 			val)
