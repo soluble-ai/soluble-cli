@@ -3,6 +3,7 @@ package print
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/soluble-ai/go-jnode"
@@ -18,8 +19,11 @@ type DiffPrinter struct {
 }
 
 func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) {
-	d.SortBy = []string{d.VersionColumn}
 	rows := d.getRows(result)
+	sort.Slice(rows, func(i, j int) bool {
+		// assume version column is a number
+		return rows[i].Path(d.VersionColumn).AsFloat() < rows[j].Path(d.VersionColumn).AsFloat()
+	})
 	// find diffs
 	var previousContent []string
 	diffs := make([]string, len(rows))
