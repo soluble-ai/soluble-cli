@@ -65,9 +65,14 @@ search all attributes`)
 		if p.WideColumns != nil {
 			cmd.Flags().BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
 		}
-		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy, "Sort by these columns (table, csv)")
+		cmd.Flags().StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
+			`Sort by these columns (table, csv).  Use -col to indicate
+reverse order, 0col to indicate numeric sort, and -0col to indicate
+reverse numeric sort.`)
 		cmd.Flags().IntVar(&p.Limit, "print-limit", 0, "Print no more than this number of rows")
-		cmd.Flags().IntVar(&p.DiffContextSize, "diff-context-size", 3, "When printing diffs, the number of lines to print before and after a a diff.")
+		cmd.Flags().IntVar(&p.DiffContextSize, "diff-context", 3,
+			`When printing diffs, the number of lines to print before and
+after a a diff.`)
 	}
 }
 

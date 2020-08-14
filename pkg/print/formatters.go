@@ -104,7 +104,10 @@ func formatDuration(d time.Duration) string {
 		d -= time.Duration(24*days) * time.Hour
 		prefix += fmt.Sprintf("%dd", days)
 	}
-	return prefix + d.Round(time.Second).String()
+	if d < time.Second {
+		return fmt.Sprintf("%s%dms", prefix, d.Round(time.Millisecond).Milliseconds())
+	}
+	return fmt.Sprintf("%s%s", prefix, d.Round(time.Second))
 }
 
 func BytesFormatter(n *jnode.Node, columnName string) string {
