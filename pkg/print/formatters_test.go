@@ -57,3 +57,23 @@ func TestBytesFormatter(t *testing.T) {
 		}
 	}
 }
+
+var durationTestCases = []struct {
+	value    int
+	expected string
+}{
+	{1000, "1s"},
+	{30 * 1000, "30s"},
+	{65 * 1000, "1m5s"},
+	{150, "150ms"},
+}
+
+func TestDurationFormatter(t *testing.T) {
+	for _, c := range durationTestCases {
+		n := jnode.NewObjectNode().Put("millis", c.value)
+		s := DurationMillisFormatter(n, "millis")
+		if s != c.expected {
+			t.Error(c.value, c.expected, s)
+		}
+	}
+}
