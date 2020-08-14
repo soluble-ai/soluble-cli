@@ -48,13 +48,13 @@ func NewValuePrinter(format string, path []string, sortBy []string) *ValuePrinte
 
 func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) {
 	if len(p.Path) == 0 {
-		n := nav(result, p.Name)
+		n := Nav(result, p.Name)
 		if !n.IsMissing() {
 			fmt.Fprintln(w, n.AsText())
 		}
 	} else {
 		for _, row := range p.getRows(result) {
-			n := nav(row, p.Name)
+			n := Nav(row, p.Name)
 			if !n.IsMissing() {
 				fmt.Fprintln(w, n.AsText())
 			}
