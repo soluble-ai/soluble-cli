@@ -25,6 +25,14 @@ func NewStringSet() *StringSet {
 	}
 }
 
+func NewStringSetWithValues(values []string) *StringSet {
+	s := NewStringSet()
+	for _, value := range values {
+		s.Add(value)
+	}
+	return s
+}
+
 func (ss *StringSet) Contains(s string) bool {
 	_, ok := ss.set[s]
 	return ok

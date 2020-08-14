@@ -32,9 +32,24 @@ func (r *rowsSort) Less(i, j int) bool {
 	ej := r.values[j]
 	for _, name := range r.sortBy {
 		asc := true
+		numeric := false
 		if name[0] == '-' {
 			name = name[1:]
 			asc = false
+		}
+		if len(name) > 1 && name[0] == '0' {
+			numeric = true
+			name = name[1:]
+		}
+		if numeric {
+			ni := ei.Path(name).AsFloat()
+			nj := ej.Path(name).AsFloat()
+			if ni != nj {
+				if asc {
+					return ni < nj
+				}
+				return nj < ni
+			}
 		}
 		vi := ei.Path(name).AsText()
 		vj := ej.Path(name).AsText()

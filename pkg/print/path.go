@@ -28,7 +28,7 @@ type PathSupport struct {
 }
 
 func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
-	r := nav(result, p.Path)
+	r := Nav(result, p.Path)
 	rows := []*jnode.Node{}
 	for _, row := range r.Elements() {
 		if !p.matches(row) {
@@ -46,7 +46,7 @@ func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
 	return rows
 }
 
-func nav(n *jnode.Node, path []string) *jnode.Node {
+func Nav(n *jnode.Node, path []string) *jnode.Node {
 	for _, p := range path {
 		n = n.Path(p)
 	}
