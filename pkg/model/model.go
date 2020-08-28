@@ -74,6 +74,7 @@ type ParameterModel struct {
 	Shorthand    *string `hcl:"shorthand"`
 	Usage        *string `hcl:"usage"`
 	Required     *bool   `hcl:"required"`
+	BooleanFlag  *bool   `hcl:"boolean"`
 	LiteralValue *string `hcl:"literal_value"`
 	ContextValue *string `hcl:"context_value"`
 	DefaultValue *string `hcl:"default_value"`
@@ -116,9 +117,16 @@ func (cm *CommandModel) createFlags(c *cobra.Command) {
 			if p.DefaultValue != nil {
 				defaultValue = *p.DefaultValue
 			}
-			if p.Shorthand != nil {
+			switch {
+			case p.BooleanFlag != nil && *p.BooleanFlag:
+				if p.Shorthand != nil {
+					c.Flags().BoolP(name, *p.Shorthand, defaultValue == "true", *p.Usage)
+				} else {
+					c.Flags().Bool(name, defaultValue == "true", *p.Usage)
+				}
+			case p.Shorthand != nil:
 				c.Flags().StringP(name, *p.Shorthand, defaultValue, *p.Usage)
-			} else {
+			default:
 				c.Flags().String(name, defaultValue, *p.Usage)
 			}
 			if p.Required != nil && *p.Required {
