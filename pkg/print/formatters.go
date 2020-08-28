@@ -51,7 +51,19 @@ func (f Formatters) Format(columnName string, n *jnode.Node) string {
 	case strings.HasSuffix(columnName, "Ts"):
 		return TimestampFormatter(n, columnName)
 	default:
-		s = n.Path(columnName).AsText()
+		c := n.Path(columnName)
+		if c.IsArray() {
+			b := strings.Builder{}
+			for _, e := range c.Elements() {
+				if b.Len() > 0 {
+					b.WriteByte(',')
+				}
+				b.WriteString(e.AsText())
+			}
+			s = b.String()
+		} else {
+			s = c.AsText()
+		}
 	}
 	return s
 }
