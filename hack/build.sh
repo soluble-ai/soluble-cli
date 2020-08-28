@@ -54,11 +54,15 @@ for p in "linux amd64 tar" "windows amd64 zip .exe" "darwin amd64 tar"; do
     echo "Building $VERSION for ${os_arch[0]} ${os_arch[1]}"
     rm -rf target
     mkdir target
-    # need to specify osusergo,netgo to actually get a static
+    # need to specify osusergo,netgo tags to actually get a static
     # binary - thanks https://www.arp242.net/static-go.html
+    #
+    # -trimpath was added to go 1.13 (our minimum build target)
+    # which ultimately supports reproducible binary build by
+    # removing otherwise hardcoded filesystem paths in the binary.
     set -x
     GOOS=${os_arch[0]} GOARCH=${os_arch[1]} \
-        go build -o target/soluble${os_arch[3]} -tags ci,osusergo,netgo "$ldflags"
+        go build -o target/soluble${os_arch[3]} -tags ci,osusergo,netgo -trimpath "$ldflags"
     { set +x; } 2> /dev/null
     cp LICENSE README.md target
     pkg=${os_arch[2]}
