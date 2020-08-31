@@ -1,6 +1,8 @@
 package root
 
 import (
+	"sort"
+
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
@@ -21,6 +23,10 @@ func setDynamicColumns(command model.Command, result *jnode.Node) (*jnode.Node, 
 						names = append(names, name)
 					}
 				}
+				// This is kinda hokey, but if we don't sort the column
+				// order is just hash order.  Instead we should offer the
+				// capability to result model from the server response.
+				sort.Strings(names)
 				columns := []string{}
 				if i > 0 {
 					columns = append(columns, opts.Columns[0:i-1]...)
