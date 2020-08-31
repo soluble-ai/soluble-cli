@@ -58,15 +58,16 @@ type CommandModel struct {
 }
 
 type ResultModel struct {
-	Path                *[]string          `hcl:"path"`
-	Columns             *[]string          `hcl:"columns"`
-	WideColumns         *[]string          `hcl:"wide_columns"`
-	Sort                *[]string          `hcl:"sort_by"`
-	Formatters          *map[string]string `hcl:"formatters"`
-	LocalAction         *string            `hcl:"local_action"`
-	DiffColumn          *string            `hcl:"diff_column"`
-	VersionColumn       *string            `hcl:"version_column"`
-	DefaultOutputFormat *string            `hcl:"default_output_format"`
+	Path                    *[]string          `hcl:"path"`
+	TruncationIndicatorPath *[]string          `hcl:"truncation_indicator"`
+	Columns                 *[]string          `hcl:"columns"`
+	WideColumns             *[]string          `hcl:"wide_columns"`
+	Sort                    *[]string          `hcl:"sort_by"`
+	Formatters              *map[string]string `hcl:"formatters"`
+	LocalAction             *string            `hcl:"local_action"`
+	DiffColumn              *string            `hcl:"diff_column"`
+	VersionColumn           *string            `hcl:"version_column"`
+	DefaultOutputFormat     *string            `hcl:"default_output_format"`
 }
 
 type ParameterModel struct {
@@ -212,6 +213,11 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 		}
 	}
 	command.PrintResult(result)
+	if cm.Result != nil && cm.Result.TruncationIndicatorPath != nil {
+		if err := warnIfTruncated(result, *cm.Result.TruncationIndicatorPath); err != nil {
+			return err
+		}
+	}
 	log.Debugf("Command %s successful", cm.Name)
 	return nil
 }
@@ -330,6 +336,14 @@ func (r *ResultModel) validate() error {
 func (r *ResultModel) GetFormatter(column string) print.Formatter {
 	if r.Formatters != nil {
 		return ColumnFormatterType((*r.Formatters)[column]).GetFormatter()
+	}
+	return nil
+}
+
+func warnIfTruncated(result *jnode.Node, truncationIndicatorPath []string) error {
+	n := print.Nav(result, truncationIndicatorPath)
+	if n.AsBool() {
+		return fmt.Errorf("the server indicated the results were truncated")
 	}
 	return nil
 }
