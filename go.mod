@@ -22,6 +22,5 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.5.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
-	k8s.io/client-go v0.18.6
-	k8s.io/utils v0.0.0-20200619165400-6e3d28b6ed19 // indirect
+	k8s.io/client-go v0.19.0
 )
