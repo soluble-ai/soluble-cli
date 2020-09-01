@@ -23,9 +23,8 @@ import (
 )
 
 var (
-	formatterNow      *time.Time
-	formatterLocation *time.Location
-
+	formatterNow       *time.Time
+	formatterLocation  *time.Location
 	hundredYearsFuture = time.Date(2120, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
@@ -33,60 +32,66 @@ const (
 	kb = float64(int64(1) << 10)
 	mb = float64(int64(1) << 20)
 	gb = float64(int64(1) << 30)
+
+	RFC3339Millis = "2006-01-02T15:04:05.999Z07:00"
 )
 
 type Formatters map[string]Formatter
 
 func (f Formatters) Format(columnName string, n *jnode.Node) string {
+	formatter, columnName := f.getFormatter(columnName)
+	cell := n.Path(columnName)
+	if cell.IsArray() {
+		b := strings.Builder{}
+		for _, e := range cell.Elements() {
+			if b.Len() > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteString(formatter(e))
+		}
+		return b.String()
+	}
+	return formatter(cell)
+}
+
+func (f Formatters) getFormatter(columnName string) (Formatter, string) {
 	if f != nil {
 		formatter := f[columnName]
 		if formatter != nil {
-			return formatter(n, columnName)
+			return formatter, columnName
 		}
 	}
-	var s string
 	switch {
 	case strings.HasSuffix(columnName, "Ts+"):
-		return RelativeTimestampFormatter(n, columnName)
+		cn := columnName[0 : len(columnName)-1]
+		return RelativeTimestampFormatter, cn
 	case strings.HasSuffix(columnName, "Ts"):
-		return TimestampFormatter(n, columnName)
+		return TimestampFormatter, columnName
 	default:
-		c := n.Path(columnName)
-		if c.IsArray() {
-			b := strings.Builder{}
-			for _, e := range c.Elements() {
-				if b.Len() > 0 {
-					b.WriteByte(',')
-				}
-				b.WriteString(e.AsText())
-			}
-			s = b.String()
-		} else {
-			s = c.AsText()
-		}
+		return defaultFormatter, columnName
 	}
-	return s
 }
 
-func TimestampFormatter(n *jnode.Node, columnName string) string {
-	s := n.Path(columnName).AsText()
+func defaultFormatter(n *jnode.Node) string {
+	return n.AsText()
+}
+
+func TimestampFormatter(n *jnode.Node) string {
+	s := n.AsText()
 	if formatterLocation == nil {
 		formatterLocation = time.Local
 	}
 	// try and render timestamps in the local timezone
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
-		return t.In(formatterLocation).Format(time.RFC3339)
+	if t, err := time.Parse(RFC3339Millis, s); err == nil {
+		return t.In(formatterLocation).Format(RFC3339Millis)
 	}
 	return s
 }
 
-func RelativeTimestampFormatter(n *jnode.Node, columnName string) string {
+func RelativeTimestampFormatter(n *jnode.Node) string {
 	// render timestamp as relative time
-	if columnName[len(columnName)-1] == '+' {
-		columnName = columnName[:len(columnName)-1]
-	}
-	s := n.Path(columnName).AsText()
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
+	s := n.AsText()
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		if formatterNow == nil {
 			n := time.Now()
 			formatterNow = &n
@@ -122,8 +127,8 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%s%s", prefix, d.Round(time.Second))
 }
 
-func BytesFormatter(n *jnode.Node, columnName string) string {
-	val := n.Path(columnName).AsFloat()
+func BytesFormatter(n *jnode.Node) string {
+	val := n.AsFloat()
 	switch {
 	case val >= gb:
 		return fmt.Sprintf("%.1fG", val/gb)
@@ -132,20 +137,19 @@ func BytesFormatter(n *jnode.Node, columnName string) string {
 	case val >= kb:
 		return fmt.Sprintf("%.1fK", val/kb)
 	}
-	return n.Path(columnName).AsText()
+	return n.AsText()
 }
 
-func NumberFormatter(n *jnode.Node, columnName string) string {
-	val := n.Path(columnName).AsFloat()
+func NumberFormatter(n *jnode.Node) string {
+	val := n.AsFloat()
 	return fmt.Sprintf("%d", int64(val))
 }
 
-func DurationMillisFormatter(n *jnode.Node, columnName string) string {
-	vn := n.Path(columnName)
-	if vn.IsMissing() {
+func DurationMillisFormatter(n *jnode.Node) string {
+	if n.IsMissing() {
 		return ""
 	}
-	val := vn.AsFloat()
+	val := n.AsFloat()
 	d := time.Millisecond * time.Duration(val)
 	return formatDuration(d)
 }

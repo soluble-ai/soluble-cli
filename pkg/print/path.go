@@ -22,9 +22,10 @@ import (
 
 type PathSupport struct {
 	Filter
-	Path   []string
-	SortBy []string
-	Limit  int
+	Path            []string
+	SortBy          []string
+	ComputedColumns map[string]ColumnComputer
+	Limit           int
 }
 
 func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
@@ -34,9 +35,11 @@ func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
 		if !p.matches(row) {
 			continue
 		}
+		for name, cc := range p.ComputedColumns {
+			cc(row, name)
+		}
 		rows = append(rows, row)
 	}
-
 	if p.SortBy != nil {
 		sort.Sort(&rowsSort{rows, p.SortBy})
 	}

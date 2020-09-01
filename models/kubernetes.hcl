@@ -118,10 +118,10 @@ command "group" "kubernetes" {
       required    = true
     }
     result {
-        path = ["data"]
-        columns = [ 
-            "kind", "name", "type", "reason", "message", "count",
-            "firstTimestamp", "lastTimestamp"
+      path = ["data"]
+      columns = [
+        "kind", "name", "type", "reason", "message", "count",
+        "firstTimestamp", "lastTimestamp"
       ]
       formatters = {
         firstTimestamp : "relative_ts"

@@ -41,6 +41,7 @@ type PrintOpts struct {
 	Limit               int
 	Filter              string
 	Formatters          map[string]print.Formatter
+	ComputedColumns     map[string]print.ColumnComputer
 	DiffContextSize     int
 	output              io.Writer
 }
@@ -135,9 +136,10 @@ func (p *PrintOpts) GetPrinter() print.Interface {
 
 func (p *PrintOpts) getPathSupport() print.PathSupport {
 	return print.PathSupport{
-		Filter: print.NewFilter(p.Filter),
-		Path:   p.Path,
-		SortBy: p.SortBy,
+		Filter:          print.NewFilter(p.Filter),
+		Path:            p.Path,
+		SortBy:          p.SortBy,
+		ComputedColumns: p.ComputedColumns,
 	}
 }
 
@@ -180,6 +182,13 @@ func (p *PrintOpts) SetFormatter(columnName string, formatter print.Formatter) {
 		p.Formatters = map[string]print.Formatter{}
 	}
 	p.Formatters[columnName] = formatter
+}
+
+func (p *PrintOpts) SetColumnComputer(columnName string, computer print.ColumnComputer) {
+	if p.ComputedColumns == nil {
+		p.ComputedColumns = map[string]print.ColumnComputer{}
+	}
+	p.ComputedColumns[columnName] = computer
 }
 
 func (p *PrintOpts) SetContextValues(context map[string]string) {

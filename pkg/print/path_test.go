@@ -39,3 +39,29 @@ func TestPathSupport(t *testing.T) {
 		t.Error(rows)
 	}
 }
+
+func TestComputedColumns(t *testing.T) {
+	count := 0
+	ps := &PathSupport{
+		Path: []string{"data"},
+		ComputedColumns: map[string]ColumnComputer{
+			"count": func(n *jnode.Node, c string) {
+				count++
+				n.Put("count", count)
+			},
+		},
+	}
+	n := jnode.NewObjectNode()
+	data := n.PutArray("data")
+	data.Append(jnode.NewObjectNode().Put("greeting", "hello"))
+	data.Append(jnode.NewObjectNode().Put("greeting", "howdy"))
+	rows := ps.getRows(n)
+	if len(rows) != 2 {
+		t.Error(rows)
+	}
+	for i, row := range rows {
+		if i+1 != row.Path("count").AsInt() || row.Path("greeting").IsMissing() {
+			t.Error(row)
+		}
+	}
+}

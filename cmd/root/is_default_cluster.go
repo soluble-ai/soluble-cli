@@ -12,17 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package print
+package root
 
 import (
-	"io"
-
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/model"
 )
 
-type Interface interface {
-	PrintResult(w io.Writer, result *jnode.Node)
+func isDefaultClusterID(clusterID string) bool {
+	return clusterID == config.Config.DefaultClusterID
 }
 
-type Formatter func(n *jnode.Node) string
-type ColumnComputer func(n *jnode.Node, columnName string)
+func computeIsDefaultCluster(n *jnode.Node, c string) {
+	if isDefaultClusterID(n.Path("clusterId").AsText()) {
+		n.Put("default", "   *")
+	}
+}
+
+func init() {
+	model.RegisterColumnComputer("is_default_cluster", computeIsDefaultCluster)
+}

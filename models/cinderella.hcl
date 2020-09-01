@@ -12,14 +12,14 @@ command "group" "cinderella" {
     path   = "org/{org}/cinderella/requests"
     method = "GET"
     result {
-      path = [ "data" ]
+      path = ["data"]
       columns = [
         "requestId", "ipAddress", "status", "userDisplayName", "createTs", "expirationTs", "message",
       ]
       formatters = {
-        "expirationTs": "relative_ts"
+        "expirationTs" : "relative_ts"
       }
-      sort_by = [ "-createTs" ]
+      sort_by = ["-createTs"]
     }
   }
 }

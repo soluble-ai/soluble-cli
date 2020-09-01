@@ -21,19 +21,26 @@ import (
 	"github.com/soluble-ai/go-jnode"
 )
 
+func TestFormatters(t *testing.T) {
+	var f Formatters
+	if s := f.Format("s", jnode.NewObjectNode().Put("s", "hello")); s != "hello" {
+		t.Error(s)
+	}
+}
+
 func TestTimestampFormatters(t *testing.T) {
 	now := time.Date(2020, 5, 11, 10, 5, 45, 0, time.UTC)
 	formatterNow = &now
 	formatterLocation = time.FixedZone("test", -8*60*60)
 	n := jnode.NewObjectNode().Put("ts", "2020-05-08T11:18:33Z")
-	if s := TimestampFormatter(n, "ts"); s != "2020-05-08T03:18:33-08:00" {
+	if s := TimestampFormatter(n.Path("ts")); s != "2020-05-08T03:18:33-08:00" {
 		t.Error("timestamp wrong", n, s)
 	}
-	if s := RelativeTimestampFormatter(n, "ts"); s != "2d22h47m12s" {
+	if s := RelativeTimestampFormatter(n.Path("ts")); s != "2d22h47m12s" {
 		t.Error("relative ts wrong", n, s)
 	}
 	n = jnode.NewObjectNode().Put("ts", "9999-12-31T15:59:59-08:00")
-	if s := RelativeTimestampFormatter(n, "ts"); s != ">100y" {
+	if s := RelativeTimestampFormatter(n.Path("ts")); s != ">100y" {
 		t.Error("long relative time is wrong", n, s)
 	}
 }
@@ -51,7 +58,7 @@ var bytesTestCases = []struct {
 func TestBytesFormatter(t *testing.T) {
 	for _, c := range bytesTestCases {
 		n := jnode.NewObjectNode().Put("n", c.value)
-		s := BytesFormatter(n, "n")
+		s := BytesFormatter(n.Path("n"))
 		if s != c.expected {
 			t.Error(c.value, c.expected, s)
 		}
@@ -71,7 +78,7 @@ var durationTestCases = []struct {
 func TestDurationFormatter(t *testing.T) {
 	for _, c := range durationTestCases {
 		n := jnode.NewObjectNode().Put("millis", c.value)
-		s := DurationMillisFormatter(n, "millis")
+		s := DurationMillisFormatter(n.Path("millis"))
 		if s != c.expected {
 			t.Error(c.value, c.expected, s)
 		}
