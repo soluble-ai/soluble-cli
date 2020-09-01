@@ -47,23 +47,25 @@ command "group" "agent" {
     }
   }
   command "print_cluster" "list" {
-    short = "List agents"
+    short               = "List agents"
     cluster_id_optional = true
-    path = "org/{org}/agents"
-    method = "GET"
+    path                = "org/{org}/agents"
+    method              = "GET"
     parameter "clusterId" {
       context_value = "clusterID"
     }
     result {
-      path = [ "agents" ]
+      path = ["agents"]
       columns = [
         "agentInstanceId", "clusterId", "agentVersion", "agentStartTs", "updateTs",
         "agentRemoteIp", "memAlloc", "message"
       ]
       formatters = {
-        "memAlloc": "bytes"
-        "updateTs": "relative_ts"
-        "message": "first_message"
+        "memAlloc" : "bytes"
+        "updateTs" : "relative_ts"
+      }
+      computed_columns = {
+        message : "first_message"
       }
     }
   }

@@ -63,9 +63,13 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 			if r.Formatters != nil {
 				for columnName := range *r.Formatters {
 					formatter := r.GetFormatter(columnName)
-					opts.SetFormatter(columnName, func(n *jnode.Node, columnName string) string {
-						return formatter(n, columnName)
-					})
+					opts.SetFormatter(columnName, formatter)
+				}
+			}
+			if r.ComputedColumns != nil {
+				for columnName := range *r.ComputedColumns {
+					computer := r.GetColumnComputer(columnName)
+					opts.SetColumnComputer(columnName, computer)
 				}
 			}
 			if r.DefaultOutputFormat != nil {

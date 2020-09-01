@@ -56,7 +56,7 @@ func TestFormat(t *testing.T) {
 		PathSupport: PathSupport{Path: []string{"rows"}},
 		Columns:     []string{"v1", "v2"},
 		Formatters: map[string]Formatter{
-			"v1": func(n *jnode.Node, columnName string) string {
+			"v1": func(n *jnode.Node) string {
 				return "xxx"
 			},
 		},
@@ -89,6 +89,6 @@ func TestTs(t *testing.T) {
 	opts.PrintResult(w, n)
 	s := w.String()
 	if !strings.Contains(s, "5s") || !strings.Contains(s, "2020-03-23T") {
-		t.Error(s)
+		t.Error(n, s)
 	}
 }

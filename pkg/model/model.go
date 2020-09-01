@@ -64,6 +64,7 @@ type ResultModel struct {
 	WideColumns             *[]string          `hcl:"wide_columns"`
 	Sort                    *[]string          `hcl:"sort_by"`
 	Formatters              *map[string]string `hcl:"formatters"`
+	ComputedColumns         *map[string]string `hcl:"computed_columns"`
 	LocalAction             *string            `hcl:"local_action"`
 	DiffColumn              *string            `hcl:"diff_column"`
 	VersionColumn           *string            `hcl:"version_column"`
@@ -320,7 +321,14 @@ func (r *ResultModel) validate() error {
 	if r.Formatters != nil {
 		for column, formatterName := range *r.Formatters {
 			if err := ColumnFormatterType(formatterName).validate(); err != nil {
-				return fmt.Errorf("invalid formatter for column %s: %w", column, err)
+				return fmt.Errorf("unknown formatter for column %s: %w", column, err)
+			}
+		}
+	}
+	if r.ComputedColumns != nil {
+		for column, computerName := range *r.ComputedColumns {
+			if err := ColumnComputerType(computerName).validate(); err != nil {
+				return fmt.Errorf("unknown computed column %s: %w", column, err)
 			}
 		}
 	}
@@ -336,6 +344,13 @@ func (r *ResultModel) validate() error {
 func (r *ResultModel) GetFormatter(column string) print.Formatter {
 	if r.Formatters != nil {
 		return ColumnFormatterType((*r.Formatters)[column]).GetFormatter()
+	}
+	return nil
+}
+
+func (r *ResultModel) GetColumnComputer(column string) print.ColumnComputer {
+	if r.ComputedColumns != nil {
+		return ColumnComputerType((*r.ComputedColumns)[column]).GetComlumnComputer()
 	}
 	return nil
 }

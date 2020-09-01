@@ -21,7 +21,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/agent"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
-	"github.com/soluble-ai/soluble-cli/cmd/cluster"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
 	"github.com/soluble-ai/soluble-cli/cmd/elevate"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
@@ -93,7 +92,6 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		auth.Command(),
 		agent.Command(),
 		aws.Command(),
-		cluster.Command(),
 		configcmd.Command(),
 		modelcmd.Command(),
 		version.Command(),

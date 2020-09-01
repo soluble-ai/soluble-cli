@@ -44,7 +44,7 @@ command "group" "job" {
     parameter "jobID" {
       usage       = "The job id"
       disposition = "context"
-      required = true
+      required    = true
     }
   }
   command "print_client" "cancel" {
