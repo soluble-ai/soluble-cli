@@ -243,6 +243,8 @@ github.com/soluble-ai/go-colorize v0.1.2 h1:rq8M9o6FgnDi6F0q68jYycNIYJKaDSOLetmU
 github.com/soluble-ai/go-colorize v0.1.2/go.mod h1:4u95vimNk2IOaCcs0rwf9J8tM3rSAqedtmNPbMAinFk=
 github.com/soluble-ai/go-jnode v0.1.10 h1:mygXB4gPOkl+2DXBmeVPpoeYzjLJP4oCc6cJnRty/e8=
 github.com/soluble-ai/go-jnode v0.1.10/go.mod h1:mKFUM7xxXMBVOygZeE8od2Qls1f3E3NHY1ZhMlzwx/U=
+github.com/soluble-ai/go-jnode v0.1.11 h1:To9h6zWI6qr5Vphz0XO4JtCRlkhfilH2EDNwtAZkZT4=
+github.com/soluble-ai/go-jnode v0.1.11/go.mod h1:mKFUM7xxXMBVOygZeE8od2Qls1f3E3NHY1ZhMlzwx/U=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/spf13/afero v1.1.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
 github.com/spf13/afero v1.2.2/go.mod h1:9ZxEEn6pIJ8Rxe320qSDBk6AsU0r9pR7Q4OcevTdifk=

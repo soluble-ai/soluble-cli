@@ -17,7 +17,7 @@ require (
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200627165143-92b8a710ab6c // indirect
 	github.com/soluble-ai/go-colorize v0.1.2
-	github.com/soluble-ai/go-jnode v0.1.10
+	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.3.5
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.5.1 // indirect
