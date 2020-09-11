@@ -25,4 +25,4 @@ type Interface interface {
 }
 
 type Formatter func(n *jnode.Node) string
-type ColumnComputer func(n *jnode.Node, columnName string)
+type ColumnFunction func(n *jnode.Node) interface{}

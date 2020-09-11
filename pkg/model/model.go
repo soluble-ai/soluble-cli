@@ -48,13 +48,21 @@ type CommandModel struct {
 	Path              *string           `hcl:"path"`
 	Method            *string           `hcl:"method"`
 	Parameters        []*ParameterModel `hcl:"parameter,block"`
+	ParameterNames    *[]string         `hcl:"parameters"`
 	ClusterIDOptional *bool             `hcl:"cluster_id_optional"`
 	AuthNotRequired   *bool             `hcl:"auth_not_required"`
 	Unauthenticated   *bool             `hcl:"unauthenticated"`
 	DefaultTimeout    *int              `hcl:"default_timeout"`
 	Result            *ResultModel      `hcl:"result,block"`
 	Commands          []*CommandModel   `hcl:"command,block"`
+	ParameterDefs     *ParameterDefs    `hcl:"parameter_defs,block"`
+	parameters        []*ParameterModel
 	model             *Model
+	parent            *CommandModel
+}
+
+type ParameterDefs struct {
+	Parameters []*ParameterModel `hcl:"parameter,block"`
 }
 
 type ResultModel struct {
@@ -86,7 +94,7 @@ type ParameterModel struct {
 var Models []*Model
 
 func (m *Model) validate() error {
-	return m.Command.validate(m)
+	return m.Command.validate(m, nil)
 }
 
 func (cm *CommandModel) GetCommand() Command {
@@ -100,7 +108,6 @@ func (cm *CommandModel) GetCommand() Command {
 	if cm.Aliases != nil {
 		c.Aliases = *cm.Aliases
 	}
-
 	command := cm.GetCommandType().makeCommand(c, cm)
 	if !cm.GetCommandType().IsGroup() {
 		c.RunE = func(cmd *cobra.Command, args []string) error {
@@ -113,7 +120,7 @@ func (cm *CommandModel) GetCommand() Command {
 }
 
 func (cm *CommandModel) createFlags(c *cobra.Command) {
-	for _, p := range cm.Parameters {
+	for _, p := range cm.parameters {
 		if name := p.getFlagName(); name != "" {
 			defaultValue := ""
 			if p.DefaultValue != nil {
@@ -138,36 +145,73 @@ func (cm *CommandModel) createFlags(c *cobra.Command) {
 	}
 }
 
-func (cm *CommandModel) validate(m *Model) error {
+func (cm *CommandModel) validate(m *Model, parent *CommandModel) error {
 	cm.model = m
+	cm.parent = parent
 	if cm.Use != nil && strings.HasPrefix(*cm.Use, cm.Name+" ") {
-		return fmt.Errorf("use must begin with with name %s", cm.Name)
+		return fmt.Errorf("command %s: use must begin with with command name", cm.Name)
 	}
 	if err := cm.GetCommandType().validate(); err != nil {
-		return fmt.Errorf("invalid command type for %s: %w", cm.Name, err)
+		return fmt.Errorf("command %s: invalid command type: %w", cm.Name, err)
 	}
 	if !cm.GetCommandType().IsGroup() {
 		if cm.Method == nil || !util.StringSliceContains(validMethods, *cm.Method) {
-			return fmt.Errorf("invalid method %v must be one of %s", cm.Method, strings.Join(validMethods, " "))
+			return fmt.Errorf("command %s: invalid method %v must be one of %s", cm.Name, cm.Method, strings.Join(validMethods, " "))
 		}
 		if cm.Path == nil {
-			return fmt.Errorf("path is required here")
+			return fmt.Errorf("command %s: path is required", cm.Name)
 		}
 	}
 	for _, p := range cm.Parameters {
 		if err := p.validate(); err != nil {
-			return fmt.Errorf("invalid parameter %s: %w", p.Name, err)
+			return fmt.Errorf("command %s: invalid parameter %s: %w", cm.Name, p.Name, err)
 		}
 	}
 	if cm.Result != nil {
 		if err := (*cm.Result).validate(); err != nil {
-			return err
+			return fmt.Errorf("invalid result for command %s: %w", cm.Name, err)
 		}
 	}
 	for _, scm := range cm.Commands {
-		if err := scm.validate(m); err != nil {
-			return err
+		if err := scm.validate(m, cm); err != nil {
+			return fmt.Errorf("command %s: %w", cm.Name, err)
 		}
+	}
+	if cm.ParameterDefs != nil {
+		if err := (*cm.ParameterDefs).validate(); err != nil {
+			return fmt.Errorf("command %s: invalid parameter definition: %w", cm.Name, err)
+		}
+	}
+	cm.parameters = cm.Parameters
+	if cm.ParameterNames != nil {
+		for _, name := range *cm.ParameterNames {
+			p := cm.getDefinedParameter(name)
+			if p == nil {
+				return fmt.Errorf("command %s: no defined parameter %s", cm.Name, name)
+			}
+			cm.parameters = append(cm.parameters, p)
+		}
+	}
+	seen := map[string]bool{}
+	for _, p := range cm.parameters {
+		if seen[p.Name] {
+			return fmt.Errorf("command %s: duplicate parameter %s", cm.Name, p.Name)
+		}
+		seen[p.Name] = true
+	}
+	return nil
+}
+
+func (cm *CommandModel) getDefinedParameter(name string) *ParameterModel {
+	if cm.ParameterDefs != nil {
+		for _, p := range cm.ParameterDefs.Parameters {
+			if p.Name == name {
+				return p
+			}
+		}
+	}
+	if cm.parent != nil {
+		return cm.parent.getDefinedParameter(name)
 	}
 	return nil
 }
@@ -241,7 +285,7 @@ func (cm *CommandModel) getPath(contextValues *ContextValues) string {
 
 func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *ContextValues) (map[string]string, error) {
 	values := map[string]string{}
-	for _, p := range cm.Parameters {
+	for _, p := range cm.parameters {
 		var value string
 		flagName := p.getFlagName()
 		switch {
@@ -265,6 +309,15 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 		}
 	}
 	return values, nil
+}
+
+func (d *ParameterDefs) validate() error {
+	for _, p := range d.Parameters {
+		if err := p.validate(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *ParameterModel) getFlagName() string {
@@ -326,8 +379,8 @@ func (r *ResultModel) validate() error {
 		}
 	}
 	if r.ComputedColumns != nil {
-		for column, computerName := range *r.ComputedColumns {
-			if err := ColumnComputerType(computerName).validate(); err != nil {
+		for column, columnFunction := range *r.ComputedColumns {
+			if err := ColumnFunctionType(columnFunction).validate(); err != nil {
 				return fmt.Errorf("unknown computed column %s: %w", column, err)
 			}
 		}
@@ -348,9 +401,10 @@ func (r *ResultModel) GetFormatter(column string) print.Formatter {
 	return nil
 }
 
-func (r *ResultModel) GetColumnComputer(column string) print.ColumnComputer {
+func (r *ResultModel) GetColumnFunction(column string) print.ColumnFunction {
 	if r.ComputedColumns != nil {
-		return ColumnComputerType((*r.ComputedColumns)[column]).GetComlumnComputer()
+		f, _ := ColumnFunctionType((*r.ComputedColumns)[column]).GetColumnFunction()
+		return f
 	}
 	return nil
 }
