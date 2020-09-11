@@ -24,7 +24,7 @@ type PathSupport struct {
 	Filter
 	Path            []string
 	SortBy          []string
-	ComputedColumns map[string]ColumnComputer
+	ComputedColumns map[string]ColumnFunction
 	Limit           int
 }
 
@@ -35,8 +35,8 @@ func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
 		if !p.matches(row) {
 			continue
 		}
-		for name, cc := range p.ComputedColumns {
-			cc(row, name)
+		for name, f := range p.ComputedColumns {
+			row.Put(name, f(row))
 		}
 		rows = append(rows, row)
 	}

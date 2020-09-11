@@ -68,8 +68,8 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 			}
 			if r.ComputedColumns != nil {
 				for columnName := range *r.ComputedColumns {
-					computer := r.GetColumnComputer(columnName)
-					opts.SetColumnComputer(columnName, computer)
+					computer := r.GetColumnFunction(columnName)
+					opts.SetColumnFunction(columnName, computer)
 				}
 			}
 			if r.DefaultOutputFormat != nil {

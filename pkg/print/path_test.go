@@ -44,10 +44,10 @@ func TestComputedColumns(t *testing.T) {
 	count := 0
 	ps := &PathSupport{
 		Path: []string{"data"},
-		ComputedColumns: map[string]ColumnComputer{
-			"count": func(n *jnode.Node, c string) {
+		ComputedColumns: map[string]ColumnFunction{
+			"count": func(n *jnode.Node) interface{} {
 				count++
-				n.Put("count", count)
+				return count
 			},
 		},
 	}

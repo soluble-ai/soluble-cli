@@ -41,7 +41,7 @@ type PrintOpts struct {
 	Limit               int
 	Filter              string
 	Formatters          map[string]print.Formatter
-	ComputedColumns     map[string]print.ColumnComputer
+	ComputedColumns     map[string]print.ColumnFunction
 	DiffContextSize     int
 	output              io.Writer
 }
@@ -184,9 +184,9 @@ func (p *PrintOpts) SetFormatter(columnName string, formatter print.Formatter) {
 	p.Formatters[columnName] = formatter
 }
 
-func (p *PrintOpts) SetColumnComputer(columnName string, computer print.ColumnComputer) {
+func (p *PrintOpts) SetColumnFunction(columnName string, computer print.ColumnFunction) {
 	if p.ComputedColumns == nil {
-		p.ComputedColumns = map[string]print.ColumnComputer{}
+		p.ComputedColumns = map[string]print.ColumnFunction{}
 	}
 	p.ComputedColumns[columnName] = computer
 }

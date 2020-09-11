@@ -129,14 +129,15 @@ func Command() *cobra.Command {
 	return agent
 }
 
-func firstMessageComputer(n *jnode.Node, columnName string) {
+func firstMessageColumnFunction(n *jnode.Node) interface{} {
 	// pick the first message, and if it's JSON use the "msg" field
 	s := n.Path("messages").Get(0).Path("message").AsText()
 	if m, err := jnode.FromJSON([]byte(s)); err == nil {
-		n.Put(columnName, m.Path("msg"))
+		return m.Path("msg")
 	}
+	return ""
 }
 
 func init() {
-	model.RegisterColumnComputer("first_message", firstMessageComputer)
+	model.RegisterColumnFunction("first_message", firstMessageColumnFunction)
 }

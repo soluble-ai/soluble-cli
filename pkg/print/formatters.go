@@ -113,6 +113,9 @@ func formatDuration(d time.Duration) string {
 	}
 	if d > 365*24*time.Hour {
 		years := int64(d) / int64(365*24*time.Hour)
+		if years > 100 {
+			return ">100y"
+		}
 		d -= time.Duration(365*24*years) * time.Hour
 		prefix += fmt.Sprintf("%dy", years)
 	}
@@ -141,13 +144,15 @@ func BytesFormatter(n *jnode.Node) string {
 }
 
 func NumberFormatter(n *jnode.Node) string {
-	val := n.AsFloat()
-	return fmt.Sprintf("%d", int64(val))
+	if n.GetType() == jnode.Number {
+		return fmt.Sprintf("%d", n.AsInt())
+	}
+	return n.AsText()
 }
 
 func DurationMillisFormatter(n *jnode.Node) string {
-	if n.IsMissing() {
-		return ""
+	if n.GetType() != jnode.Number {
+		return n.AsText()
 	}
 	val := n.AsFloat()
 	d := time.Millisecond * time.Duration(val)

@@ -24,12 +24,13 @@ func isDefaultClusterID(clusterID string) bool {
 	return clusterID == config.Config.DefaultClusterID
 }
 
-func computeIsDefaultCluster(n *jnode.Node, c string) {
+func computeIsDefaultCluster(n *jnode.Node) interface{} {
 	if isDefaultClusterID(n.Path("clusterId").AsText()) {
-		n.Put("default", "   *")
+		return "   *"
 	}
+	return ""
 }
 
 func init() {
-	model.RegisterColumnComputer("is_default_cluster", computeIsDefaultCluster)
+	model.RegisterColumnFunction("is_default_cluster", computeIsDefaultCluster)
 }
