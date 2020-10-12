@@ -25,6 +25,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/elevate"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
+	"github.com/soluble-ai/soluble-cli/cmd/scan"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -97,6 +98,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		version.Command(),
 		query.Command(),
 		elevate.Command(),
+		scan.Command(),
 	}
 	for _, c := range commands {
 		rootCmd.AddCommand(c)

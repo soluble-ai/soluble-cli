@@ -15,21 +15,24 @@
 package scan
 
 import (
+	"github.com/accurics/terrascan/pkg/writer"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/scanner"
 	"github.com/spf13/cobra"
 )
 
 var (
 	// PolicyPath Policy path directory
-	PolicyPath string
+	policyPath string
 
 	// IacFilePath Path to a single IaC file
-	IacFilePath string
+	iacFilePath string
 
 	// IacDirPath Path to a directory containing one or more IaC files
-	IacDirPath string
+	iacDirPath string
 
-	// ConfigOnly will output resource config (should only be used for debugging purposes)
-	ConfigOnly bool
+	// OutputFlag will output the results in the required format
+	format string
 )
 
 // Command for scan that will be registered with the root command of cli
@@ -37,13 +40,28 @@ func Command() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan [flags]",
 		Short: "scans the terraform code for config errors and vulnerabilities",
-		Long:  `soluble scan is a simple tool to detect potential security vulnerabilities in your terraform based infrastructure code.`,
+		Long:  `soluble scan is a simple tool to detect potential compliance and security in the terraform based Infrastructure as Code.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// create a new runtime executor for processing IaC
+			scanner, err := scanner.NewScanner(iacFilePath, iacDirPath, policyPath)
+			if err != nil {
+				log.Errorf("Failed to create new scanner %s", err.Error())
+				return err
+			}
+			// scanner output
+			results, err := scanner.Execute()
+			if err != nil {
+				log.Errorf("Failed to create new scanner %s", err.Error())
+				return err
+			}
+			outputWriter := scanner.NewOutputWriter()
+			writer.Write(format, results.Violations, outputWriter)
 			return nil
 		},
 	}
-	scanCmd.Flags().StringVarP(&IacFilePath, "iac-file", "f", "", "path to a single IaC file")
-	scanCmd.Flags().StringVarP(&IacDirPath, "iac-dir", "d", ".", "path to a directory containing one or more IaC files")
-	scanCmd.Flags().StringVarP(&PolicyPath, "policy-path", "p", "", "policy path directory")
+	scanCmd.Flags().StringVarP(&iacFilePath, "iac-file", "f", "", "path to a single IaC file")
+	scanCmd.Flags().StringVarP(&iacDirPath, "iac-dir", "d", ".", "path to a directory containing one or more IaC files")
+	scanCmd.Flags().StringVarP(&policyPath, "policy-path", "p", "", "policy path directory")
+	scanCmd.Flags().StringVarP(&format, "format", "o", "yaml", "output type (json, yaml, junit)")
 	return scanCmd
 }
