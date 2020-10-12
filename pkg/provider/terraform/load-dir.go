@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -11,7 +10,6 @@ import (
 	hclConfigs "github.com/hashicorp/terraform/configs"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/provider/output"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/afero"
 )
 
@@ -20,6 +18,22 @@ var (
 	errLoadConfigDir    = fmt.Errorf("failed to load terraform allResourcesConfig dir")
 	errBuildTFConfigDir = fmt.Errorf("failed to build terraform allResourcesConfig")
 )
+
+var localSourcePrefixes = []string{
+	"./",
+	"../",
+	".\\",
+	"..\\",
+}
+
+func isLocalSourceAddr(addr string) bool {
+	for _, prefix := range localSourcePrefixes {
+		if strings.HasPrefix(addr, prefix) {
+			return true
+		}
+	}
+	return false
+}
 
 // LoadIacDir starts traversing from the given rootDir and traverses through
 // all the descendant modules present to create an output list of all the
@@ -41,14 +55,9 @@ func (*Terraform) LoadIacDir(absRootDir string) (allResourcesConfig output.AllRe
 		return allResourcesConfig, errLoadConfigDir
 	}
 
-	// create a new remote module installer to install remote modules
-	r := NewRemoteModuleInstaller()
-	defer r.CleanUp()
-
 	// using the BuildConfig and ModuleWalkerFunc to traverse through all
 	// descendant modules from the root module and create a unified
 	// configuration of type *configs.Config
-	// Note: currently, only Local paths are supported for Module Sources
 	versionI := 0
 	unified, diags := hclConfigs.BuildConfig(rootMod, hclConfigs.ModuleWalkerFunc(
 		func(req *hclConfigs.ModuleRequest) (*hclConfigs.Module, *version.Version, hcl.Diagnostics) {
@@ -62,14 +71,7 @@ func (*Terraform) LoadIacDir(absRootDir string) (allResourcesConfig output.AllRe
 				pathToModule = filepath.Join(absRootDir, filepath.Join(pathArr...), req.SourceAddr)
 				log.Debugf("processing local module %q", req.SourceAddr)
 			} else {
-				// temp dir to download the remote repo
-				tempDir := filepath.Join(os.TempDir(), util.GenRandomString(6))
-
-				// Download remote module
-				pathToModule, err = r.DownloadModule(req.SourceAddr, tempDir)
-				if err != nil {
-					log.Errorf("failed to download remote module %q. error: '%v'", req.SourceAddr, err)
-				}
+				log.Infof("only local source code is allowed to scan")
 			}
 
 			// load sub module directory

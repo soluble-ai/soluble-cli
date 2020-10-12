@@ -91,7 +91,6 @@ func (s *Scanner) Execute() (results Output, err error) {
 }
 
 // NewOutputWriter gets a new io.Writer based on os.Stdout.
-// If param useColors=true, the writer will colorize the output
 func (s *Scanner) NewOutputWriter() io.Writer {
 	// Color codes will corrupt output, so suppress if not on terminal
 	// return termcolor.NewColorizedWriter(os.Stdout)
