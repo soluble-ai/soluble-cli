@@ -144,7 +144,6 @@ func (e *Engine) LoadRegoFiles(policyPath string) error {
 		var regoDataList []*RegoData
 		for j := range metadataFiles {
 			filePath := filepath.Join(dirList[i], *metadataFiles[j])
-
 			var regoMetadata *RegoMetadata
 			regoMetadata, err = e.LoadRegoMetadata(filePath)
 			if err != nil {
