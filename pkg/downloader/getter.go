@@ -12,7 +12,7 @@ import (
 var (
 	ErrEmptyURLType     = fmt.Errorf("empty remote url and type")
 	ErrEmptyURLDest     = fmt.Errorf("remote url or destination dir path cannot be empty")
-	ErrEmptyURLTypeDest = fmt.Errorf("empty remote url or type or desitnation dir path")
+	ErrEmptyURLTypeDest = fmt.Errorf("empty remote url or type or destination dir path")
 )
 
 // NewGoGetter returns a new GoGetter struct
@@ -23,7 +23,6 @@ func NewGoGetter() *GoGetter {
 // GetURLSubDir returns the download URL with it's respective type prefix
 // along with subDir path, if present.
 func (g *GoGetter) GetURLSubDir(remoteURL, destPath string) (string, string, error) {
-
 	// get subDir, if present
 	repoURL, subDir := SplitAddrSubdir(remoteURL)
 	log.Debugf("downloading %q to %q", repoURL, destPath)
@@ -54,7 +53,6 @@ func (g *GoGetter) GetURLSubDir(remoteURL, destPath string) (string, string, err
 // into the destination path and then returns the full path to any subdir
 // indicated in the URL
 func (g *GoGetter) Download(remoteURL, destPath string) (string, error) {
-
 	log.Debugf("download with remote url: %q, destination dir: %q",
 		remoteURL, destPath)
 
@@ -112,7 +110,6 @@ func (g *GoGetter) Download(remoteURL, destPath string) (string, error) {
 // DownloadWithType enforces download type on go-getter to get rid of any
 // ambiguities in remoteURL
 func (g *GoGetter) DownloadWithType(remoteType, remoteURL, destPath string) (string, error) {
-
 	log.Debugf("download with remote type: %q, remote URL: %q, destination dir: %q",
 		remoteType, remoteURL, destPath)
 

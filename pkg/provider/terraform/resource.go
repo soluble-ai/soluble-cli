@@ -12,7 +12,6 @@ import (
 
 // CreateResourceConfig creates output.ResourceConfig
 func CreateResourceConfig(managedResource *hclConfigs.Resource) (resourceConfig output.ResourceConfig, err error) {
-
 	// read source file
 	fileBytes, err := ioutil.ReadFile(managedResource.DeclRange.Filename)
 	if err != nil {

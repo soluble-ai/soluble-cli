@@ -25,7 +25,6 @@ var (
 // all the descendant modules present to create an output list of all the
 // resources present in rootDir and descendant modules
 func (*Terraform) LoadIacDir(absRootDir string) (allResourcesConfig output.AllResourceConfigs, err error) {
-
 	// create a new config parser
 	parser := hclConfigs.NewParser(afero.NewOsFs())
 
@@ -53,7 +52,6 @@ func (*Terraform) LoadIacDir(absRootDir string) (allResourcesConfig output.AllRe
 	versionI := 0
 	unified, diags := hclConfigs.BuildConfig(rootMod, hclConfigs.ModuleWalkerFunc(
 		func(req *hclConfigs.ModuleRequest) (*hclConfigs.Module, *version.Version, hcl.Diagnostics) {
-
 			// figure out path sub module directory, if it's remote then download it locally
 			var pathToModule string
 			if isLocalSourceAddr(req.SourceAddr) {
@@ -105,14 +103,12 @@ func (*Terraform) LoadIacDir(absRootDir string) (allResourcesConfig output.AllRe
 	// using BFS traverse through all modules in the unified config tree
 	log.Debugf("traversing through all modules in config tree")
 	for len(configsQ) > 0 {
-
 		// pop first element from the queue
 		current := configsQ[0]
 		configsQ = configsQ[1:]
 
 		// traverse through all current's resources
 		for _, managedResource := range current.Module.ManagedResources {
-
 			// create output.ResourceConfig from hclConfigs.Resource
 			resourceConfig, err := CreateResourceConfig(managedResource)
 			if err != nil {
@@ -131,7 +127,6 @@ func (*Terraform) LoadIacDir(absRootDir string) (allResourcesConfig output.AllRe
 				allResourcesConfig[resourceConfig.Type] = append(allResourcesConfig[resourceConfig.Type], resourceConfig)
 			}
 		}
-
 		// add all current's children to the queue
 		for _, childModule := range current.Children {
 			configsQ = append(configsQ, childModule)

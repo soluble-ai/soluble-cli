@@ -43,7 +43,6 @@ var (
 
 // NewEngine returns a new OPA policy engine
 func NewEngine(policyPath string) (*Engine, error) {
-
 	if len(policyPath) == 0 {
 		policyPath = "../../policies/opa/rego/aws"
 	}
@@ -300,18 +299,17 @@ func (e *Engine) reportViolation(regoData *RegoData, resource *output.ResourceCo
 		LineNumber:   resource.Line,
 	}
 
-	severity := regoData.Metadata.Severity
-	if strings.ToLower(severity) == "high" {
+	switch severity := regoData.Metadata.Severity; strings.ToLower(severity) {
+	case "high":
 		e.results.ViolationStore.Count.HighCount++
-	} else if strings.ToLower(severity) == "medium" {
+	case "medium":
 		e.results.ViolationStore.Count.MediumCount++
-	} else if strings.ToLower(severity) == "low" {
+	case "low":
 		e.results.ViolationStore.Count.LowCount++
-	} else {
+	default:
 		log.Warnf("invalid severity found in rule definition %s with severity %s", violation.RuleID, severity)
 	}
 	e.results.ViolationStore.Count.TotalCount++
-
 	e.results.ViolationStore.AddResult(&violation)
 }
 

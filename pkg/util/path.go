@@ -15,7 +15,6 @@ import (
 // GetAbsPath returns absolute path from passed file path resolving even ~ to user home dir and any other such symbols that are only
 // shell expanded can also be handled here
 func GetAbsPath(path string) (string, error) {
-
 	// Only shell resolves `~` to home so handle it specially
 	if strings.HasPrefix(path, "~") {
 		homeDir := os.Getenv("HOME")

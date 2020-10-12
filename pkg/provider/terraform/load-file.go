@@ -16,7 +16,6 @@ var (
 
 // LoadIacFile parses the given terraform file from the given file path
 func (s *Terraform) LoadIacFile(absFilePath string) (allResourcesConfig output.AllResourceConfigs, err error) {
-
 	// new terraform config parser
 	parser := hclConfigs.NewParser(afero.NewOsFs())
 
@@ -26,7 +25,7 @@ func (s *Terraform) LoadIacFile(absFilePath string) (allResourcesConfig output.A
 		return allResourcesConfig, errLoadConfigFile
 	}
 	if hclFile == nil && diags.HasErrors() {
-		log.Errorf("error occured while loading config file. error:\n%v\n", diags)
+		log.Errorf("error occurred while loading config file. error:\n%v\n", diags)
 		return allResourcesConfig, errLoadConfigFile
 	}
 
@@ -35,7 +34,6 @@ func (s *Terraform) LoadIacFile(absFilePath string) (allResourcesConfig output.A
 
 	// traverse through all current's resources
 	for _, managedResource := range hclFile.ManagedResources {
-
 		// create output.ResourceConfig from hclConfigs.Resource
 		resourceConfig, err := CreateResourceConfig(managedResource)
 		if err != nil {

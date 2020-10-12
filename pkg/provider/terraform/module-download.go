@@ -54,7 +54,6 @@ type InstalledCache map[string]string
 // into the installation path and then returns the full path to any subdir
 // indicated in the address.
 func (r *RemoteModuleInstaller) DownloadModule(addr, destPath string) (string, error) {
-
 	// split url and subdir
 	URLWithType, subDir, err := r.downloader.GetURLSubDir(addr, destPath)
 	if err != nil {

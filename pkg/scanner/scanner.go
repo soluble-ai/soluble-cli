@@ -53,7 +53,6 @@ func NewScanner(filePath, dirPath, policyPath string) (s *Scanner, err error) {
 
 // Init validates input and initializes iac and cloud providers
 func (s *Scanner) Init() error {
-
 	//TODO: validate inputs
 	// err := s.ValidateInputs()
 	// if err != nil {

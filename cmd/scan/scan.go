@@ -55,7 +55,10 @@ func Command() *cobra.Command {
 				return err
 			}
 			outputWriter := scanner.NewOutputWriter()
-			writer.Write(format, results.Violations, outputWriter)
+			err = writer.Write(format, results.Violations, outputWriter)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}
