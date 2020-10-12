@@ -52,13 +52,11 @@ func NewEngine(policyPath string) (*Engine, error) {
 
 	// opa engine struct
 	engine := &Engine{}
-
 	// initialize the engine
 	if err := engine.Init(policyPath); err != nil {
 		log.Errorf("failed to initialize OPA policy engine: %s", err.Error())
 		return engine, errInitFailed
 	}
-
 	// successful
 	return engine, nil
 }
@@ -267,19 +265,9 @@ func (e *Engine) Init(policyPath string) error {
 	return nil
 }
 
-// Configure Configures the OPA engine
-func (e *Engine) Configure() error {
-	return nil
-}
-
 // GetResults Fetches results from OPA engine policy evaluation
 func (e *Engine) GetResults() policy.EngineOutput {
 	return e.results
-}
-
-// Release Performs any tasks required to free resources
-func (e *Engine) Release() error {
-	return nil
 }
 
 // reportViolation Add a violation for a given resource
