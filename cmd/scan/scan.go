@@ -22,16 +22,16 @@ import (
 )
 
 var (
-	// PolicyPath Policy path directory
+	// policyPath Policy path directory, if you want to specify your custom policies
 	policyPath string
 
-	// IacFilePath Path to a single IaC file
+	// iacFilePath Path to a single IaC file
 	iacFilePath string
 
-	// IacDirPath Path to a directory containing one or more IaC files
+	// iacDirPath Path to a directory containing one or more IaC files
 	iacDirPath string
 
-	// OutputFlag will output the results in the required format
+	// format will output the results in the required format
 	format string
 )
 

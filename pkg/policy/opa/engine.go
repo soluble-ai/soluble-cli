@@ -43,13 +43,6 @@ var (
 
 // NewEngine returns a new OPA policy engine
 func NewEngine(policyPath string) (*Engine, error) {
-	if len(policyPath) == 0 {
-		policyPath = "../../policies/opa/rego/aws"
-	}
-
-	fmt.Println("Policy path")
-	fmt.Println(policyPath)
-
 	// opa engine struct
 	engine := &Engine{}
 	// initialize the engine

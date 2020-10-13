@@ -33,6 +33,7 @@ require (
 	github.com/zclconf/go-cty v1.5.1
 	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
+	gopkg.in/resty.v1 v1.12.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.19.2 // indirect
 	k8s.io/client-go v10.0.0+incompatible
