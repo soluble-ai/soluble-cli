@@ -79,7 +79,7 @@ func Unzip(src string, destination string) ([]string, error) {
 			return filenames, err
 		}
 
-		_, err = io.Copy(outFile, rc)
+		_, err = io.CopyN(outFile, rc, 50<<(10*2)) // 50MB Max copy size
 		outFile.Close()
 		rc.Close()
 		if err != nil {
