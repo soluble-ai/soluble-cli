@@ -24,11 +24,11 @@ import (
 )
 
 func main() {
-	err := vfsgen.Generate(http.Dir("models"), vfsgen.Options{
-		PackageName:  "root",
+	err := vfsgen.Generate(http.Dir("resources"), vfsgen.Options{
+		PackageName:  "resources",
 		BuildTags:    "ci",
-		VariableName: "embeddedFS",
-		Filename:     "cmd/root/embed_vfsgen.go",
+		VariableName: "FileSystem",
+		Filename:     "pkg/resources/resources_vfsgen.go",
 	})
 	if err != nil {
 		log.Fatalln(err)
