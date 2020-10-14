@@ -36,17 +36,18 @@ func Unzip(src string, destination string) ([]string, error) {
 
 	defer r.Close()
 	for _, f := range r.File {
-		fpath := filepath.Join(destination, f.Name)
-
+		fpath := filepath.Join(destination, f.Name) // #nosec
 		// Checking for any invalid file paths
 		if !strings.HasPrefix(fpath, filepath.Clean(destination)+string(os.PathSeparator)) {
 			return filenames, fmt.Errorf("%s is an illegal filepath", fpath)
 		}
 		filenames = append(filenames, fpath)
 		if f.FileInfo().IsDir() {
-
 			// Creating a new Folder
-			os.MkdirAll(fpath, os.ModePerm)
+			err := os.MkdirAll(fpath, os.ModePerm)
+			if err != nil {
+				return filenames, err
+			}
 			continue
 		}
 

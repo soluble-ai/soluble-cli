@@ -33,6 +33,9 @@ var (
 
 	// format will output the results in the required format
 	format string
+
+	// report to control plane
+	report bool
 )
 
 // Command for scan that will be registered with the root command of cli
@@ -43,7 +46,7 @@ func Command() *cobra.Command {
 		Long:  `soluble scan is a simple tool to detect potential compliance and security in the terraform based Infrastructure as Code.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// create a new runtime executor for processing IaC
-			scanner, err := scanner.NewScanner(iacFilePath, iacDirPath, policyPath)
+			scanner, err := scanner.NewScanner(iacFilePath, iacDirPath, policyPath, report)
 			if err != nil {
 				log.Errorf("Failed to create new scanner %s", err.Error())
 				return err
@@ -66,5 +69,6 @@ func Command() *cobra.Command {
 	scanCmd.Flags().StringVarP(&iacDirPath, "iac-dir", "d", ".", "path to a directory containing one or more IaC files")
 	scanCmd.Flags().StringVarP(&policyPath, "policy-path", "p", "", "policy path directory")
 	scanCmd.Flags().StringVarP(&format, "format", "o", "yaml", "output type (json, yaml, junit)")
+	scanCmd.Flags().BoolVarP(&report, "report", "r", true, "report back to control plane")
 	return scanCmd
 }

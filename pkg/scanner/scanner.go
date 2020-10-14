@@ -15,11 +15,14 @@
 package scanner
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
@@ -41,10 +44,15 @@ type Scanner struct {
 	policyPath   string
 	terraform    terraform.Terraform
 	policyEngine policy.Engine
+	report       bool
+	apiClient    client.Interface
 }
 
 // NewScanner creates a runtime object
-func NewScanner(filePath, dirPath, policyPath string) (s *Scanner, err error) {
+func NewScanner(filePath, dirPath, policyPath string, report bool) (s *Scanner, err error) {
+	opts := options.ClientOpts{}
+	apiClient := opts.GetAPIClient()
+
 	// if the external path is not available use the home space
 	if len(policyPath) != 0 {
 		policyPath, err = util.GetAbsPath(policyPath)
@@ -52,19 +60,17 @@ func NewScanner(filePath, dirPath, policyPath string) (s *Scanner, err error) {
 			log.Errorf("unable to get the absolute path for the path %s. Error: %s", policyPath, err.Error())
 		}
 	} else {
-		opts := options.ClientOpts{}
 		policyPath = fmt.Sprintf("%s/%s", os.Getenv("HOME"), ".soluble")
 
 		err := os.MkdirAll(policyPath, 0755)
 		if err != nil {
-			log.Errorf("unable to create a folder for policies with error: %s", err.Error())
+			return nil, err
 		}
 
 		_, err = os.Stat(fmt.Sprintf("%s/%s", policyPath, rulePath))
 		if os.IsNotExist(err) {
-			apiClient := opts.GetAPIClient()
 			// Download the OPA rules from the API server to the specified policyPath
-			path := fmt.Sprintf("org/{org}/config/%s", policyZip)
+			path := fmt.Sprintf("org/{org}/opa/%s", policyZip)
 
 			apiClient.GetClient().SetOutputDirectory(policyPath)
 
@@ -72,7 +78,7 @@ func NewScanner(filePath, dirPath, policyPath string) (s *Scanner, err error) {
 				req.SetOutput(policyZip)
 			})
 			if err != nil {
-				log.Errorf("unable to get the OPA policies, error: %s", err.Error())
+				return nil, err
 			}
 
 			src := fmt.Sprintf("%s/%s", policyPath, policyZip)
@@ -89,6 +95,8 @@ func NewScanner(filePath, dirPath, policyPath string) (s *Scanner, err error) {
 		filePath:   filePath,
 		dirPath:    dirPath,
 		policyPath: policyPath,
+		report:     report,
+		apiClient:  apiClient,
 	}
 
 	// initialize executor
@@ -133,6 +141,21 @@ func (s *Scanner) Execute() (results Output, err error) {
 	results.Violations, err = s.policyEngine.Evaluate(policy.EngineInput{InputData: &results.ResourceConfig})
 	if err != nil {
 		return results, err
+	}
+
+	// if report flag is true, report back the results to control plane
+	if s.report {
+		j, _ := json.MarshalIndent(results.Violations, "", "  ")
+		resultsNode, err := jnode.FromJSON(j)
+		if err != nil {
+			return results, err
+		}
+		resp, err := s.apiClient.Post("org/{org}/opa/results", resultsNode)
+		if err != nil {
+			return results, err
+		}
+		opts := options.PrintClientOpts{}
+		opts.PrintResult(resp)
 	}
 	// successful
 	return results, nil
