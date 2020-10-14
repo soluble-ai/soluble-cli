@@ -15,7 +15,10 @@
 package scan
 
 import (
+	"os"
+
 	"github.com/accurics/terrascan/pkg/writer"
+	"github.com/olekukonko/tablewriter"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/scanner"
 	"github.com/spf13/cobra"
@@ -62,6 +65,14 @@ func Command() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			// pretty print for demo
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"ID", "Severity", "Name"})
+			for _, v := range results.Violations.Violations {
+				output := []string{v.RuleID, v.Severity, v.RuleName}
+				table.Append(output)
+			}
+			table.Render()
 			return nil
 		},
 	}

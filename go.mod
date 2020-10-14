@@ -20,6 +20,7 @@ require (
 	github.com/jarcoal/httpmock v1.0.6
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/olekukonko/tablewriter v0.0.1
 	github.com/open-policy-agent/opa v0.23.2
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0
