@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	securejoin "github.com/cyphar/filepath-securejoin"
 )
 
 // Unzip will decompress a zip archived file,
@@ -36,7 +38,10 @@ func Unzip(src string, destination string) ([]string, error) {
 
 	defer r.Close()
 	for _, f := range r.File {
-		fpath := filepath.Join(destination, f.Name) // #nosec
+		fpath, err := securejoin.SecureJoin(destination, f.Name)
+		if err != nil {
+			return nil, err
+		}
 		// Checking for any invalid file paths
 		if !strings.HasPrefix(fpath, filepath.Clean(destination)+string(os.PathSeparator)) {
 			return filenames, fmt.Errorf("%s is an illegal filepath", fpath)

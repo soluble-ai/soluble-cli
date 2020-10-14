@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.51.0 // indirect
 	github.com/accurics/terrascan v1.1.0
 	github.com/avast/retry-go v2.6.1+incompatible
+	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/fatih/color v1.9.0
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/gobwas/glob v0.2.3
