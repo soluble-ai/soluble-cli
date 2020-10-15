@@ -38,7 +38,7 @@ func Load(source Source) error {
 	m := &modelLoader{
 		parser: hclparse.NewParser(),
 	}
-	if err := m.loadModels(source, ""); err != nil {
+	if err := m.loadModels(source, source.GetModelsDir()); err != nil {
 		return err
 	}
 	wr := hcl.NewDiagnosticTextWriter(

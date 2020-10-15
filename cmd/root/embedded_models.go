@@ -14,7 +14,10 @@
 
 package root
 
-import "github.com/soluble-ai/soluble-cli/pkg/model"
+import (
+	"github.com/soluble-ai/soluble-cli/pkg/model"
+	"github.com/soluble-ai/soluble-cli/pkg/resources"
+)
 
 var (
 	embeddedModelsSource model.Source
@@ -23,9 +26,10 @@ var (
 func getEmbeddedModelsSource() model.Source {
 	if embeddedModelsSource == nil {
 		embeddedModelsSource = &model.FileSystemSource{
-			Filesystem: embeddedFS,
-			RootPath:   "<internal>",
+			Filesystem: resources.FileSystem,
+			RootPath:   resources.RootPath(),
 			Embedded:   true,
+			ModelsDir:  "models",
 		}
 	}
 	return embeddedModelsSource

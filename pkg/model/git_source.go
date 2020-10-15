@@ -15,6 +15,8 @@
 package model
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -22,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
@@ -32,7 +35,7 @@ type GitSource struct {
 }
 
 func GetGitSource(url string) (Source, error) {
-	dir, err := GetModelDir(url)
+	dir, err := getGitModelDir(url)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +92,16 @@ func GetGitSource(url string) (Source, error) {
 
 func (s *GitSource) GetVersion(name string, content []byte) string {
 	return s.version
+}
+
+func getGitModelDir(url string) (string, error) {
+	hash := sha256.Sum256([]byte(url))
+	name := fmt.Sprintf("%012x", hash[0:6])
+	m, err := homedir.Expand("~/.soluble_cli_models")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(m, name), nil
 }
 
 func headVersion(dir string) string {

@@ -15,17 +15,14 @@
 package model
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"net/http"
-	"path/filepath"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
 
 type Source interface {
 	GetFileSystem() http.FileSystem
+	GetModelsDir() string
 	GetPath(file string) string
 	GetVersion(file string, content []byte) string
 	String() string
@@ -36,6 +33,7 @@ type FileSystemSource struct {
 	Filesystem http.FileSystem
 	RootPath   string
 	Embedded   bool
+	ModelsDir  string
 }
 
 func (s *FileSystemSource) GetPath(name string) string {
@@ -54,16 +52,10 @@ func (s *FileSystemSource) IsEmbedded() bool {
 	return s.Embedded
 }
 
-func (s *FileSystemSource) String() string {
-	return s.RootPath
+func (s *FileSystemSource) GetModelsDir() string {
+	return s.ModelsDir
 }
 
-func GetModelDir(url string) (string, error) {
-	hash := sha256.Sum256([]byte(url))
-	name := fmt.Sprintf("%012x", hash[0:6])
-	m, err := homedir.Expand("~/.soluble_cli_models")
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(m, name), nil
+func (s *FileSystemSource) String() string {
+	return s.RootPath
 }
