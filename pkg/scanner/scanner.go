@@ -150,12 +150,22 @@ func (s *Scanner) Execute() (results Output, err error) {
 		if err != nil {
 			return results, err
 		}
+
+		metadata, err := util.GetMetadata()
+		if err != nil {
+			return results, err
+		}
+
+		resultsNode.Put("metadata", metadata)
 		resp, err := s.apiClient.Post("org/{org}/opa/results", resultsNode)
 		if err != nil {
 			return results, err
 		}
+
 		opts := options.PrintClientOpts{}
 		opts.PrintResult(resp)
+		log.Infof("Metadata of the system:")
+		opts.PrintResult(metadata)
 	}
 	// successful
 	return results, nil
