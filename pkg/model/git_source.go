@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
@@ -39,7 +39,7 @@ func GetGitSource(url string) (Source, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(dir, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
 	gitConfig, err := os.Stat(filepath.Join(dir, ".git", "config"))
@@ -55,14 +55,14 @@ func GetGitSource(url string) (Source, error) {
 	case gitConfig == nil:
 		// repo doesn't exist, clone the repo
 		log.Infof("Cloning {primary:%s} to {info:%s}", url, dir)
-		err := git("clone", url, dir).Run()
+		err := git("clone", "--depth", "1", url, dir).Run()
 		if err != nil {
 			return nil, err
 		}
 	case fetchHead == nil || time.Now().After(fetchHead.ModTime().Add(5*time.Minute)):
 		// repo exists, and we haven't fetched it in a while
 		log.Infof("Updating git model repository {primary:%s}", dir)
-		c := git("fetch")
+		c := git("fetch", "-q", "--depth", "1")
 		c.Dir = dir
 		done := make(chan error)
 		go run(c, done)
@@ -97,10 +97,7 @@ func (s *GitSource) GetVersion(name string, content []byte) string {
 func getGitModelDir(url string) (string, error) {
 	hash := sha256.Sum256([]byte(url))
 	name := fmt.Sprintf("%012x", hash[0:6])
-	m, err := homedir.Expand("~/.soluble_cli_models")
-	if err != nil {
-		return "", err
-	}
+	m := filepath.Join(config.ConfigDir, "cli-models")
 	return filepath.Join(m, name), nil
 }
 
