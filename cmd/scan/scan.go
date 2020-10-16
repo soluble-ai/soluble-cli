@@ -17,9 +17,9 @@ package scan
 import (
 	"os"
 
-	"github.com/accurics/terrascan/pkg/writer"
 	"github.com/olekukonko/tablewriter"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/scanner"
 	"github.com/spf13/cobra"
 )
@@ -34,15 +34,13 @@ var (
 	// iacDirPath Path to a directory containing one or more IaC files
 	iacDirPath string
 
-	// format will output the results in the required format
-	format string
-
 	// report to control plane
 	report bool
 )
 
 // Command for scan that will be registered with the root command of cli
 func Command() *cobra.Command {
+	opts := options.PrintOpts{}
 	scanCmd := &cobra.Command{
 		Use:   "scan [flags]",
 		Short: "scans the terraform code for config errors and vulnerabilities",
@@ -60,26 +58,30 @@ func Command() *cobra.Command {
 				log.Errorf("Failed to create new scanner %s", err.Error())
 				return err
 			}
-			outputWriter := scanner.NewOutputWriter()
-			err = writer.Write(format, results.Violations, outputWriter)
-			if err != nil {
-				return err
-			}
+			log.Infof("VIOLATIONS:")
+
+			violations := results.Path("results").Path("violations")
+			opts.PrintResult(violations)
+
+			log.Infof("Results:")
+			opts.PrintResult(results.Path("results").Path("count"))
+
 			// pretty print for demo
 			table := tablewriter.NewWriter(os.Stdout)
 			table.SetHeader([]string{"ID", "Severity", "Name"})
-			for _, v := range results.Violations.Violations {
-				output := []string{v.RuleID, v.Severity, v.RuleName}
+			for _, v := range violations.Elements() {
+				output := []string{v.Path("ruleId").AsText(), v.Path("severity").AsText(), v.Path("ruleName").AsText()}
 				table.Append(output)
 			}
 			table.Render()
 			return nil
 		},
 	}
+	opts.Register(scanCmd)
 	scanCmd.Flags().StringVarP(&iacFilePath, "iac-file", "f", "", "path to a single IaC file")
 	scanCmd.Flags().StringVarP(&iacDirPath, "iac-dir", "d", ".", "path to a directory containing one or more IaC files")
 	scanCmd.Flags().StringVarP(&policyPath, "policy-path", "p", "", "policy path directory")
-	scanCmd.Flags().StringVarP(&format, "format", "o", "yaml", "output type (json, yaml, junit)")
+	// scanCmd.Flags().StringVarP(&format, "format", "o", "yaml", "output type (json, yaml, table)")
 	scanCmd.Flags().BoolVarP(&report, "report", "r", true, "report back to control plane")
 	return scanCmd
 }

@@ -128,38 +128,40 @@ func (s *Scanner) Init() error {
 }
 
 // Execute validates the inputs, processes the IaC, creates json output
-func (s *Scanner) Execute() (results Output, err error) {
+func (s *Scanner) Execute() (resultsNode *jnode.Node, err error) {
+	var results Output
 	if s.filePath != "" {
 		results.ResourceConfig, err = s.terraform.LoadIacFile(s.filePath)
 	} else {
 		results.ResourceConfig, err = s.terraform.LoadIacDir(s.dirPath)
 	}
 	if err != nil {
-		return results, err
+		return nil, err
 	}
 	// evaluate policies
 	results.Violations, err = s.policyEngine.Evaluate(policy.EngineInput{InputData: &results.ResourceConfig})
 	if err != nil {
-		return results, err
+		return nil, err
 	}
+
+	j, _ := json.MarshalIndent(results.Violations, "", "  ")
+	resultsNode, err = jnode.FromJSON(j)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := util.GetMetadata()
+	if err != nil {
+		return nil, err
+	}
+
+	resultsNode.Put("metadata", metadata)
 
 	// if report flag is true, report back the results to control plane
 	if s.report {
-		j, _ := json.MarshalIndent(results.Violations, "", "  ")
-		resultsNode, err := jnode.FromJSON(j)
-		if err != nil {
-			return results, err
-		}
-
-		metadata, err := util.GetMetadata()
-		if err != nil {
-			return results, err
-		}
-
-		resultsNode.Put("metadata", metadata)
 		resp, err := s.apiClient.Post("org/{org}/opa/results", resultsNode)
 		if err != nil {
-			return results, err
+			return nil, err
 		}
 
 		opts := options.PrintClientOpts{}
@@ -168,7 +170,7 @@ func (s *Scanner) Execute() (results Output, err error) {
 		opts.PrintResult(metadata)
 	}
 	// successful
-	return results, nil
+	return resultsNode, nil
 }
 
 // NewOutputWriter gets a new io.Writer based on os.Stdout.
