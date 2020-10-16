@@ -16,9 +16,11 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
@@ -33,8 +35,12 @@ var GlobalConfig = &struct {
 }{}
 
 // Config points to the current profile
-var Config = &ProfileT{}
-var ConfigFile string
+var (
+	Config         = &ProfileT{}
+	ConfigFile     string
+	ConfigDir      string
+	configFileRead string
+)
 
 const Redacted = "*** redacted ***"
 
@@ -121,6 +127,25 @@ func (c *ProfileT) String() string {
 }
 
 func Save() {
+	dir := filepath.Dir(ConfigFile)
+	if dir != "" {
+		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+			err := os.MkdirAll(dir, 0777)
+			if err != nil {
+				log.Errorf("Could not create config directory {info:%s}: {danger:%s}", dir, err.Error())
+				return
+			}
+		}
+	}
+	if configFileRead != ConfigFile {
+		log.Infof("Migrating legacy config file {info:%s} to {info:%s}", configFileRead, ConfigFile)
+		err := os.Rename(configFileRead, ConfigFile)
+		if err != nil {
+			log.Errorf("Could not rename legacy config file {info:%s} to {info:%s}: {danger:%s}",
+				configFileRead, ConfigFile, err.Error())
+			return
+		}
+	}
 	log.Infof("Updating {info:%s}\n", ConfigFile)
 	file, err := os.OpenFile(ConfigFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err == nil {
@@ -156,10 +181,24 @@ func Set(name, value string) error {
 }
 
 func Load() {
+	if ConfigDir == "" {
+		ConfigDir = os.Getenv("SOLUBLE_CONFIG_DIR")
+		if ConfigDir == "" {
+			ConfigDir, _ = homedir.Expand("~/.soluble")
+		}
+	}
 	if ConfigFile == "" {
 		ConfigFile = os.Getenv("SOLUBLE_CONFIG_FILE")
 		if ConfigFile == "" {
-			ConfigFile, _ = homedir.Expand("~/.soluble_cli")
+			ConfigFile = filepath.Join(ConfigDir, "cli-config.json")
+			if _, err := os.Stat(ConfigFile); errors.Is(err, os.ErrNotExist) {
+				legacyConfigFile, _ := homedir.Expand("~/.soluble_cli")
+				if _, err := os.Stat(legacyConfigFile); err == nil {
+					// read from the legacy config file, we'll migrate
+					// it when we save
+					configFileRead = legacyConfigFile
+				}
+			}
 		}
 	}
 	if info, err := os.Stat(ConfigFile); err == nil && (info.Mode()&0077) != 0 {
@@ -170,8 +209,13 @@ func Load() {
 				ConfigFile, err.Error())
 		}
 	}
-	dat, err := ioutil.ReadFile(ConfigFile)
-	if err == nil {
+	if configFileRead == "" {
+		configFileRead = ConfigFile
+	}
+	dat, err := ioutil.ReadFile(configFileRead)
+	if err != nil {
+		configFileRead = ""
+	} else {
 		_ = json.Unmarshal(dat, GlobalConfig)
 	}
 	if GlobalConfig.Profiles == nil {
