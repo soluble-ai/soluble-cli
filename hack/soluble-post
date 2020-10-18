@@ -2,6 +2,12 @@
 
 # POC for structure of posting arbitrary data to Soluble
 
+
+MODULE=test
+FILES=()
+PARAMS=()
+ENV_LIST=()
+
 exit_error() {
     echo "ERROR: $1"
     exit 1
@@ -18,19 +24,16 @@ SOLUBLE_CURRENT_PROFILE=$(jq -r .CurrentProfile <$CLI_CONFIG)
 SOLUBLE_API_URL=$(jq -r .Profiles.${SOLUBLE_CURRENT_PROFILE}.APIServer <$CLI_CONFIG)
 SOLUBLE_API_TOKEN=$(jq -r .Profiles.${SOLUBLE_CURRENT_PROFILE}.APIToken <$CLI_CONFIG)
 SOLUBLE_ORG_ID=$(jq -r .Profiles.${SOLUBLE_CURRENT_PROFILE}.Organization <$CLI_CONFIG)
-echo $SOLUBLE_CURRENT_PROFILE
-echo $SOLUBLE_API_URL
+
+
 
 fi
 
 }
 
-parse_args() {
 
-MODULE=test
-FILES=()
-PARAMS=()
-ENV_LIST=()
+
+
 while getopts ":m:e:p:f:" opt
    do
      case $opt in
@@ -46,12 +49,14 @@ done
 CURL_ARGS=""
 FILE_COUNT=0
 
+echo ${FILES[@]}
+
 for FILE in ${FILES[@]}; do
 if [[ ! -f "$FILE" ]]; then
     exit_error "file not found: $FILE"
     exit 1
 fi
-NEW_ARG="-F file_${FILE_COUNT}=$FILE"
+NEW_ARG="-F file_${FILE_COUNT}=@$FILE"
 CURL_ARGS=" $CURL_ARGS $NEW_ARG"
 done
 
@@ -71,15 +76,24 @@ for ENV_NAME in ${ENV_LIST[@]}; do
     CURL_ARGS="$CURL_ARGS $NEW_ARG"
 done
 
-}
 
-parse_args
+
+
 parse_config
 
+cat <<EOF
+SOLUBLE_CURRENT_PROFILE : ${SOLUBLE_CURRENT_PROFILE}
+SOLUBLE_API_URL         : ${SOLUBLE_API_URL}
+SOLUBLE_ORG_ID          : ${SOLUBLE_ORG_ID}
+MODULE                  : ${MODULE}
+
+EOF
 
 # NOT ideal to echo Authorization header, but this is all temporary
 
-SAFE_COMMAND="curl -H 'Authorization: Bearer TOKEN_HERE' -H 'X-SOLUBLE-ORG-ID: ${SOLUBLE_ORG_ID}' -m 10 $CURL_ARGS $SOLUBLE_API_URL/api/v1/xcp/${MODULE}/data"
+TEMP_OUTPUT=$(mktemp)
+
+SAFE_COMMAND="curl -s -H 'Authorization: Bearer TOKEN_HERE' -H 'X-SOLUBLE-ORG-ID: ${SOLUBLE_ORG_ID}' -m 10 $CURL_ARGS $SOLUBLE_API_URL/api/v1/xcp/${MODULE}/data -o $TEMP_OUTPUT"
 
 echo $SAFE_COMMAND
 echo
@@ -87,4 +101,6 @@ echo
 COMMAND=$(echo $SAFE_COMMAND | sed "s/TOKEN_HERE/$SOLUBLE_API_TOKEN/")
 
 
-sh -c "$COMMAND"
+sh -c "$COMMAND" 
+
+cat $TEMP_OUTPUT | jq
