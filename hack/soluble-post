@@ -93,7 +93,7 @@ EOF
 
 TEMP_OUTPUT=$(mktemp)
 
-SAFE_COMMAND="curl -s -H 'Authorization: Bearer TOKEN_HERE' -H 'X-SOLUBLE-ORG-ID: ${SOLUBLE_ORG_ID}' -m 10 $CURL_ARGS $SOLUBLE_API_URL/api/v1/xcp/${MODULE}/data -o $TEMP_OUTPUT"
+SAFE_COMMAND="curl -s -X POST -H 'Authorization: Bearer TOKEN_HERE' -H 'X-SOLUBLE-ORG-ID: ${SOLUBLE_ORG_ID}' -m 10 $CURL_ARGS $SOLUBLE_API_URL/api/v1/xcp/${MODULE}/data -o $TEMP_OUTPUT"
 
 echo $SAFE_COMMAND
 echo
