@@ -55,6 +55,7 @@ type Interface interface {
 	GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error)
 	Delete(path string, options ...Option) (*jnode.Node, error)
 	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error
+	XCPPostWithEnv(orgID string, module string, files []string, values map[string]string, options ...Option) error
 	GetClient() *resty.Client
 }
 
