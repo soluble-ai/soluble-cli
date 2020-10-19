@@ -43,7 +43,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Installing golangci-lint
-      run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.23.8
+      run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.31.0
     - name: Test and build binaries
       run: ./hack/build.sh
     - name: Distribute Release

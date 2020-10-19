@@ -1,6 +1,7 @@
 package postcmd
 
 import (
+	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -17,15 +18,16 @@ func Command() *cobra.Command {
 		Use:   "post",
 		Short: "Send data to soluble",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var options []client.Option
 			if withEnv {
-				return opts.GetAPIClient().XCPPostWithEnv(opts.GetOrganization(), module, files, values)
+				options = []client.Option{client.WithCIEnv}
 			}
-			return opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values)
+			return opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
 		},
 	}
 	opts.Register(c)
 	flags := c.Flags()
-	flags.BoolVarP(&withEnv, "env", "e", false, "Include environment variables and runtime information.")
+	flags.BoolVarP(&withEnv, "env", "e", false, "Include CI environment variables and git information.")
 	flags.StringVarP(&module, "module", "m", "", "The module to post under, required.")
 	flags.StringSliceVarP(&files, "file", "f", nil, "Send a file, can be repeated")
 	flags.StringToStringVarP(&values, "param", "p", nil, "Include a key value pair, can be repeated.  The argument should be in the form key=value.")
