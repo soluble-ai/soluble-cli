@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -201,4 +202,110 @@ func (c *clientT) XCPPost(orgID string, module string, files []string, values ma
 	req = applyOptions(req, options)
 	_, err := req.Post(fmt.Sprintf("/api/v1/xcp/%s/data", module))
 	return err
+}
+
+// XCPPostWithEnv is a convenience wrapper for XCPPost that includes metadata about the current environment.
+func (c *clientT) XCPPostWithEnv(orgID, module string, files []string, values map[string]string, options ...Option) error {
+	if module == "" {
+		return fmt.Errorf("module parameter is required")
+	}
+	if values == nil {
+		values = make(map[string]string)
+	}
+
+	// Environment variables
+	allEnvs := make(map[string]string)
+	for _, e := range os.Environ() {
+		split := strings.Split(e, "=")
+		allEnvs[split[0]] = split[1]
+	}
+	// We don't want all of the environment variables, however.
+	for k, v := range allEnvs {
+		if strings.HasPrefix(k, "GITHUB_") ||
+			strings.HasPrefix(k, "CIRCLE_") ||
+			strings.HasPrefix(k, "GITLAB_") ||
+			strings.HasPrefix(k, "CI_") ||
+			strings.HasPrefix(k, "BUILDKITE_") {
+			// We explicitly exclude a few keys due to their sensitive values.
+			// The substrings below will cause the environment variable to be
+			// skipped (not recorded).
+			substringNop := []string{
+				"SECRET", "KEY", "PRIVATE", "PASSWORD",
+				"PASSPHRASE", "CREDS", "TOKEN", "AUTH",
+				"ENC", "JWT",
+				"_USR", "_PSW", // Jenkins credentials()
+			}
+			for _, s := range substringNop {
+				if strings.Contains(strings.ToUpper(k), s) {
+					continue
+				}
+			}
+			// While we perform the redactions based on substrings above,
+			// we also maintain a list of known-sensitive keys to ensure
+			// that we never capture these. Unlike above, these are an
+			// exact match and not a substring match.
+			ciNop := []string{
+				"BUILDKITE_S3_SECRET_ACCESS_KEY",
+				"BUILDKITE_S3_ACCESS_KEY_ID",
+				"BUILDKITE_S3_ACCESS_URL",
+				"KEY",                  // CircleCI encrypted-files decryption key
+				"CI_DEPLOY_PASSWORD",   // Gitlab
+				"CI_DEPLOY_USER",       // Gitlab
+				"CI_JOB_TOKEN",         // Gitlab
+				"CI_JOB_JWT",           // Gitlab
+				"CI_REGISTRY_USER",     // Gitlab
+				"CI_REGISTRY_PASSWORD", // Gitlab
+				"CI_REGISTRY_USER",     // Gitlab
+			}
+			for _, s := range ciNop {
+				if strings.ToUpper(k) == s {
+					continue
+				}
+			}
+			values[k] = v
+		}
+	}
+
+	// Non-environment variable metadata
+	const (
+		metaGitRemote string = "SOLUBLE_METADATA_GIT_REMOTE"
+		metaGitBranch string = "SOLUBLE_METADATA_GIT_BRANCH"
+		metaHostname  string = "SOLUBLE_METADATA_HOSTNAME"
+	)
+
+	// Git remote
+	cmd := exec.Command("git", "remote", "-v")
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("unable to get git repository remotes")
+	}
+	entries := strings.Split(string(out), "\\n")
+	var remotes []string
+	for _, e := range entries {
+		startIdx := strings.Index(e, "\t")
+		endIdx := strings.Index(e, " ")
+		if startIdx == -1 || endIdx == -1 {
+			continue
+		}
+		remote := e[startIdx+1 : endIdx]
+		remotes = append(remotes, remote)
+	}
+	values[metaGitRemote] = remotes[0]
+
+	// Git Branch
+	cmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	out, err = cmd.Output()
+	if err != nil {
+		return fmt.Errorf("unable to get git branch")
+	}
+	values[metaGitBranch] = string(out)[:len(out)-1] // trim newline
+
+	// Hostname
+	h, err := os.Hostname()
+	if err != nil {
+		return fmt.Errorf("unable to get system hostname")
+	}
+	values[metaHostname] = h
+
+	return c.XCPPost(orgID, module, files, values, options...)
 }
