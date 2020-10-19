@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# POC for structure of posting arbitrary data to Soluble
+# Prototype for POST-ing arbitrary data Soluble SaaS for processing
+# Intended to be used to send assessment reports.
 
+set -e
 
 MODULE=test
 FILES=()
@@ -9,28 +11,40 @@ PARAMS=()
 ENV_LIST=()
 
 exit_error() {
-    echo "ERROR: $1"
-    exit 1
+
+cat <<EOF 1>&2
+ERROR: $1
+
+EOF
+
+exit 1
+
 }
 
 
+# parses ~/.soluble_cli config
 parse_config() {
+
+if [[ ! -x $(which jq) ]]; then
+exit_error "jq not found"
+fi
 
 CLI_CONFIG=${HOME}/.soluble_cli
 if [[ -f "$CLI_CONFIG" ]]; then
-
 
 SOLUBLE_CURRENT_PROFILE=$(jq -r .CurrentProfile <$CLI_CONFIG)
 SOLUBLE_API_URL=$(jq -r .Profiles.${SOLUBLE_CURRENT_PROFILE}.APIServer <$CLI_CONFIG)
 SOLUBLE_API_TOKEN=$(jq -r .Profiles.${SOLUBLE_CURRENT_PROFILE}.APIToken <$CLI_CONFIG)
 SOLUBLE_ORG_ID=$(jq -r .Profiles.${SOLUBLE_CURRENT_PROFILE}.Organization <$CLI_CONFIG)
 
+else 
 
+exit_error "$CLI_CONFIG not found"
 
 fi
 
 }
-
+## end of parse_config()
 
 
 
@@ -41,15 +55,12 @@ while getopts ":m:e:p:f:" opt
         e ) ENV_LIST+=($OPTARG);;
         p ) PARAMS+=($OPTARG);;
         f ) FILES+=($OPTARG);;
-
      esac
 done
 
 
 CURL_ARGS=""
 FILE_COUNT=0
-
-echo ${FILES[@]}
 
 for FILE in ${FILES[@]}; do
 if [[ ! -f "$FILE" ]]; then
@@ -72,7 +83,7 @@ done
 for ENV_NAME in ${ENV_LIST[@]}; do
     TEMP_VAR=\$$ENV_NAME
     TEMP_VAL=$(eval echo -n $TEMP_VAR)
-    NEW_ARG="$ENV_NAME=$TEMP_VAL"
+    NEW_ARG="-F $ENV_NAME=\"$TEMP_VAL\""
     CURL_ARGS="$CURL_ARGS $NEW_ARG"
 done
 
@@ -89,18 +100,20 @@ MODULE                  : ${MODULE}
 
 EOF
 
-# NOT ideal to echo Authorization header, but this is all temporary
 
 TEMP_OUTPUT=$(mktemp)
 
-SAFE_COMMAND="curl -s -X POST -H 'Authorization: Bearer TOKEN_HERE' -H 'X-SOLUBLE-ORG-ID: ${SOLUBLE_ORG_ID}' -m 10 $CURL_ARGS $SOLUBLE_API_URL/api/v1/xcp/${MODULE}/data -o $TEMP_OUTPUT"
+## SAFE_COMMAND allows us to echo the command we will run, wtihout the 
+## note HTTP/1.1 is required.  There are some strange things happening with HTTP/2
+SAFE_COMMAND="curl -s -X POST --http1.1 -H 'Authorization: Bearer SOLUBLE_API_TOKEN' -H 'X-SOLUBLE-ORG-ID: ${SOLUBLE_ORG_ID}' -m 60 $CURL_ARGS $SOLUBLE_API_URL/api/v1/xcp/${MODULE}/data -o ${TEMP_OUTPUT}"
 
 echo $SAFE_COMMAND
 echo
 
-COMMAND=$(echo $SAFE_COMMAND | sed "s/TOKEN_HERE/$SOLUBLE_API_TOKEN/")
+COMMAND=$(echo $SAFE_COMMAND | sed "s/SOLUBLE_API_TOKEN/$SOLUBLE_API_TOKEN/")
 
-
-sh -c "$COMMAND" 
+sh -c "$COMMAND"  
 
 cat $TEMP_OUTPUT | jq
+
+rm -f $TEMP_OUTPUT
