@@ -137,7 +137,7 @@ func Save() {
 			}
 		}
 	}
-	if configFileRead != ConfigFile {
+	if configFileRead != "" && configFileRead != ConfigFile {
 		log.Infof("Migrating legacy config file {info:%s} to {info:%s}", configFileRead, ConfigFile)
 		err := os.Rename(configFileRead, ConfigFile)
 		if err != nil {
