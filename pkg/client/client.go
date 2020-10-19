@@ -221,47 +221,50 @@ func (c *clientT) XCPPostWithEnv(orgID, module string, files []string, values ma
 	}
 	// We don't want all of the environment variables, however.
 	for k, v := range allEnvs {
+		// We explicitly exclude a few keys due to their sensitive values.
+		// The substrings below will cause the environment variable to be
+		// skipped (not recorded).
+		substringNop := []string{
+			"SECRET", "KEY", "PRIVATE", "PASSWORD",
+			"PASSPHRASE", "CREDS", "TOKEN", "AUTH",
+			"ENC", "JWT",
+			"_USR", "_PSW", // Jenkins credentials()
+		}
+		for _, s := range substringNop {
+			if strings.Contains(strings.ToUpper(k), s) {
+				continue
+			}
+		}
+		// While we perform the redactions based on substrings above,
+		// we also maintain a list of known-sensitive keys to ensure
+		// that we never capture these. Unlike above, these are an
+		// exact match and not a substring match.
+		ciNop := []string{
+			"BUILDKITE_S3_SECRET_ACCESS_KEY",
+			"BUILDKITE_S3_ACCESS_KEY_ID",
+			"BUILDKITE_S3_ACCESS_URL",
+			"KEY",                  // CircleCI encrypted-files decryption key
+			"CI_DEPLOY_PASSWORD",   // Gitlab
+			"CI_DEPLOY_USER",       // Gitlab
+			"CI_JOB_TOKEN",         // Gitlab
+			"CI_JOB_JWT",           // Gitlab
+			"CI_REGISTRY_USER",     // Gitlab
+			"CI_REGISTRY_PASSWORD", // Gitlab
+			"CI_REGISTRY_USER",     // Gitlab
+		}
+		for _, s := range ciNop {
+			if strings.ToUpper(k) == s {
+				continue
+			}
+		}
+
+		// If the key has made it through the filtering above and is
+		// from a CI system, we include it.
 		if strings.HasPrefix(k, "GITHUB_") ||
 			strings.HasPrefix(k, "CIRCLE_") ||
 			strings.HasPrefix(k, "GITLAB_") ||
 			strings.HasPrefix(k, "CI_") ||
 			strings.HasPrefix(k, "BUILDKITE_") {
-			// We explicitly exclude a few keys due to their sensitive values.
-			// The substrings below will cause the environment variable to be
-			// skipped (not recorded).
-			substringNop := []string{
-				"SECRET", "KEY", "PRIVATE", "PASSWORD",
-				"PASSPHRASE", "CREDS", "TOKEN", "AUTH",
-				"ENC", "JWT",
-				"_USR", "_PSW", // Jenkins credentials()
-			}
-			for _, s := range substringNop {
-				if strings.Contains(strings.ToUpper(k), s) {
-					continue
-				}
-			}
-			// While we perform the redactions based on substrings above,
-			// we also maintain a list of known-sensitive keys to ensure
-			// that we never capture these. Unlike above, these are an
-			// exact match and not a substring match.
-			ciNop := []string{
-				"BUILDKITE_S3_SECRET_ACCESS_KEY",
-				"BUILDKITE_S3_ACCESS_KEY_ID",
-				"BUILDKITE_S3_ACCESS_URL",
-				"KEY",                  // CircleCI encrypted-files decryption key
-				"CI_DEPLOY_PASSWORD",   // Gitlab
-				"CI_DEPLOY_USER",       // Gitlab
-				"CI_JOB_TOKEN",         // Gitlab
-				"CI_JOB_JWT",           // Gitlab
-				"CI_REGISTRY_USER",     // Gitlab
-				"CI_REGISTRY_PASSWORD", // Gitlab
-				"CI_REGISTRY_USER",     // Gitlab
-			}
-			for _, s := range ciNop {
-				if strings.ToUpper(k) == s {
-					continue
-				}
-			}
 			values[k] = v
 		}
 	}
