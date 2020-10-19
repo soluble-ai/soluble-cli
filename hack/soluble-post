@@ -67,6 +67,7 @@ if [[ ! -f "$FILE" ]]; then
     exit_error "file not found: $FILE"
     exit 1
 fi
+FILE_COUNT=$(expr $FILE_COUNT + 1)
 NEW_ARG="-F file_${FILE_COUNT}=@$FILE"
 CURL_ARGS=" $CURL_ARGS $NEW_ARG"
 done
