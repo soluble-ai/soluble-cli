@@ -17,6 +17,8 @@ package client
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,6 +53,7 @@ type Interface interface {
 	Get(path string, options ...Option) (*jnode.Node, error)
 	GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error)
 	Delete(path string, options ...Option) (*jnode.Node, error)
+	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error
 	GetClient() *resty.Client
 }
 
@@ -178,4 +181,24 @@ func (c *clientT) Patch(path string, body *jnode.Node, options ...Option) (*jnod
 
 func (c *clientT) GetClient() *resty.Client {
 	return c.Client
+}
+
+func (c *clientT) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error {
+	if module == "" {
+		return fmt.Errorf("module parameter is required")
+	}
+	req := c.R()
+	for i, file := range files {
+		f, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		req.SetFileReader(fmt.Sprintf("file_%d", i), filepath.Base(file), f)
+	}
+	req.SetHeader("X-SOLUBLE-ORG-ID", orgID)
+	req.SetMultipartFormData(values)
+	req = applyOptions(req, options)
+	_, err := req.Post(fmt.Sprintf("/api/v1/xcp/%s/data", module))
+	return err
 }
