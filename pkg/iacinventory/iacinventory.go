@@ -1,10 +1,7 @@
 package iacinventory
 
-import "github.com/soluble-ai/go-jnode"
-
 type IacInventorier interface {
-	Run() (*jnode.Node, error)
-	Stop() error
+	Run() ([]Repo, error)
 }
 
 func New(inventoryType interface{}) IacInventorier {

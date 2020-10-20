@@ -7,17 +7,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/user"
 	"path/filepath"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"gopkg.in/yaml.v2"
 )
 
-var _ IacInventorier = &GithubScanner{}
+var _ IacInventorier = &GithubInventorier{}
 
-type GithubScanner struct {
+type GithubInventorier struct {
 	User       string `yaml:"user"`
 	OauthToken string `yaml:"oauth_token"`
 
@@ -25,7 +25,7 @@ type GithubScanner struct {
 }
 
 // GetRepos fetches (and expands) the repositories associated with a github account
-func (g *GithubScanner) GetRepos() error {
+func (g *GithubInventorier) getRepos() error {
 	if g.User == "" || g.OauthToken == "" {
 		return fmt.Errorf("no credentials provided")
 	}
@@ -51,7 +51,7 @@ func (g *GithubScanner) GetRepos() error {
 	reposWithCode := make(map[string]GithubRepo)
 	for _, repo := range githubRepos {
 		log.Infof("[%s]: analyzing repo...\n", repo.FullName)
-		if err := repo.GetMaster(ctx, client, g.User, g.OauthToken); err != nil {
+		if err := repo.getMaster(ctx, client, g.User, g.OauthToken); err != nil {
 			log.Infof("[%s]: error fetching archive: %v\n", repo.FullName, err)
 		}
 		repo := repo // scope pin, an unfortunate go-ism
@@ -64,17 +64,17 @@ func (g *GithubScanner) GetRepos() error {
 			if err != nil {
 				return err
 			}
-			ci, err := WalkCI(path, info, err)
+			ci, err := walkCI(path, info, err)
 			if err != nil {
 				return err
 			}
 			if len(ci) != 0 {
 				repo.CI = append(repo.CI, ci)
 			}
-			if err := repo.GetTerraformDirs(path, info, err); err != nil {
+			if err := repo.getTerraformDirs(path, info, err); err != nil {
 				return err
 			}
-			if err := repo.GetCloudFormationDirs(path, info, err); err != nil {
+			if err := repo.getCloudFormationDirs(path, info, err); err != nil {
 				return err
 			}
 			return nil
@@ -90,7 +90,7 @@ func (g *GithubScanner) GetRepos() error {
 	return nil
 }
 
-func (g *GithubScanner) Run() (*jnode.Node, error) {
+func (g *GithubInventorier) Run() ([]Repo, error) {
 	var err error
 	// if no authentication options have been set,
 	// we default to reading from the filesystem.
@@ -105,7 +105,7 @@ func (g *GithubScanner) Run() (*jnode.Node, error) {
 	}
 
 	// fetch the repositories associated with the account
-	if err := g.GetRepos(); err != nil {
+	if err := g.getRepos(); err != nil {
 		return nil, fmt.Errorf("error fetching github repositories: %w", err)
 	}
 
@@ -126,24 +126,19 @@ func (g *GithubScanner) Run() (*jnode.Node, error) {
 		}
 		out = append(out, Repo{
 			Name:               name,
-			CIs:                cis,
+			CISystems:          cis,
 			TerraformDirs:      tfdirs,
 			CloudformationDirs: cfdirs,
 		})
 	}
 
-	pretty, err := json.MarshalIndent(out, "", "    ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-
 	// print some nice, non-json info about notable repos
 	for _, repo := range out {
 		ciMsg := "and has NO CI configuration."
-		if len(repo.CIs) == 1 {
-			ciMsg = fmt.Sprintf("and is configured with %s CI.", repo.CIs[0]) // TODO: include other CI systems
+		if len(repo.CISystems) == 1 {
+			ciMsg = fmt.Sprintf("and is configured with %s CI.", repo.CISystems[0]) // TODO: include other CI systems
 		}
-		if len(repo.CIs) > 1 {
+		if len(repo.CISystems) > 1 {
 			ciMsg = "and is configured with multiple CI systems."
 		}
 		if len(repo.TerraformDirs) > 0 {
@@ -154,11 +149,7 @@ func (g *GithubScanner) Run() (*jnode.Node, error) {
 		}
 	}
 
-	return jnode.FromJSON(pretty)
-}
-
-func (g *GithubScanner) Stop() error {
-	return nil
+	return out, nil
 }
 
 // githubCredsFromFS reads the `gh` configuration file on disk to get GitHub credentials.
@@ -166,24 +157,26 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 	var ghConfig map[string]interface{}
 	var ghConfigFile string
 
-	user, err := user.Current()
-	if err != nil {
-		retErr = fmt.Errorf("unable to get OS user: %w", err)
-		return
-	}
-
 	// Github credentials can exist in one of two files: ~/.config/gh/hosts.yml,
 	// or ~/.config/gh/config.yml. Creds _should_ only exist in the latter, but
 	// on some systems it appears in the former for whatever reason.
-	ghConfigFile = filepath.Join(user.HomeDir, ".config/gh/hosts.yml")
-	if _, err := os.Stat(filepath.Join(user.HomeDir, ".config/gh/hosts.yml")); err != nil {
+	ghConfigFile, err := homedir.Expand(".config/gh/hosts.yml")
+	if err != nil {
+		retErr = fmt.Errorf("unable to get user Homedir: %w", err)
+		return
+	}
+	if _, err := os.Stat(ghConfigFile); err != nil {
 		if !os.IsNotExist(err) {
 			retErr = fmt.Errorf("unable to get gh config: %w", err)
 			return
 		}
 		// file does not exist, try another
-		ghConfigFile = filepath.Join(user.HomeDir, ".config/gh/config.yml")
-		if _, err := os.Stat(filepath.Join(user.HomeDir, ".config/gh/config.yml")); err != nil {
+		ghConfigFile, err = homedir.Expand(".config/gh/config.yml")
+		if err != nil {
+			retErr = fmt.Errorf("unable to get user Homedir: %w", err)
+			return
+		}
+		if _, err := os.Stat(ghConfigFile); err != nil {
 			if !os.IsNotExist(err) {
 				retErr = fmt.Errorf("unable to get gh config: %w", err)
 				return
@@ -203,34 +196,13 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 		return
 	}
 
-	// Depending on the "type" of gh configuration (see file selector above),
-	// the yaml will be structured differently
-	if conf := ghConfig["github.com"]; conf != nil {
-		// hub format configuration
-		c, ok := conf.(map[interface{}]interface{})
-		if !ok {
-			retErr = fmt.Errorf("error parsing github config")
-			return
-		}
-		username = c["user"].(string)
-		oauthToken = c["oauth_token"].(string)
-	}
-	if conf := ghConfig["hosts"]; conf != nil {
-		// gh format configuration
-		gconf, ok := conf.(map[interface{}]interface{})
-		if !ok {
-			retErr = fmt.Errorf("error parsing github config")
-			return
-		}
-		if nestedconf := gconf["github.com"]; conf != nil {
-			c, ok := nestedconf.(map[interface{}]interface{})
-			if !ok {
-				retErr = fmt.Errorf("error parsing github config")
-				return
-			}
-			username = c["user"].(string)
-			oauthToken = c["oauth_token"].(string)
-		}
+	n := jnode.FromMap(ghConfig)
+	username = n.Path("github.com").Path("user").String()
+	oauthToken = n.Path("github.com").Path("oauth_token").String()
+	if username == "" || oauthToken == "" {
+		// if empty, we need to descend the hosts tree
+		username = n.Path("hosts").Path("github.com").Path("user").String()
+		oauthToken = n.Path("hosts").Path("github.com").Path("oauth_token").String()
 	}
 
 	if username == "" || oauthToken == "" {

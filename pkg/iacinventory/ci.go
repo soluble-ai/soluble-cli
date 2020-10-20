@@ -17,8 +17,8 @@ const (
 	CIAzure     CI = "azure"
 )
 
-// Test a given CI system against a file for a match, implements filepath.WalkFunc
-func WalkCI(_ string, info os.FileInfo, err error) (CI, error) {
+// walkCI Tests a given CI system against a file for a match, implements filepath.WalkFunc
+func walkCI(_ string, info os.FileInfo, err error) (CI, error) {
 	if err != nil {
 		return "", err
 	}

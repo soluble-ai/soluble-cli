@@ -37,8 +37,8 @@ type GithubRepo struct {
 	dir string
 }
 
-// GetTerraformDirs implements WalkFunc to search for directories that contain Terraform files.
-func (g *GithubRepo) GetTerraformDirs(path string, info os.FileInfo, err error) error {
+// getTerraformDirs implements WalkFunc to search for directories that contain Terraform files.
+func (g *GithubRepo) getTerraformDirs(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return err
 	}
@@ -56,8 +56,8 @@ func (g *GithubRepo) GetTerraformDirs(path string, info os.FileInfo, err error) 
 	return nil
 }
 
-// GetCloudFormationDirs implements WalkFunc to search for CloudFormation files in a repository.
-func (g *GithubRepo) GetCloudFormationDirs(path string, info os.FileInfo, err error) error {
+// getCloudFormationDirs implements WalkFunc to search for CloudFormation files in a repository.
+func (g *GithubRepo) getCloudFormationDirs(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		return err
 	}
@@ -86,6 +86,7 @@ func (g *GithubRepo) GetCloudFormationDirs(path string, info os.FileInfo, err er
 		if err != nil {
 			return fmt.Errorf("error opening file during CloudFormation analysis: %w", err)
 		}
+		defer f.Close()
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			if bytes.Contains(scanner.Bytes(), []byte("AWSTemplateFormatVersion")) {
@@ -95,13 +96,44 @@ func (g *GithubRepo) GetCloudFormationDirs(path string, info os.FileInfo, err er
 				g.CloudformationDirs[strings.TrimPrefix(filepath.Dir(filepath.Clean(path)), g.dir+"/")] = true
 			}
 		}
-		f.Close()
 	}
 	return nil
 }
 
-// GetMaster fetches and extracts the tarball of the master branch.
-func (g *GithubRepo) GetMaster(ctx context.Context, c *http.Client, username string, oauthToken string) error {
+/*
+// fetch the github repos using the GithubAPI
+func (g *GithubRepo) fetch(username, oauthToken string) ([]*github.Repository, error) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: oauthToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	opt := &github.RepositoryListOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	repos, _, err := client.Repositories.List(ctx, "", opt)
+	if err != nil {
+		return nil, err
+	}
+	return repos, err
+}
+
+// extract downloads and extracts tarballs of the github repository
+func (g *GithubRepo) extract(repo *github.Repository) error {
+	url := r.GetArchiveURL()
+	// we stuff the extracted tarball into a temporary directory
+	dir, err := ioutil.TempDir("", "soluble-iac-scan")
+	if err != nil {
+		return fmt.Errorf("error creating temporary directory: %w", err)
+	}
+	g.dir = dir
+	return nil
+}
+*/
+
+// getMaster fetches and extracts the tarball of the master branch.
+func (g *GithubRepo) getMaster(ctx context.Context, c *http.Client, username string, oauthToken string) error {
 	if username == "" || oauthToken == "" {
 		return fmt.Errorf("error fetching repository: credentials are not set")
 	}
@@ -155,23 +187,27 @@ func (g *GithubRepo) GetMaster(ctx context.Context, c *http.Client, username str
 			}
 		case tar.TypeReg:
 			// cut out the outer directory from the filename to ensure we add the files to g.dir (and not g.dir/some-random-subdir)
-			f, err := os.Create(outfile)
-			if err != nil {
-				return fmt.Errorf("error creating file during tarball extraction: %w", err)
-			}
-			c, err := io.CopyN(f, t, 100<<(10*2)) // 100MB max size
-			if err != nil {
-				if !errors.Is(err, io.EOF) {
-					f.Close()
-					return fmt.Errorf("error writing file during tarball extraction: %w", err)
+			err := func() error {
+				f, err := os.Create(outfile)
+				if err != nil {
+					return fmt.Errorf("error creating file: %w", err)
 				}
-			}
-			if c == 100<<(10*2) {
-				log.Infof("repository %q was larger than 100MB - skipping", g.FullName)
-				f.Close()
+				defer f.Close()
+				c, err := io.CopyN(f, t, 1<<(10*2)) // 1MB max size
+				if err != nil {
+					if !errors.Is(err, io.EOF) {
+						return fmt.Errorf("eror copying file: %w", err)
+					}
+				}
+				if c == 1<<(10*2) { // 1MB max file size
+					return fmt.Errorf("repository %q was larger than 100MB - skipping", g.FullName)
+				}
+				return nil
+			}()
+			if err != nil {
+				log.Infof("error extracting tarball: %v", err)
 				continue
 			}
-			f.Close()
 		case tar.TypeXGlobalHeader, tar.TypeSymlink, tar.TypeLink:
 			// we silently ignore (sym)links without failure, as they are not relevant (, as we walk all files)
 			continue
