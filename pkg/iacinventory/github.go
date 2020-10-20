@@ -50,10 +50,8 @@ func (g *GithubScanner) GetRepos() error {
 	// reposWithCode are the fully initialized repos, including source code
 	reposWithCode := make(map[string]GithubRepo)
 	for _, repo := range githubRepos {
-		// TODO: handle print output using tables and the like
 		log.Infof("[%s]: analyzing repo...\n", repo.FullName)
 		if err := repo.GetMaster(ctx, client, g.User, g.OauthToken); err != nil {
-			// TODO: handle print output using tables and the like
 			log.Infof("[%s]: error fetching archive: %v\n", repo.FullName, err)
 		}
 		repo := repo // scope pin, an unfortunate go-ism
@@ -81,7 +79,6 @@ func (g *GithubScanner) GetRepos() error {
 			}
 			return nil
 		}); err != nil {
-			// TODO: handle print output using tables and the like
 			log.Infof("error walking repository %q: %v\n", repo.FullName, err)
 		}
 		reposWithCode[repo.FullName] = repo
@@ -113,7 +110,7 @@ func (g *GithubScanner) Run() (*jnode.Node, error) {
 	}
 
 	// massage the data into a sensible format for submission to the API.
-	out := make([]Repo, len(g.repos))
+	var out []Repo
 	for name, repo := range g.repos {
 		var tfdirs []string
 		for dir := range repo.TerraformDirs {
@@ -139,11 +136,8 @@ func (g *GithubScanner) Run() (*jnode.Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
 	}
-	// TODO: make outputs selectable by -o flag
-	fmt.Println(string(pretty))
 
 	// print some nice, non-json info about notable repos
-	// TODO: make selectable by -o flag
 	for _, repo := range out {
 		ciMsg := "and has NO CI configuration."
 		if len(repo.CIs) == 1 {
@@ -153,13 +147,14 @@ func (g *GithubScanner) Run() (*jnode.Node, error) {
 			ciMsg = "and is configured with multiple CI systems."
 		}
 		if len(repo.TerraformDirs) > 0 {
-			fmt.Printf("[%s]: contains %d Terraform directories %s\n", repo.Name, len(repo.TerraformDirs), ciMsg)
+			log.Infof("[%s]: contains %d Terraform directories %s\n", repo.Name, len(repo.TerraformDirs), ciMsg)
 		}
 		if len(repo.CloudformationDirs) > 0 {
-			fmt.Printf("[%s]: contains %d CloudFormation directories %s\n", repo.Name, len(repo.CloudformationDirs), ciMsg)
+			log.Infof("[%s]: contains %d CloudFormation directories %s\n", repo.Name, len(repo.CloudformationDirs), ciMsg)
 		}
 	}
-	return nil, nil
+
+	return jnode.FromJSON(pretty)
 }
 
 func (g *GithubScanner) Stop() error {

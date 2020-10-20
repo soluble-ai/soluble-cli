@@ -86,7 +86,6 @@ func (g *GithubRepo) GetCloudFormationDirs(path string, info os.FileInfo, err er
 		if err != nil {
 			return fmt.Errorf("error opening file during CloudFormation analysis: %w", err)
 		}
-		// TODO: skip files if above some size to prevent DoS
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			if bytes.Contains(scanner.Bytes(), []byte("AWSTemplateFormatVersion")) {
@@ -148,7 +147,6 @@ func (g *GithubRepo) GetMaster(ctx context.Context, c *http.Client, username str
 			filepath.Clean(strings.Join(strings.Split(header.Name, string(filepath.Separator))[1:], string(filepath.Separator))))
 		switch header.Typeflag {
 		case tar.TypeDir:
-			// TODO: sanitize file names
 			if err := os.Mkdir(outfile, 0o755); err != nil {
 				if os.IsExist(err) {
 					continue
@@ -163,7 +161,7 @@ func (g *GithubRepo) GetMaster(ctx context.Context, c *http.Client, username str
 			}
 			c, err := io.CopyN(f, t, 100<<(10*2)) // 100MB max size
 			if err != nil {
-				if errors.Is(err, io.EOF) {
+				if !errors.Is(err, io.EOF) {
 					f.Close()
 					return fmt.Errorf("error writing file during tarball extraction: %w", err)
 				}
