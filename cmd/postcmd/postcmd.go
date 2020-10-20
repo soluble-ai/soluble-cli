@@ -20,7 +20,7 @@ func Command() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options []client.Option
 			if withEnv {
-				options = []client.Option{client.WithCIEnv}
+				options = []client.Option{client.XCPWithCIEnv}
 			}
 			return opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
 		},
