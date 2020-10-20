@@ -7,14 +7,18 @@ import (
 )
 
 func Command() *cobra.Command {
-	var dir string
+	var username string
+	var oauthToken string
 	opts := options.PrintOpts{}
 	c := &cobra.Command{
 		Use:   "iac-inventory",
 		Short: "Run an Infrastructure-as-code inventorier on repositories",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// For now, we only support Github.
-			scanner := iacinventory.New(&iacinventory.GithubScanner{})
+			scanner := iacinventory.New(&iacinventory.GithubScanner{
+				User:       username,
+				OauthToken: oauthToken,
+			})
 			result, err := scanner.Run()
 			if err != nil {
 				return err
@@ -25,7 +29,7 @@ func Command() *cobra.Command {
 	}
 	opts.Register(c)
 	flags := c.Flags()
-	flags.StringVarP(&dir, "directory", "d", "", "Directory to scan")
-	_ = c.MarkFlagRequired("directory")
+	flags.StringVar(&username, "gh-username", "", "Github Username")
+	flags.StringVar(&oauthToken, "gh-oauthtoken", "", "Github OAuthToken")
 	return c
 }
