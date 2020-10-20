@@ -13,6 +13,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var _ IacScanner = &StockTerrascan{}
+
 type StockTerrascan struct {
 	Directory string
 }
