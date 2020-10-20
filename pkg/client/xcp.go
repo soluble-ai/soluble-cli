@@ -1,6 +1,7 @@
 package client
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -44,11 +45,18 @@ var (
 	}
 )
 
-var _ Option = WithCIEnv
+var _ Option = XCPWithCIEnv
 
-// Include CI-related environment variables in the request
-func WithCIEnv(req *resty.Request) {
+// For XCPPost, Include CI-related environment variables in the request
+func XCPWithCIEnv(req *resty.Request) {
 	req.SetMultipartFormData(getCIEnv())
+}
+
+// For XCPPost, include a file from a reader
+func XCPWithReader(param, filename string, reader io.Reader) Option {
+	return func(req *resty.Request) {
+		req.SetFileReader(param, filename, reader)
+	}
 }
 
 func getCIEnv() map[string]string {
