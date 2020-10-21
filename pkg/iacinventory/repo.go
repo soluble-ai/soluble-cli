@@ -1,9 +1,14 @@
 package iacinventory
 
-// Repo is returned by the inventory to be sent to the API as JSON array.
-type Repo struct {
-	Name               string   `json:"name"`
-	CISystems          []string `json:"ci_systems"`
-	TerraformDirs      []string `json:"terraform_dirs"`
-	CloudformationDirs []string `json:"cloudformation_dirs"`
+// AnalyzedRepos are what we submit to the Soluble API
+type AnalyzedRepos struct {
+	Repos []Repo `json:"repos"`
+}
+
+// Repo is single repository
+type Repo interface {
+	getName() string
+	getCISystems() []string
+	getTerraformDirs() []string
+	getCloudformationDirs() []string
 }

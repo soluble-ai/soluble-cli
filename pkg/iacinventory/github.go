@@ -1,11 +1,8 @@
 package iacinventory
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -24,34 +21,31 @@ type GithubInventorier struct {
 	repos map[string]GithubRepo
 }
 
-// GetRepos fetches (and expands) the repositories associated with a github account
+// getRepos fetches (and expands) the repositories associated with a github account
 func (g *GithubInventorier) getRepos() error {
 	if g.User == "" || g.OauthToken == "" {
 		return fmt.Errorf("no credentials provided")
 	}
 
-	ctx := context.TODO()
-	client := &http.Client{}
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user/repos?per_page=100", nil) // TODO: implement pagination
-	req.Header.Set("Authorization", "token "+g.OauthToken)
-	resp, err := client.Do(req)
+	repos, err := getRepos(g.User, g.OauthToken)
 	if err != nil {
-		return fmt.Errorf("error sending requsting during inventory")
+		return fmt.Errorf("error getting repositories: %w", err)
 	}
 
 	var githubRepos []GithubRepo
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&githubRepos); err != nil {
-		resp.Body.Close()
-		return fmt.Errorf("error decoding GitHub response to JSON during inventory")
+	for i := range repos {
+		githubRepos = append(githubRepos, GithubRepo{
+			Name:     *repos[i].Name,
+			FullName: *repos[i].FullName,
+			repo:     repos[i],
+		})
 	}
-	resp.Body.Close()
 
 	// reposWithCode are the fully initialized repos, including source code
 	reposWithCode := make(map[string]GithubRepo)
 	for _, repo := range githubRepos {
 		log.Infof("[%s]: analyzing repo...\n", repo.FullName)
-		if err := repo.getMaster(ctx, client, g.User, g.OauthToken); err != nil {
+		if err := repo.getCode(g.User, g.OauthToken); err != nil {
 			log.Infof("[%s]: error fetching archive: %v\n", repo.FullName, err)
 		}
 		repo := repo // scope pin, an unfortunate go-ism
@@ -65,18 +59,20 @@ func (g *GithubInventorier) getRepos() error {
 				return err
 			}
 			ci, err := walkCI(path, info, err)
+			repo.CI = append(repo.CI, ci)
 			if err != nil {
 				return err
 			}
-			if len(ci) != 0 {
-				repo.CI = append(repo.CI, ci)
-			}
-			if err := repo.getTerraformDirs(path, info, err); err != nil {
+			tfDir, err := walkTerraformDirs(path, info, err)
+			repo.TerraformDirs = append(repo.TerraformDirs, tfDir)
+			if err != nil {
 				return err
 			}
-			if err := repo.getCloudFormationDirs(path, info, err); err != nil {
+			cfDir, err := walkCloudFormationDirs(path, info, err)
+			if err != nil {
 				return err
 			}
+			repo.CloudformationDirs = append(repo.CloudformationDirs, cfDir)
 			return nil
 		}); err != nil {
 			log.Infof("error walking repository %q: %v\n", repo.FullName, err)
@@ -109,46 +105,27 @@ func (g *GithubInventorier) Run() ([]Repo, error) {
 		return nil, fmt.Errorf("error fetching github repositories: %w", err)
 	}
 
-	// massage the data into a sensible format for submission to the API.
-	var out []Repo
-	for name, repo := range g.repos {
-		var tfdirs []string
-		for dir := range repo.TerraformDirs {
-			tfdirs = append(tfdirs, dir)
-		}
-		var cfdirs []string
-		for dir := range repo.CloudformationDirs {
-			cfdirs = append(cfdirs, dir)
-		}
-		var cis []string
-		for _, ci := range repo.CI {
-			cis = append(cis, string(ci))
-		}
-		out = append(out, Repo{
-			Name:               name,
-			CISystems:          cis,
-			TerraformDirs:      tfdirs,
-			CloudformationDirs: cfdirs,
-		})
-	}
-
 	// print some nice, non-json info about notable repos
-	for _, repo := range out {
+	for _, repo := range g.repos {
 		ciMsg := "and has NO CI configuration."
-		if len(repo.CISystems) == 1 {
-			ciMsg = fmt.Sprintf("and is configured with %s CI.", repo.CISystems[0]) // TODO: include other CI systems
+		if len(repo.getCISystems()) == 1 {
+			ciMsg = fmt.Sprintf("and is configured with %s CI.", repo.getCISystems()[0]) // TODO: include other CI systems
 		}
-		if len(repo.CISystems) > 1 {
+		if len(repo.getCISystems()) > 1 {
 			ciMsg = "and is configured with multiple CI systems."
 		}
-		if len(repo.TerraformDirs) > 0 {
-			log.Infof("[%s]: contains %d Terraform directories %s\n", repo.Name, len(repo.TerraformDirs), ciMsg)
+		if len(repo.getTerraformDirs()) > 0 {
+			log.Infof("[%s]: contains %d Terraform directories %s\n", repo.Name, len(repo.getTerraformDirs()), ciMsg)
 		}
-		if len(repo.CloudformationDirs) > 0 {
-			log.Infof("[%s]: contains %d CloudFormation directories %s\n", repo.Name, len(repo.CloudformationDirs), ciMsg)
+		if len(repo.getCloudformationDirs()) > 0 {
+			log.Infof("[%s]: contains %d CloudFormation directories %s\n", repo.Name, len(repo.getCloudformationDirs()), ciMsg)
 		}
 	}
 
+	var out []Repo
+	for _, v := range g.repos {
+		out = append(out, v)
+	}
 	return out, nil
 }
 
@@ -160,7 +137,7 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 	// Github credentials can exist in one of two files: ~/.config/gh/hosts.yml,
 	// or ~/.config/gh/config.yml. Creds _should_ only exist in the latter, but
 	// on some systems it appears in the former for whatever reason.
-	ghConfigFile, err := homedir.Expand(".config/gh/hosts.yml")
+	ghConfigFile, err := homedir.Expand("~/.config/gh/hosts.yml")
 	if err != nil {
 		retErr = fmt.Errorf("unable to get user Homedir: %w", err)
 		return
@@ -171,7 +148,7 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 			return
 		}
 		// file does not exist, try another
-		ghConfigFile, err = homedir.Expand(".config/gh/config.yml")
+		ghConfigFile, err = homedir.Expand("~/.config/gh/config.yml")
 		if err != nil {
 			retErr = fmt.Errorf("unable to get user Homedir: %w", err)
 			return
@@ -199,6 +176,7 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 	n := jnode.FromMap(ghConfig)
 	username = n.Path("github.com").Path("user").String()
 	oauthToken = n.Path("github.com").Path("oauth_token").String()
+	log.Infof(username)
 	if username == "" || oauthToken == "" {
 		// if empty, we need to descend the hosts tree
 		username = n.Path("hosts").Path("github.com").Path("user").String()

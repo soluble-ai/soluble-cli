@@ -38,6 +38,7 @@ func Command() *cobra.Command {
 				// TODO: also early exit if auth is not configured
 				return nil
 			}
+
 			values := make(map[string]string) // TODO: add debugging values?
 			c := opts.GetAPIClient().GetClient()
 			req := c.R()

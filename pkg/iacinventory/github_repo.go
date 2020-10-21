@@ -2,7 +2,6 @@ package iacinventory
 
 import (
 	"archive/tar"
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -15,8 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/go-github/github"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"golang.org/x/oauth2"
 )
+
+var _ Repo = &GithubRepo{}
 
 type GithubRepo struct {
 	// FullName includes the organization/user, as in "soluble-ai/example".
@@ -28,81 +31,47 @@ type GithubRepo struct {
 	CI []CI
 
 	// TerraformDirs are directories that contain '.tf' files
-	TerraformDirs map[string]bool // DEBT: lazy map implementation
+	TerraformDirs []string
 
 	// CloudformationDirs are directories that contain cloudformation files
-	CloudformationDirs map[string]bool // DEBT: lazy map implementation
+	CloudformationDirs []string
 
 	// dir is where we've unarchived the tarball for analysis.
 	dir string
+
+	repo *github.Repository
 }
 
-// getTerraformDirs implements WalkFunc to search for directories that contain Terraform files.
-func (g *GithubRepo) getTerraformDirs(path string, info os.FileInfo, err error) error {
-	if err != nil {
-		return err
-	}
-	// if it is anything other than a regular file, return
-	if !info.Mode().IsRegular() {
-		return nil
-	}
-	// If the file ends with TF, the parent directory contains terraform files
-	if strings.HasSuffix(info.Name(), ".tf") {
-		if g.TerraformDirs == nil {
-			g.TerraformDirs = make(map[string]bool)
-		}
-		g.TerraformDirs[strings.TrimPrefix(filepath.Dir(filepath.Clean(path)), g.dir+"/")] = true
-	}
-	return nil
+func (g GithubRepo) getName() string {
+	return g.Name
 }
 
-// getCloudFormationDirs implements WalkFunc to search for CloudFormation files in a repository.
-func (g *GithubRepo) getCloudFormationDirs(path string, info os.FileInfo, err error) error {
-	if err != nil {
-		return err
+func (g GithubRepo) getCISystems() []string {
+	var out []string
+	for _, ci := range g.CI {
+		out = append(out, string(ci))
 	}
-	// if it is anything other than a regular file, return
-	if !info.Mode().IsRegular() {
-		return nil
-	}
-	// Cloudformation files do not have a unique extension, and are *typically*
-	// ".yaml" or ".json" by convention. However, sometimes organizations use
-	// Jinja, Go, or some other utility to template their Cloudformation.
-	//
-	// If the file has a possible extension and contains the string 'AWSTemplateFormatVersion',
-	// then it is *most likely* a CF file.
-
-	const maxSizeForCloudFormationConsideration int64 = 5 << (10 * 2) // 5MB, which is VERY large for json/yaml data
-	if info.Size() > maxSizeForCloudFormationConsideration {
-		// Exit early - file disqualified due to size.
-		return nil
-	}
-
-	if strings.HasSuffix(info.Name(), ".json") ||
-		strings.HasSuffix(info.Name(), ".yaml") ||
-		strings.HasSuffix(info.Name(), ".yml") ||
-		strings.HasSuffix(info.Name(), ".template") {
-		f, err := os.Open(filepath.Clean(path))
-		if err != nil {
-			return fmt.Errorf("error opening file during CloudFormation analysis: %w", err)
-		}
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			if bytes.Contains(scanner.Bytes(), []byte("AWSTemplateFormatVersion")) {
-				if g.CloudformationDirs == nil {
-					g.CloudformationDirs = make(map[string]bool)
-				}
-				g.CloudformationDirs[strings.TrimPrefix(filepath.Dir(filepath.Clean(path)), g.dir+"/")] = true
-			}
-		}
-	}
-	return nil
+	return out
 }
 
-/*
-// fetch the github repos using the GithubAPI
-func (g *GithubRepo) fetch(username, oauthToken string) ([]*github.Repository, error) {
+func (g GithubRepo) getTerraformDirs() []string {
+	var out []string
+	for _, v := range g.TerraformDirs {
+		out = append(out, strings.TrimPrefix(filepath.Dir(filepath.Clean(v)), g.dir+"/"))
+	}
+	return out
+}
+
+func (g GithubRepo) getCloudformationDirs() []string {
+	var out []string
+	for _, v := range g.TerraformDirs {
+		out = append(out, strings.TrimPrefix(filepath.Dir(filepath.Clean(v)), g.dir+"/"))
+	}
+	return out
+}
+
+// getRepos fetches the list of all repositories accessiable to a given credential pair.
+func getRepos(username, oauthToken string) ([]*github.Repository, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: oauthToken},
@@ -119,40 +88,33 @@ func (g *GithubRepo) fetch(username, oauthToken string) ([]*github.Repository, e
 	return repos, err
 }
 
-// extract downloads and extracts tarballs of the github repository
-func (g *GithubRepo) extract(repo *github.Repository) error {
-	url := r.GetArchiveURL()
-	// we stuff the extracted tarball into a temporary directory
-	dir, err := ioutil.TempDir("", "soluble-iac-scan")
-	if err != nil {
-		return fmt.Errorf("error creating temporary directory: %w", err)
-	}
-	g.dir = dir
-	return nil
-}
-*/
-
-// getMaster fetches and extracts the tarball of the master branch.
-func (g *GithubRepo) getMaster(ctx context.Context, c *http.Client, username string, oauthToken string) error {
+// download the tarball of the default branch for a repository.
+func (g *GithubRepo) download(username, oauthToken string, repo *github.Repository) ([]byte, error) {
 	if username == "" || oauthToken == "" {
-		return fmt.Errorf("error fetching repository: credentials are not set")
+		return nil, fmt.Errorf("error fetching repository: credentials are not set")
 	}
+	ctx := context.TODO()
 	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/"+g.FullName+"/tarball/master", nil)
 	req.Header.Set("Authorization", "token "+oauthToken)
 	req.Header.Set("Accept", "application/vnd.github.v3.raw")
+	c := http.Client{}
 	resp, err := c.Do(req)
 	if err != nil {
-		return fmt.Errorf("error sending HTTP request: %w", err)
+		return nil, fmt.Errorf("error sending HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}
 
+// extract tarballs of a github repository to g.dir
+func (g *GithubRepo) extract(r io.Reader) error {
 	// we stuff the extracted tarball into a temporary directory
 	dir, err := ioutil.TempDir("", "soluble-iac-scan")
 	if err != nil {
 		return fmt.Errorf("error creating temporary directory: %w", err)
 	}
 	g.dir = dir
-	gunzip, err := gzip.NewReader(resp.Body)
+	gunzip, err := gzip.NewReader(r)
 	if err != nil {
 		// If there is no repository data, we'll encounter a gzip error
 		if errors.Is(err, gzip.ErrHeader) {
@@ -216,5 +178,19 @@ func (g *GithubRepo) getMaster(ctx context.Context, c *http.Client, username str
 				header.Typeflag, header.Name)
 		}
 	}
+	return nil
+}
+
+// getCode fetches and extracts the tarball of the master branch.
+func (g *GithubRepo) getCode(username string, oauthToken string) error {
+	tarballData, err := g.download(username, oauthToken, g.repo)
+	if err != nil {
+		return err
+	}
+	r := bytes.NewReader(tarballData)
+	if err := g.extract(r); err != nil {
+		return err
+	}
+	// TODO: validate that files actually ended up in g.dir
 	return nil
 }
