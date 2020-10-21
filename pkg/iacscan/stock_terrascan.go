@@ -130,6 +130,9 @@ func (t *StockTerrascan) uploadResults(org string, result map[string]interface{}
 
 		w := bufio.NewWriter(file)
 		_, err = w.WriteString(string(j))
+		if err != nil {
+			return err
+		}
 		w.Flush()
 
 		dir, _ := os.Getwd()
@@ -155,14 +158,15 @@ func mergeViolationResults(maps ...map[string]interface{}) map[string]interface{
 	var violations []map[string]string
 	for _, m := range maps {
 		for _, v := range m["results"].(map[interface{}]interface{})["violations"].([]interface{}) {
-			severity := v.(map[interface{}]interface{})["severity"].(string)
-			if strings.ToLower(severity) == "high" {
+			switch severity := v.(map[interface{}]interface{})["severity"].(string); strings.ToLower(severity) {
+			case "high":
 				highCount++
-			} else if strings.ToLower(severity) == "medium" {
-				mediumCount++
-			} else if strings.ToLower(severity) == "low" {
+			case "low":
 				lowCount++
+			case "medium":
+				mediumCount++
 			}
+
 			totalCount++
 
 			vs := make(map[string]string)

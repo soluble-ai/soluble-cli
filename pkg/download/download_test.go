@@ -58,7 +58,7 @@ func setupManager() *Manager {
 		panic(err)
 	}
 	defer os.RemoveAll(dir)
-	m.downloadDir = dir
+	m.DownloadDir = dir
 	return m
 }
 
