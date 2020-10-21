@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -94,10 +95,14 @@ func (g *GithubRepo) download(username, oauthToken string, repo *github.Reposito
 		return nil, fmt.Errorf("error fetching repository: credentials are not set")
 	}
 	ctx := context.TODO()
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/"+g.FullName+"/tarball/master", nil)
+	url := "https://api.github.com/repos/" + g.FullName + "/tarball"
+	log.Debugf("downloading repository tarball at: %s", url)
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	req.Header.Set("Authorization", "token "+oauthToken)
 	req.Header.Set("Accept", "application/vnd.github.v3.raw")
-	c := http.Client{}
+	c := http.Client{
+		Timeout: time.Second * 120, // sometimes pulling github repos can be slow (on GitHub's end).
+	}
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending HTTP request: %w", err)
@@ -139,6 +144,7 @@ func (g *GithubRepo) extract(r io.Reader) error {
 		// cut out the top level directory to place files directly in g.dir
 		outfile := filepath.Join(g.dir,
 			filepath.Clean(strings.Join(strings.Split(header.Name, string(filepath.Separator))[1:], string(filepath.Separator))))
+		log.Debugf("writing file: %s", outfile)
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.Mkdir(outfile, 0o755); err != nil {
@@ -162,7 +168,7 @@ func (g *GithubRepo) extract(r io.Reader) error {
 					}
 				}
 				if c == 1<<(10*2) { // 1MB max file size
-					return fmt.Errorf("repository %q was larger than 100MB - skipping", g.FullName)
+					return fmt.Errorf("file in tarball for repository %q was larger than 1MB - skipping", g.FullName)
 				}
 				return nil
 			}()
@@ -183,14 +189,18 @@ func (g *GithubRepo) extract(r io.Reader) error {
 
 // getCode fetches and extracts the tarball of the master branch.
 func (g *GithubRepo) getCode(username string, oauthToken string) error {
+	log.Debugf("downloading tarball for repo: %s", g.FullName)
 	tarballData, err := g.download(username, oauthToken, g.repo)
 	if err != nil {
 		return err
 	}
+	log.Debugf("downloaded tarball for repo: %s", g.FullName)
 	r := bytes.NewReader(tarballData)
+	log.Debugf("extracting tarball for repo: %s", g.FullName)
 	if err := g.extract(r); err != nil {
 		return err
 	}
+	log.Debugf("extracted tarball for repo: %s", g.FullName)
 	// TODO: validate that files actually ended up in g.dir
 	return nil
 }

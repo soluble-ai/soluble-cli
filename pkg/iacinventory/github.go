@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"gopkg.in/yaml.v2"
 )
@@ -27,11 +26,13 @@ func (g *GithubInventorier) getRepos() error {
 		return fmt.Errorf("no credentials provided")
 	}
 
+	// get the github.Repositories for the current user
 	repos, err := getRepos(g.User, g.OauthToken)
 	if err != nil {
 		return fmt.Errorf("error getting repositories: %w", err)
 	}
 
+	// and map that to our GithubRepo, which implements the Repo interface
 	var githubRepos []GithubRepo
 	for i := range repos {
 		githubRepos = append(githubRepos, GithubRepo{
@@ -43,10 +44,10 @@ func (g *GithubInventorier) getRepos() error {
 
 	// reposWithCode are the fully initialized repos, including source code
 	reposWithCode := make(map[string]GithubRepo)
-	for _, repo := range githubRepos {
-		log.Infof("[%s]: analyzing repo...\n", repo.FullName)
+	for i, repo := range githubRepos {
+		log.Infof("[%.3d/%.3d] | [%s]: analyzing repo...\n", i, len(githubRepos), repo.FullName)
 		if err := repo.getCode(g.User, g.OauthToken); err != nil {
-			log.Infof("[%s]: error fetching archive: %v\n", repo.FullName, err)
+			log.Infof("[%.3d/%.3d] | [%s]: error fetching archive: %v\n", i, len(githubRepos), repo.FullName, err)
 		}
 		repo := repo // scope pin, an unfortunate go-ism
 		// While the walk code below is clean, it is not very optimized or DRY.
@@ -131,24 +132,29 @@ func (g *GithubInventorier) Run() ([]Repo, error) {
 
 // githubCredsFromFS reads the `gh` configuration file on disk to get GitHub credentials.
 func githubCredsFromFS() (username string, oauthToken string, retErr error) {
-	var ghConfig map[string]interface{}
-	var ghConfigFile string
+	type ghConfigurationData struct {
+		ConfigYML struct {
+			User  string `yaml:"user,omitempty"`
+			Token string `yaml:"oauth_token,omitempty"`
+		} `yaml:"github.com,omitempty"`
+		HostsYML struct {
+			ConfigYML struct {
+				User  string `yaml:"user,omitempty"`
+				Token string `yaml:"oauth_token,omitempty"`
+			} `yaml:"github.com,omitempty"`
+		} `yaml:"hosts,omitempty"`
+	}
 
 	// Github credentials can exist in one of two files: ~/.config/gh/hosts.yml,
 	// or ~/.config/gh/config.yml. Creds _should_ only exist in the latter, but
 	// on some systems it appears in the former for whatever reason.
-	ghConfigFile, err := homedir.Expand("~/.config/gh/hosts.yml")
-	if err != nil {
-		retErr = fmt.Errorf("unable to get user Homedir: %w", err)
-		return
-	}
-	if _, err := os.Stat(ghConfigFile); err != nil {
-		if !os.IsNotExist(err) {
-			retErr = fmt.Errorf("unable to get gh config: %w", err)
-			return
+
+	configFiles := []string{"~/.config/gh/config.yml", "~/.config/gh/hosts.yml"}
+	for _, configFile := range configFiles {
+		if username != "" && oauthToken != "" {
+			break
 		}
-		// file does not exist, try another
-		ghConfigFile, err = homedir.Expand("~/.config/gh/config.yml")
+		ghConfigFile, err := homedir.Expand(configFile)
 		if err != nil {
 			retErr = fmt.Errorf("unable to get user Homedir: %w", err)
 			return
@@ -158,31 +164,25 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 				retErr = fmt.Errorf("unable to get gh config: %w", err)
 				return
 			}
-			// still no file
-			retErr = fmt.Errorf("unable to locate GitHub `gh` configuration file")
+		}
+		yamlf, err := ioutil.ReadFile(ghConfigFile)
+		if err != nil {
+			retErr = fmt.Errorf("unable to read gh config: %w", err)
 			return
 		}
+		var ghConfig ghConfigurationData
+		if err := yaml.Unmarshal(yamlf, &ghConfig); err != nil {
+			retErr = fmt.Errorf("unable to parse gh config: %w", err)
+			return
+		}
+		username = ghConfig.ConfigYML.User
+		oauthToken = ghConfig.ConfigYML.Token
+		if username == "" || oauthToken == "" {
+			// if empty, we need to descend the hosts tree
+			username = ghConfig.HostsYML.ConfigYML.User
+			oauthToken = ghConfig.HostsYML.ConfigYML.Token
+		}
 	}
-	yamlf, err := ioutil.ReadFile(ghConfigFile)
-	if err != nil {
-		retErr = fmt.Errorf("unable to read gh config: %w", err)
-		return
-	}
-	if err := yaml.Unmarshal(yamlf, &ghConfig); err != nil {
-		retErr = fmt.Errorf("unable to parse gh config: %w", err)
-		return
-	}
-
-	n := jnode.FromMap(ghConfig)
-	username = n.Path("github.com").Path("user").String()
-	oauthToken = n.Path("github.com").Path("oauth_token").String()
-	log.Infof(username)
-	if username == "" || oauthToken == "" {
-		// if empty, we need to descend the hosts tree
-		username = n.Path("hosts").Path("github.com").Path("user").String()
-		oauthToken = n.Path("hosts").Path("github.com").Path("oauth_token").String()
-	}
-
 	if username == "" || oauthToken == "" {
 		retErr = fmt.Errorf("unable to find github credentials for scan")
 		return
