@@ -154,7 +154,6 @@ func mergeViolationResults(maps ...map[string]interface{}) map[string]interface{
 	var lowCount, highCount, mediumCount, totalCount int
 	violationsStats := make(map[string]int)
 
-	//var violations []interface{}
 	var violations []map[string]string
 	for _, m := range maps {
 		for _, v := range m["results"].(map[interface{}]interface{})["violations"].([]interface{}) {
