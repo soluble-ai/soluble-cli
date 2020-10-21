@@ -20,7 +20,7 @@ import (
 
 type Manager struct {
 	meta        []*DownloadMeta
-	downloadDir string
+	DownloadDir string
 }
 
 type Download struct {
@@ -41,7 +41,7 @@ type DownloadMeta struct {
 
 func NewManager() *Manager {
 	return &Manager{
-		downloadDir: filepath.Join(config.ConfigDir, "downloads"),
+		DownloadDir: filepath.Join(config.ConfigDir, "downloads"),
 	}
 }
 
@@ -56,11 +56,11 @@ func (m *Manager) GetMeta(name string) *DownloadMeta {
 
 func (m *Manager) List() (result []*DownloadMeta) {
 	if m.meta == nil {
-		_ = filepath.Walk(m.downloadDir, func(path string, info os.FileInfo, err1 error) error {
+		_ = filepath.Walk(m.DownloadDir, func(path string, info os.FileInfo, err1 error) error {
 			if info == nil {
 				return nil
 			}
-			r, err := filepath.Rel(m.downloadDir, path)
+			r, err := filepath.Rel(m.DownloadDir, path)
 			if err != nil {
 				return err
 			}
@@ -95,7 +95,7 @@ func (m *Manager) findOrCreateMeta(name string) *DownloadMeta {
 	}
 	return &DownloadMeta{
 		Name: name,
-		Dir:  filepath.Join(m.downloadDir, name),
+		Dir:  filepath.Join(m.DownloadDir, name),
 	}
 }
 
@@ -144,7 +144,7 @@ func (m *Manager) Remove(name, version string) error {
 }
 
 func (m *Manager) save(meta *DownloadMeta) error {
-	f, err := os.Create(filepath.Join(m.downloadDir, meta.Name, "meta.json"))
+	f, err := os.Create(filepath.Join(m.DownloadDir, meta.Name, "meta.json"))
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, e
 	if err != nil {
 		return nil, err
 	}
-	nameDir := filepath.Join(m.downloadDir, meta.Name)
+	nameDir := filepath.Join(m.DownloadDir, meta.Name)
 	if err := os.MkdirAll(nameDir, 0777); err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, e
 		Name:        meta.Name,
 		Version:     version,
 		URL:         url,
-		Dir:         filepath.Join(m.downloadDir, meta.Name, version),
+		Dir:         filepath.Join(m.DownloadDir, meta.Name, version),
 		InstallTime: time.Now(),
 	}
 	meta.Installed = append(meta.Installed, d)
