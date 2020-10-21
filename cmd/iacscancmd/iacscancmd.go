@@ -8,6 +8,8 @@ import (
 
 func Command() *cobra.Command {
 	var dir string
+	var report bool
+
 	opts := options.PrintOpts{}
 	c := &cobra.Command{
 		Use:   "iac-scan",
@@ -15,11 +17,13 @@ func Command() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			scanner := iacscan.New(&iacscan.StockTerrascan{
 				Directory: dir,
+				Report:    report,
 			})
 			result, err := scanner.Run()
 			if err != nil {
 				return err
 			}
+
 			opts.PrintResult(result)
 			return nil
 		},
@@ -27,6 +31,7 @@ func Command() *cobra.Command {
 	opts.Register(c)
 	flags := c.Flags()
 	flags.StringVarP(&dir, "directory", "d", "", "Directory to scan")
+	flags.BoolVarP(&report, "report", "r", true, "report back to control plane")
 	_ = c.MarkFlagRequired("directory")
 	return c
 }
