@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -44,7 +45,8 @@ func (t *StockTerrascan) Run() (*jnode.Node, error) {
 		return nil, err
 	}
 
-	if err = t.downloadPolicies(m.DownloadDir); err != nil {
+	policiesDir := filepath.Join(config.ConfigDir, "policies")
+	if err = t.downloadPolicies(policiesDir); err != nil {
 		return nil, err
 	}
 
@@ -75,31 +77,11 @@ func (t *StockTerrascan) Run() (*jnode.Node, error) {
 	}
 
 	result := mergeViolationResults(v...)
-	if t.Report {
-		file, err := os.Create("results.json")
-		if err != nil {
-			return jnode.FromMap(result), err
-		}
-		defer file.Close()
-
-		j, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return jnode.FromMap(result), err
-		}
-
-		w := bufio.NewWriter(file)
-		_, err = w.WriteString(string(j))
-		w.Flush()
-
-		dir, _ := os.Getwd()
-		files := []string{filepath.Join(dir, file.Name())}
-
-		ciOptions := []client.Option{client.XCPWithCIEnv}
-		err = t.apiClient.XCPPost(opts.GetOrganization(), "terrascan", files, nil, ciOptions...)
-		if err != nil {
-			return jnode.FromMap(result), err
-		}
+	err = t.uploadResults(opts.GetOrganization(), result)
+	if err != nil {
+		return jnode.FromMap(result), nil
 	}
+
 	return jnode.FromMap(result), nil
 }
 
@@ -133,15 +115,47 @@ func (t *StockTerrascan) downloadPolicies(downloadDir string) error {
 	return nil
 }
 
+func (t *StockTerrascan) uploadResults(org string, result map[string]interface{}) error {
+	if t.Report {
+		file, err := os.Create("results.json")
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		j, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		w := bufio.NewWriter(file)
+		_, err = w.WriteString(string(j))
+		w.Flush()
+
+		dir, _ := os.Getwd()
+		pathToFile := filepath.Join(dir, file.Name())
+		files := []string{pathToFile}
+
+		ciOptions := []client.Option{client.XCPWithCIEnv}
+		err = t.apiClient.XCPPost(org, "terrascan", files, nil, ciOptions...)
+		if err != nil {
+			return err
+		}
+		// remove the results file
+		_ = os.Remove(pathToFile)
+	}
+	return nil
+}
+
 func mergeViolationResults(maps ...map[string]interface{}) map[string]interface{} {
 	var lowCount, highCount, mediumCount, totalCount int
 	violationsStats := make(map[string]int)
 
-	var violations []interface{}
+	//var violations []interface{}
+	var violations []map[string]string
 	for _, m := range maps {
-		for _, violationType := range m["results"].(map[interface{}]interface{})["violations"].([]interface{}) {
-			violations = append(violations, violationType)
-			severity := violationType.(map[interface{}]interface{})["severity"].(string)
+		for _, v := range m["results"].(map[interface{}]interface{})["violations"].([]interface{}) {
+			severity := v.(map[interface{}]interface{})["severity"].(string)
 			if strings.ToLower(severity) == "high" {
 				highCount++
 			} else if strings.ToLower(severity) == "medium" {
@@ -150,8 +164,18 @@ func mergeViolationResults(maps ...map[string]interface{}) map[string]interface{
 				lowCount++
 			}
 			totalCount++
+
+			vs := make(map[string]string)
+			for key, value := range v.(map[interface{}]interface{}) {
+				strKey := fmt.Sprintf("%v", key)
+				strValue := fmt.Sprintf("%v", value)
+
+				vs[strKey] = strValue
+			}
+			violations = append(violations, vs)
 		}
 	}
+
 	violationsStats["total"] = totalCount
 	violationsStats["low"] = lowCount
 	violationsStats["medium"] = mediumCount
