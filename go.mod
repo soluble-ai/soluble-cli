@@ -12,6 +12,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.6.0
 	github.com/jarcoal/httpmock v1.0.6
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/manifoldco/promptui v0.8.0
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pmezard/go-difflib v1.0.0
