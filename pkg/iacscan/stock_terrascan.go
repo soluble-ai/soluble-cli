@@ -25,7 +25,7 @@ var supportedTypes [4]string = [4]string{"aws", "gcp", "azure", "k8s"}
 
 const (
 	policyZip = "rego-policies.zip"
-	rulesPath = "metadata-opa-policies/policies/accurics/terrascan"
+	rulesPath = "terrascan"
 )
 
 type StockTerrascan struct {
