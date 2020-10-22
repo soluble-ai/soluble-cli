@@ -1,7 +1,7 @@
 package iacinventory
 
 type IacInventorier interface {
-	Run() ([]Repo, error)
+	Run() ([]GithubRepo, error)
 }
 
 func New(inventoryType interface{}) IacInventorier {

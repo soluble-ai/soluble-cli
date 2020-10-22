@@ -60,12 +60,16 @@ func (g *GithubInventorier) getRepos() error {
 				return err
 			}
 			ci, err := walkCI(path, info, err)
-			repo.CI = append(repo.CI, ci)
+			if ci != "" {
+				repo.CISystems = append(repo.CISystems, ci)
+			}
 			if err != nil {
 				return err
 			}
 			tfDir, err := walkTerraformDirs(path, info, err)
-			repo.TerraformDirs = append(repo.TerraformDirs, tfDir)
+			if len(tfDir) != 0 {
+				repo.TerraformDirs = append(repo.TerraformDirs, tfDir)
+			}
 			if err != nil {
 				return err
 			}
@@ -73,7 +77,9 @@ func (g *GithubInventorier) getRepos() error {
 			if err != nil {
 				return err
 			}
-			repo.CloudformationDirs = append(repo.CloudformationDirs, cfDir)
+			if len(cfDir) != 0 {
+				repo.CloudformationDirs = append(repo.CloudformationDirs, cfDir)
+			}
 			return nil
 		}); err != nil {
 			log.Infof("error walking repository %q: %v\n", repo.FullName, err)
@@ -87,7 +93,7 @@ func (g *GithubInventorier) getRepos() error {
 	return nil
 }
 
-func (g *GithubInventorier) Run() ([]Repo, error) {
+func (g *GithubInventorier) Run() ([]GithubRepo, error) {
 	var err error
 	// if no authentication options have been set,
 	// we default to reading from the filesystem.
@@ -123,7 +129,7 @@ func (g *GithubInventorier) Run() ([]Repo, error) {
 		}
 	}
 
-	var out []Repo
+	var out []GithubRepo
 	for _, v := range g.repos {
 		out = append(out, v)
 	}

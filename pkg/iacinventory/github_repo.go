@@ -20,8 +20,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var _ Repo = &GithubRepo{}
-
 type GithubRepo struct {
 	// FullName includes the organization/user, as in "soluble-ai/example".
 	FullName string `json:"full_name"`
@@ -29,7 +27,7 @@ type GithubRepo struct {
 	Name string `json:"name"`
 
 	// CI is the repo's configured CI system, if present.
-	CI []CI
+	CISystems []CI
 
 	// TerraformDirs are directories that contain '.tf' files
 	TerraformDirs []string
@@ -43,13 +41,9 @@ type GithubRepo struct {
 	repo *github.Repository
 }
 
-func (g GithubRepo) getName() string {
-	return g.Name
-}
-
 func (g GithubRepo) getCISystems() []string {
 	var out []string
-	for _, ci := range g.CI {
+	for _, ci := range g.CISystems {
 		out = append(out, string(ci))
 	}
 	return out
@@ -80,7 +74,7 @@ func getRepos(username, oauthToken string) ([]*github.Repository, error) {
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 	opt := &github.RepositoryListOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+		ListOptions: github.ListOptions{PerPage: 10}, // TODO: revert to 100
 	}
 	repos, _, err := client.Repositories.List(ctx, "", opt)
 	if err != nil {
@@ -168,7 +162,7 @@ func (g *GithubRepo) extract(r io.Reader) error {
 					}
 				}
 				if c == 1<<(10*2) { // 1MB max file size
-					return fmt.Errorf("file in tarball for repository %q was larger than 1MB - skipping", g.FullName)
+					log.Debugf("file in tarball for repository %q was larger than 1MB - skipping", g.FullName)
 				}
 				return nil
 			}()
