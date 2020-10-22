@@ -1,6 +1,7 @@
 package download
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -51,6 +52,19 @@ func TestDownload(t *testing.T) {
 	}
 }
 
+func TestDownloadZip(t *testing.T) {
+	setupHTTP()
+	m := setupManager()
+	d, err := m.Install("hello-zip", "1.0", "https://example.com/hello.zip")
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = os.Stat(filepath.Join(d.Dir, "README.txt"))
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func setupManager() *Manager {
 	m := NewManager()
 	dir, err := ioutil.TempDir("", "downloadtest*")
@@ -58,16 +72,21 @@ func setupManager() *Manager {
 		panic(err)
 	}
 	defer os.RemoveAll(dir)
-	m.DownloadDir = dir
+	m.downloadDir = dir
 	return m
 }
 
 func setupHTTP() {
 	httpmock.Activate()
-	dat, err := ioutil.ReadFile(filepath.Join("testdata", "hello.tar.gz"))
+	registerTestArchive("hello.tar.gz")
+	registerTestArchive("hello.zip")
+}
+
+func registerTestArchive(name string) {
+	dat, err := ioutil.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		panic(err)
 	}
-	httpmock.RegisterResponder("GET", "https://example.com/hello.tar.gz",
+	httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/%s", name),
 		httpmock.NewBytesResponder(200, dat))
 }
