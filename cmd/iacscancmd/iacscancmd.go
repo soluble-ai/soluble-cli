@@ -21,7 +21,7 @@ func Command() *cobra.Command {
 			if len(checkTool) == 0 {
 				prompt := promptui.Select{
 					Label: "Select Tool",
-					Items: []string{"Terrascan", "Kube-Score", "Kube-Audit", "Cloudformation Guard"},
+					Items: []string{"terrascan", "kube-bench", "tfsec", "kube-score", "kube-audit", "cfn-guard"},
 				}
 
 				_, tool, err := prompt.Run()
