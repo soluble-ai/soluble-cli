@@ -1,4 +1,4 @@
-package iacscan
+package terrascan
 
 import (
 	"fmt"
@@ -10,22 +10,28 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
-var _ IacScanner = &StockTerrascan{}
+var _ tools.Interface = &Tool{}
 
 const (
 	policyZip = "rego-policies.zip"
 	rulesPath = "terrascan"
 )
 
-type StockTerrascan struct {
-	directory  string
-	apiClient  client.Interface
+type Tool struct {
+	Directory string
+	APIClient client.Interface
+
 	policyPath string
 }
 
-func (t *StockTerrascan) Run() (*Result, error) {
+func (t *Tool) Name() string {
+	return "terrascan"
+}
+
+func (t *Tool) Run() (*tools.Result, error) {
 	m := download.NewManager()
 	d, err := m.InstallGithubRelease("accurics", "terrascan", "")
 	if err != nil {
@@ -36,13 +42,12 @@ func (t *StockTerrascan) Run() (*Result, error) {
 		return nil, err
 	}
 
-	log.Infof("Running {info:terrascan} -d %s", t.directory)
+	log.Infof("Running {info:terrascan} -d %s", t.Directory)
 	program := filepath.Join(d.Dir, "terrascan")
 	// the -t argument is required but it only selects what policies are
 	// selected if the -p option isn't used.  Since we're using -p,
 	// we can pass any valid value.
-	scan := exec.Command(program, "scan", "-t", "aws", "-d", t.directory, "-p", t.policyPath, "-o", "json")
-	scan.Stderr = os.Stderr
+	scan := exec.Command(program, "scan", "-t", "aws", "-d", t.Directory, "-p", t.policyPath, "-o", "json")
 	scan.Stderr = os.Stderr
 	output, err := scan.Output()
 	if err != nil {
@@ -56,19 +61,19 @@ func (t *StockTerrascan) Run() (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Result{
-		N:            n,
+	return &tools.Result{
+		Data:         n,
 		PrintPath:    []string{"results", "violations"},
 		PrintColumns: []string{"category", "severity", "file", "line", "rule_id", "description"},
 	}, nil
 }
 
-func (t *StockTerrascan) downloadPolicies() error {
+func (t *Tool) downloadPolicies() error {
 	m := download.NewManager()
-	url := fmt.Sprintf("%s/api/v1/org/%s/opa/%s", t.apiClient.GetClient().HostURL, t.apiClient.GetOrganization(),
+	url := fmt.Sprintf("%s/api/v1/org/%s/opa/%s", t.APIClient.GetClient().HostURL, t.APIClient.GetOrganization(),
 		policyZip)
 	d, err :=
-		m.Install("terrascan-policies", "latest", url, download.WithBearerToken(t.apiClient.GetClient().Token))
+		m.Install("terrascan-policies", "latest", url, download.WithBearerToken(t.APIClient.GetClient().Token))
 	if err != nil {
 		return err
 	}

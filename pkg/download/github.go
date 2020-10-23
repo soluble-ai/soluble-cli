@@ -44,19 +44,32 @@ func getGithubReleaseAsset(owner, repo, tag string) (*github.RepositoryRelease, 
 var archNames = map[string][]string{
 	"amd64": {"x86_64"},
 	"386":   {"x86", "i386"},
+	"arm64": {"arm64"},
+	"arm":   {"arm"},
+}
+
+var osNames = map[string][]string{
+	"darwin": {"macos", "osx"},
+	"linux":  {"linux"},
 }
 
 func isThisRuntimeRelease(r string) bool {
 	r = strings.ToLower(r)
-	if !strings.Contains(r, "_"+runtime.GOOS+"_") {
-		return false
+	if strings.Contains(r, runtime.GOOS) {
+		return true
 	}
-	if strings.Contains(r, "_"+runtime.GOARCH) {
+	oses := osNames[runtime.GOOS]
+	for _, os := range oses {
+		if strings.Contains(r, os) {
+			return true
+		}
+	}
+	if strings.Contains(r, runtime.GOARCH) {
 		return true
 	}
 	names := archNames[runtime.GOARCH]
 	for _, name := range names {
-		if strings.Contains(r, "_"+name) {
+		if strings.Contains(r, name) {
 			return true
 		}
 	}

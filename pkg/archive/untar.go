@@ -39,7 +39,7 @@ func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) er
 			}
 		case tar.TypeReg:
 			err := func() error {
-				f, err := fs.OpenFile(header.Name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
+				f, err := ensureFile(fs, header)
 				if err != nil {
 					return err
 				}
@@ -67,6 +67,27 @@ func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) er
 	return nil
 }
 
+func ensureFile(fs afero.Fs, header *tar.Header) (afero.File, error) {
+	path, isDirFile := isDirectoryFile(header.Name)
+	if isDirFile {
+		_ = fs.MkdirAll(path, os.ModePerm)
+	}
+	f, err := fs.OpenFile(header.Name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
+	if err != nil {
+		return f, nil
+	}
+	return f, nil
+}
+
 func Untar(src afero.File, fs afero.Fs, options *Options) error {
 	return UntarReader(src, strings.HasSuffix(src.Name(), ".gz"), fs, options)
+}
+
+func isDirectoryFile(path string) (dir string, b bool) {
+	isDirFile := strings.Contains(path, "/")
+	if isDirFile {
+		last := path[:strings.LastIndex(path, "/")]
+		return last, isDirFile
+	}
+	return "", false
 }
