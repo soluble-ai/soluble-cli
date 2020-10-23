@@ -25,7 +25,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var GlobalConfig = &struct {

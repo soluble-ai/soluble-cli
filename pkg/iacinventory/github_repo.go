@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v32/github"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"golang.org/x/oauth2"
 )

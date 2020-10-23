@@ -109,21 +109,19 @@ func (m *Manager) InstallGithubRelease(owner, repo, tag string) (*Download, erro
 	if err != nil {
 		return nil, err
 	}
-	if isLatestTag(tag) {
-		meta.LatestCheckTime = time.Now()
-		meta.LatestVersion = release.GetTagName()
-		log.Infof("Latest release of {secondary:%s/%s} is {info:%s}", owner, repo, meta.LatestVersion)
+	if latest := meta.updateLatestInfo(tag, release.GetTagName()); latest != nil {
+		return latest, nil
 	}
 	return meta.install(m, release.GetTagName(), asset.GetBrowserDownloadURL())
 }
 
-func (m *Manager) Install(name, version, url string) (*Download, error) {
+func (m *Manager) Install(name, version, url string, options ...DownloadOption) (*Download, error) {
 	meta := m.findOrCreateMeta(name)
 	v := meta.FindVersion(version)
 	if v != nil {
 		return v, nil
 	}
-	return meta.install(m, version, url)
+	return meta.install(m, version, url, options...)
 }
 
 func (m *Manager) Remove(name, version string) error {
@@ -158,7 +156,17 @@ func (m *Manager) save(meta *DownloadMeta) error {
 	return nil
 }
 
-func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, error) {
+func (meta *DownloadMeta) updateLatestInfo(tag, version string) *Download {
+	if isLatestTag(tag) {
+		meta.LatestCheckTime = time.Now()
+		meta.LatestVersion = version
+		log.Infof("Latest release of {secondary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
+		return meta.findVersionExactly(version)
+	}
+	return nil
+}
+
+func (meta *DownloadMeta) install(m *Manager, version, url string, options ...DownloadOption) (*Download, error) {
 	base, err := getBaseName(url)
 	if err != nil {
 		return nil, err
@@ -174,8 +182,16 @@ func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, e
 	}
 	defer w.Close()
 	log.Infof("Getting {info:%s}", url)
-	/* #nosec G107 */
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, opt := range options {
+		if err = opt(req); err != nil {
+			return nil, err
+		}
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +210,7 @@ func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, e
 		Dir:         filepath.Join(m.downloadDir, meta.Name, version),
 		InstallTime: time.Now(),
 	}
+	meta.removeInstalledVersion(d.Version)
 	meta.Installed = append(meta.Installed, d)
 	err = d.Install(archiveFile)
 	if err != nil {
@@ -214,6 +231,10 @@ func (meta *DownloadMeta) FindVersion(version string) *Download {
 			return nil
 		}
 	}
+	return meta.findVersionExactly(version)
+}
+
+func (meta *DownloadMeta) findVersionExactly(version string) *Download {
 	for _, v := range meta.Installed {
 		if v.Version == version {
 			// check to see that it's still there
@@ -236,16 +257,20 @@ func (meta *DownloadMeta) removeVersion(m *Manager, version string) error {
 		if err != nil {
 			return err
 		}
-		var installed []*Download
-		for _, iv := range meta.Installed {
-			if iv.Version != v.Version {
-				installed = append(installed, iv)
-			}
-		}
-		meta.Installed = installed
+		meta.removeInstalledVersion(v.Version)
 		return m.save(meta)
 	}
 	return nil
+}
+
+func (meta *DownloadMeta) removeInstalledVersion(version string) {
+	var installed []*Download
+	for _, iv := range meta.Installed {
+		if iv.Version != version {
+			installed = append(installed, iv)
+		}
+	}
+	meta.Installed = installed
 }
 
 func (d *Download) Install(file string) error {

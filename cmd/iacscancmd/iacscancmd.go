@@ -7,31 +7,33 @@ import (
 )
 
 func Command() *cobra.Command {
-	var dir string
-	var report bool
-
-	opts := options.PrintOpts{}
+	config := iacscan.Config{}
+	opts := options.PrintClientOpts{}
 	c := &cobra.Command{
 		Use:   "iac-scan",
 		Short: "Run an Infrastructure-as-code scanner",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			scanner := iacscan.New(&iacscan.StockTerrascan{
-				Directory: dir,
-				Report:    report,
-			})
+			config.APIClient = opts.GetAPIClient()
+			config.Organizaton = opts.GetOrganization()
+			scanner, err := iacscan.New(config)
+			if err != nil {
+				return err
+			}
 			result, err := scanner.Run()
 			if err != nil {
 				return err
 			}
-
-			opts.PrintResult(result)
+			opts.Path = result.PrintPath
+			opts.Columns = result.PrintColumns
+			opts.PrintResult(result.N)
 			return nil
 		},
 	}
 	opts.Register(c)
 	flags := c.Flags()
-	flags.StringVarP(&dir, "directory", "d", "", "Directory to scan")
-	flags.BoolVarP(&report, "report", "r", true, "report back to control plane")
+	flags.StringVarP(&config.Directory, "directory", "d", "", "Directory to scan")
+	flags.BoolVarP(&config.ReportEnabled, "report", "r", false, "Upload scan results to soluble")
+	flags.StringVar(&config.ScannerType, "scanner-type", "terrascan", "The scanner to use")
 	_ = c.MarkFlagRequired("directory")
 	return c
 }

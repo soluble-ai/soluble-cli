@@ -50,18 +50,31 @@ func listCommand() *cobra.Command {
 
 func installCommand() *cobra.Command {
 	var (
-		name    string
-		version string
-		url     string
+		name      string
+		version   string
+		url       string
+		reinstall bool
 	)
 	opts := options.PrintOpts{}
 	c := &cobra.Command{
-		Use:   "install",
-		Short: "Install a downloadable component",
+		Use:     "install",
+		Short:   "Install a downloadable component",
+		Aliases: []string{"reinstall"},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			m := download.NewManager()
 			var d *download.Download
 			owner, repo := githubRepo(url)
+			if owner != "" && version == "" {
+				version = "latest"
+			}
+			if version == "" {
+				return fmt.Errorf("--version must be given for plain URL downloads")
+			}
+			if reinstall || cmd.CalledAs() == "reinstall" {
+				if err := m.Remove(name, version); err != nil {
+					return err
+				}
+			}
 			if owner != "" {
 				d, err = m.InstallGithubRelease(owner, repo, version)
 			} else {
@@ -86,6 +99,7 @@ func installCommand() *cobra.Command {
 	flags.StringVar(&name, "name", "", "The name of the component to install")
 	flags.StringVar(&version, "version", "", "The version to install.  Defaults to the latest release if using github.  Otherwise is required.")
 	flags.StringVar(&url, "url", "", "The URL to install. If the URL is in the form github.com/owner/repo then use the github api to install a release")
+	flags.BoolVar(&reinstall, "reinstall", false, "Reinstall the component")
 	return c
 }
 
@@ -93,6 +107,7 @@ func removeCommand() *cobra.Command {
 	var (
 		name    string
 		version string
+		all     bool
 	)
 	c := &cobra.Command{
 		Use:   "remove",
@@ -101,13 +116,19 @@ func removeCommand() *cobra.Command {
 			if name == "" {
 				return fmt.Errorf("--name is required")
 			}
+			if all {
+				version = ""
+			} else if version == "" {
+				return fmt.Errorf("either --version or --all must be given")
+			}
 			m := download.NewManager()
 			return m.Remove(name, version)
 		},
 	}
 	flags := c.Flags()
 	flags.StringVar(&name, "name", "", "The name of the component to remove")
-	flags.StringVar(&version, "version", "", "The version to remove.  By default removes all versions")
+	flags.StringVar(&version, "version", "", "The version to remove")
+	flags.BoolVar(&all, "all", false, "Remove all versions")
 	return c
 }
 

@@ -3,6 +3,7 @@ package download
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -65,6 +66,19 @@ func TestDownloadZip(t *testing.T) {
 	}
 }
 
+func TestAuth(t *testing.T) {
+	setupHTTP()
+	m := setupManager()
+	_, err := m.Install("secure", "1.0", "https://example.com/secure/hello.zip")
+	if err == nil {
+		t.Fatal("should have failed")
+	}
+	_, err = m.Install("secure", "1.0", "https://example.com/secure/hello.zip", WithBearerToken("foo"))
+	if err != nil {
+		t.Fatal("should have worked")
+	}
+}
+
 func setupManager() *Manager {
 	m := NewManager()
 	dir, err := ioutil.TempDir("", "downloadtest*")
@@ -78,15 +92,26 @@ func setupManager() *Manager {
 
 func setupHTTP() {
 	httpmock.Activate()
-	registerTestArchive("hello.tar.gz")
-	registerTestArchive("hello.zip")
+	registerTestArchive("hello.tar.gz", false)
+	registerTestArchive("hello.zip", false)
+	registerTestArchive("hello.zip", true)
 }
 
-func registerTestArchive(name string) {
+func registerTestArchive(name string, auth bool) {
 	dat, err := ioutil.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		panic(err)
 	}
-	httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/%s", name),
-		httpmock.NewBytesResponder(200, dat))
+	r := httpmock.NewBytesResponder(200, dat)
+	if auth {
+		authr := func(req *http.Request) (*http.Response, error) {
+			if req.Header.Get("Authorization") != "Bearer foo" {
+				return httpmock.NewStringResponse(403, "Denied"), nil
+			}
+			return r(req)
+		}
+		httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/secure/%s", name), authr)
+	} else {
+		httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/%s", name), r)
+	}
 }
