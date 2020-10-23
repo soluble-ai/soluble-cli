@@ -9,7 +9,6 @@ import (
 )
 
 func Command() *cobra.Command {
-	var scannerType string
 	config := iacscan.Config{}
 	opts := options.PrintClientOpts{}
 	c := &cobra.Command{
@@ -19,7 +18,7 @@ func Command() *cobra.Command {
 			config.APIClient = opts.GetAPIClient()
 			config.Organizaton = opts.GetOrganization()
 
-			if len(scannerType) == 0 {
+			if len(config.ScannerType) == 0 {
 				prompt := promptui.Select{
 					Label: "Select Tool",
 					Items: []string{"terrascan"},
@@ -49,7 +48,7 @@ func Command() *cobra.Command {
 	flags := c.Flags()
 	flags.StringVarP(&config.Directory, "directory", "d", "", "Directory to scan")
 	flags.BoolVarP(&config.ReportEnabled, "report", "r", false, "Upload scan results to soluble")
-	flags.StringVar(&scannerType, "scanner-type", "", "The scanner to use")
+	flags.StringVar(&config.ScannerType, "scanner-type", "", "The scanner to use")
 	_ = c.MarkFlagRequired("directory")
 	return c
 }
