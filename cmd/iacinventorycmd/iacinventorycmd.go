@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/iacinventory"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/iacinventory"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
@@ -45,7 +45,7 @@ func Command() *cobra.Command {
 
 			return opts.GetAPIClient().XCPPost(opts.GetAPIClientConfig().Organization, "iac-inventory", nil, nil,
 				xcp.WithCIEnv,
-				xcp.WithReader("iac_inventory", "iac_inventory.json", bytes.NewReader(j)))
+				xcp.WithFileFromReader("iac_inventory", "iac_inventory.json", bytes.NewReader(j)))
 		},
 	}
 	opts.Register(c)

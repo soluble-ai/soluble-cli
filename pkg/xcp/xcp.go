@@ -56,7 +56,7 @@ func WithCIEnv(req *resty.Request) {
 }
 
 // For XCPPost, include a file from a reader.
-func WithReader(param, filename string, reader io.Reader) client.Option {
+func WithFileFromReader(param, filename string, reader io.Reader) client.Option {
 	return func(req *resty.Request) {
 		req.SetFileReader(param, filename, reader)
 	}
