@@ -6,6 +6,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ func Command() *cobra.Command {
 			if scannerType == "" {
 				prompt := promptui.Select{
 					Label: "Select Tool",
-					Items: []string{"terrascan"},
+					Items: []string{"terrascan", "tfsec"},
 				}
 				_, selection, err := prompt.Run()
 				if err != nil {
@@ -35,6 +36,10 @@ func Command() *cobra.Command {
 			case "terrascan":
 				tool = &terrascan.Tool{
 					APIClient: opts.GetAPIClient(),
+					Directory: directory,
+				}
+			case "tfsec":
+				tool = &tfsec.Tool{
 					Directory: directory,
 				}
 			default:
