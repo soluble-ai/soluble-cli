@@ -1,7 +1,9 @@
 package download
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -51,6 +53,32 @@ func TestDownload(t *testing.T) {
 	}
 }
 
+func TestDownloadZip(t *testing.T) {
+	setupHTTP()
+	m := setupManager()
+	d, err := m.Install("hello-zip", "1.0", "https://example.com/hello.zip")
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = os.Stat(filepath.Join(d.Dir, "README.txt"))
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestAuth(t *testing.T) {
+	setupHTTP()
+	m := setupManager()
+	_, err := m.Install("secure", "1.0", "https://example.com/secure/hello.zip")
+	if err == nil {
+		t.Fatal("should have failed")
+	}
+	_, err = m.Install("secure", "1.0", "https://example.com/secure/hello.zip", WithBearerToken("foo"))
+	if err != nil {
+		t.Fatal("should have worked")
+	}
+}
+
 func setupManager() *Manager {
 	m := NewManager()
 	dir, err := ioutil.TempDir("", "downloadtest*")
@@ -58,16 +86,32 @@ func setupManager() *Manager {
 		panic(err)
 	}
 	defer os.RemoveAll(dir)
-	m.DownloadDir = dir
+	m.downloadDir = dir
 	return m
 }
 
 func setupHTTP() {
 	httpmock.Activate()
-	dat, err := ioutil.ReadFile(filepath.Join("testdata", "hello.tar.gz"))
+	registerTestArchive("hello.tar.gz", false)
+	registerTestArchive("hello.zip", false)
+	registerTestArchive("hello.zip", true)
+}
+
+func registerTestArchive(name string, auth bool) {
+	dat, err := ioutil.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		panic(err)
 	}
-	httpmock.RegisterResponder("GET", "https://example.com/hello.tar.gz",
-		httpmock.NewBytesResponder(200, dat))
+	r := httpmock.NewBytesResponder(200, dat)
+	if auth {
+		authr := func(req *http.Request) (*http.Response, error) {
+			if req.Header.Get("Authorization") != "Bearer foo" {
+				return httpmock.NewStringResponse(403, "Denied"), nil
+			}
+			return r(req)
+		}
+		httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/secure/%s", name), authr)
+	} else {
+		httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/%s", name), r)
+	}
 }

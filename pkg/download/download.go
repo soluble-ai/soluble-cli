@@ -2,25 +2,24 @@ package download
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
 type Manager struct {
 	meta        []*DownloadMeta
-	DownloadDir string
+	downloadDir string
 }
 
 type Download struct {
@@ -41,7 +40,7 @@ type DownloadMeta struct {
 
 func NewManager() *Manager {
 	return &Manager{
-		DownloadDir: filepath.Join(config.ConfigDir, "downloads"),
+		downloadDir: filepath.Join(config.ConfigDir, "downloads"),
 	}
 }
 
@@ -56,11 +55,11 @@ func (m *Manager) GetMeta(name string) *DownloadMeta {
 
 func (m *Manager) List() (result []*DownloadMeta) {
 	if m.meta == nil {
-		_ = filepath.Walk(m.DownloadDir, func(path string, info os.FileInfo, err1 error) error {
+		_ = filepath.Walk(m.downloadDir, func(path string, info os.FileInfo, err1 error) error {
 			if info == nil {
 				return nil
 			}
-			r, err := filepath.Rel(m.DownloadDir, path)
+			r, err := filepath.Rel(m.downloadDir, path)
 			if err != nil {
 				return err
 			}
@@ -95,7 +94,7 @@ func (m *Manager) findOrCreateMeta(name string) *DownloadMeta {
 	}
 	return &DownloadMeta{
 		Name: name,
-		Dir:  filepath.Join(m.DownloadDir, name),
+		Dir:  filepath.Join(m.downloadDir, name),
 	}
 }
 
@@ -110,21 +109,19 @@ func (m *Manager) InstallGithubRelease(owner, repo, tag string) (*Download, erro
 	if err != nil {
 		return nil, err
 	}
-	if isLatestTag(tag) {
-		meta.LatestCheckTime = time.Now()
-		meta.LatestVersion = release.GetTagName()
-		log.Infof("Latest release of {secondary:%s/%s} is {info:%s}", owner, repo, meta.LatestVersion)
+	if latest := meta.updateLatestInfo(tag, release.GetTagName()); latest != nil {
+		return latest, nil
 	}
 	return meta.install(m, release.GetTagName(), asset.GetBrowserDownloadURL())
 }
 
-func (m *Manager) Install(name, version, url string) (*Download, error) {
+func (m *Manager) Install(name, version, url string, options ...DownloadOption) (*Download, error) {
 	meta := m.findOrCreateMeta(name)
 	v := meta.FindVersion(version)
 	if v != nil {
 		return v, nil
 	}
-	return meta.install(m, version, url)
+	return meta.install(m, version, url, options...)
 }
 
 func (m *Manager) Remove(name, version string) error {
@@ -144,7 +141,7 @@ func (m *Manager) Remove(name, version string) error {
 }
 
 func (m *Manager) save(meta *DownloadMeta) error {
-	f, err := os.Create(filepath.Join(m.DownloadDir, meta.Name, "meta.json"))
+	f, err := os.Create(filepath.Join(m.downloadDir, meta.Name, "meta.json"))
 	if err != nil {
 		return err
 	}
@@ -159,12 +156,22 @@ func (m *Manager) save(meta *DownloadMeta) error {
 	return nil
 }
 
-func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, error) {
+func (meta *DownloadMeta) updateLatestInfo(tag, version string) *Download {
+	if isLatestTag(tag) {
+		meta.LatestCheckTime = time.Now()
+		meta.LatestVersion = version
+		log.Infof("Latest release of {secondary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
+		return meta.findVersionExactly(version)
+	}
+	return nil
+}
+
+func (meta *DownloadMeta) install(m *Manager, version, url string, options ...DownloadOption) (*Download, error) {
 	base, err := getBaseName(url)
 	if err != nil {
 		return nil, err
 	}
-	nameDir := filepath.Join(m.DownloadDir, meta.Name)
+	nameDir := filepath.Join(m.downloadDir, meta.Name)
 	if err := os.MkdirAll(nameDir, 0777); err != nil {
 		return nil, err
 	}
@@ -175,8 +182,16 @@ func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, e
 	}
 	defer w.Close()
 	log.Infof("Getting {info:%s}", url)
-	/* #nosec G107 */
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, opt := range options {
+		if err = opt(req); err != nil {
+			return nil, err
+		}
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -192,9 +207,10 @@ func (meta *DownloadMeta) install(m *Manager, version, url string) (*Download, e
 		Name:        meta.Name,
 		Version:     version,
 		URL:         url,
-		Dir:         filepath.Join(m.DownloadDir, meta.Name, version),
+		Dir:         filepath.Join(m.downloadDir, meta.Name, version),
 		InstallTime: time.Now(),
 	}
+	meta.removeInstalledVersion(d.Version)
 	meta.Installed = append(meta.Installed, d)
 	err = d.Install(archiveFile)
 	if err != nil {
@@ -215,6 +231,10 @@ func (meta *DownloadMeta) FindVersion(version string) *Download {
 			return nil
 		}
 	}
+	return meta.findVersionExactly(version)
+}
+
+func (meta *DownloadMeta) findVersionExactly(version string) *Download {
 	for _, v := range meta.Installed {
 		if v.Version == version {
 			// check to see that it's still there
@@ -237,42 +257,37 @@ func (meta *DownloadMeta) removeVersion(m *Manager, version string) error {
 		if err != nil {
 			return err
 		}
-		var installed []*Download
-		for _, iv := range meta.Installed {
-			if iv.Version != v.Version {
-				installed = append(installed, iv)
-			}
-		}
-		meta.Installed = installed
+		meta.removeInstalledVersion(v.Version)
 		return m.save(meta)
 	}
 	return nil
 }
 
-func (d *Download) Install(archive string) error {
-	base, err := getBaseName(d.URL)
-	if err != nil {
-		return err
+func (meta *DownloadMeta) removeInstalledVersion(version string) {
+	var installed []*Download
+	for _, iv := range meta.Installed {
+		if iv.Version != version {
+			installed = append(installed, iv)
+		}
 	}
-	// remove install directory and recreate it
-	_ = os.RemoveAll(d.Dir)
-	if err := os.MkdirAll(d.Dir, 0777); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-	var cmd *exec.Cmd
+	meta.Installed = installed
+}
+
+func (d *Download) Install(file string) error {
+	base := filepath.Base(file)
+	var unpack archive.Unpack
 	switch {
 	case strings.HasSuffix(base, ".tar.gz"):
-		cmd = exec.Command("tar", "-zxf", archive)
+		fallthrough
 	case strings.HasSuffix(base, ".tar"):
-		cmd = exec.Command("tar", "-xf", archive)
-	case strings.HasSuffix(base, "zip"):
-		cmd = exec.Command("unzip", archive)
+		unpack = archive.Untar
+	case strings.HasSuffix(base, ".zip"):
+		unpack = archive.Unzip
 	default:
 		return fmt.Errorf("unknown archive format %s", base)
 	}
-	cmd.Dir = d.Dir
-	log.Infof("Installing {info:%s}", filepath.Base(archive))
-	return cmd.Run()
+	log.Infof("Installing {info:%s}", base)
+	return archive.Do(unpack, file, d.Dir, nil)
 }
 
 func getBaseName(s string) (string, error) {
