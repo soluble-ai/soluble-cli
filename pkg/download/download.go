@@ -15,6 +15,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/spf13/afero"
 )
 
 type Manager struct {
@@ -283,11 +284,28 @@ func (d *Download) Install(file string) error {
 		unpack = archive.Untar
 	case strings.HasSuffix(base, ".zip"):
 		unpack = archive.Unzip
+	case !strings.Contains(base, ".") || strings.HasSuffix(base, ".exe"):
+		unpack = d.installExecutable
 	default:
 		return fmt.Errorf("unknown archive format %s", base)
 	}
 	log.Infof("Installing {info:%s}", base)
 	return archive.Do(unpack, file, d.Dir, nil)
+}
+
+func (d *Download) installExecutable(src afero.File, fs afero.Fs, options *archive.Options) error {
+	// just copy the file
+	name := d.Name
+	if strings.HasSuffix(src.Name(), ".exe") {
+		name = fmt.Sprintf("%s.exe", name)
+	}
+	out, err := fs.OpenFile(name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, src)
+	return err
 }
 
 func getBaseName(s string) (string, error) {

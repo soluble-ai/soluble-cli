@@ -5,6 +5,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
@@ -32,6 +33,7 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 		result.Values = map[string]string{}
 	}
 	result.Values["TOOL_NAME"] = tool.Name()
+	result.Values["CLI_VERSION"] = version.Version
 	if o.ReportEnabled {
 		err = o.reportResult(tool, result)
 		if err != nil {

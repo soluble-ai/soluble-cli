@@ -7,18 +7,23 @@ func TestOsArch(t *testing.T) {
 	// for a list of goarch/goos values
 	testCases := []struct {
 		r, o, a string
+		m       bool
 	}{
-		{"soluble_v0.4.19_darwin_amd64.tar.gz", "darwin", "amd64"},
-		{"soluble_v0.4.19_linux_386.tar.gz", "linux", "386"},
-		{"trivy_0.12.0_Linux-64bit.tar.gz", "linux", "amd64"},
-		{"trivy_0.12.0_macOS-64bit.tar.gz", "darwin", "amd64"},
-		{"terrascan_1.1.0_Linux_i386.tar.gz", "linux", "386"},
-		{"terrascan_1.1.0_Darwin_x86_64.tar.gz", "darwin", "amd64"},
+		{"soluble_v0.4.19_darwin_amd64.tar.gz", "darwin", "amd64", true},
+		{"soluble_v0.4.19_linux_386.tar.gz", "linux", "386", true},
+		{"trivy_0.12.0_Linux-64bit.tar.gz", "linux", "amd64", true},
+		{"trivy_0.12.0_macOS-64bit.tar.gz", "darwin", "amd64", true},
+		{"terrascan_1.1.0_Linux_i386.tar.gz", "linux", "386", true},
+		{"terrascan_1.1.0_Darwin_x86_64.tar.gz", "darwin", "amd64", true},
+		{"tfsec-checkgen-darwin-amd64", "darwin", "amd64", false},
+		{"tfsec-darwin-amd64", "darwin", "amd64", true},
 	}
 
 	for _, tc := range testCases {
-		if !isMatchingReleaseName(tc.r, tc.o, tc.a) {
-			t.Error("failed detection", tc.r, tc.o, tc.a)
+		if tc.m {
+			if !isMatchingReleaseName(tc.r, tc.o, tc.a) {
+				t.Error("failed detection", tc.r, tc.o, tc.a)
+			}
 		}
 	}
 	for _, a := range []string{"amd64", "386"} {
