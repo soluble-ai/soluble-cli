@@ -28,7 +28,7 @@ func Command() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				log.Infof("You choose %q", tool)
+				log.Infof("Your selection %q", tool)
 				config.ScannerType = tool
 			}
 			scanner, err := iacscan.New(config)
