@@ -1,7 +1,9 @@
 package iacscancmd
 
 import (
+	"github.com/manifoldco/promptui"
 	"github.com/soluble-ai/soluble-cli/pkg/iacscan"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -15,6 +17,19 @@ func Command() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config.APIClient = opts.GetAPIClient()
 			config.Organizaton = opts.GetOrganization()
+
+			if len(config.ScannerType) == 0 {
+				prompt := promptui.Select{
+					Label: "Select Tool",
+					Items: []string{"terrascan"},
+				}
+				_, tool, err := prompt.Run()
+				if err != nil {
+					return err
+				}
+				log.Infof("Your selection %q", tool)
+				config.ScannerType = tool
+			}
 			scanner, err := iacscan.New(config)
 			if err != nil {
 				return err
@@ -33,7 +48,7 @@ func Command() *cobra.Command {
 	flags := c.Flags()
 	flags.StringVarP(&config.Directory, "directory", "d", "", "Directory to scan")
 	flags.BoolVarP(&config.ReportEnabled, "report", "r", false, "Upload scan results to soluble")
-	flags.StringVar(&config.ScannerType, "scanner-type", "terrascan", "The scanner to use")
+	flags.StringVar(&config.ScannerType, "scanner-type", "", "The scanner to use")
 	_ = c.MarkFlagRequired("directory")
 	return c
 }
