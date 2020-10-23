@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/afero"
@@ -34,17 +35,26 @@ func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) er
 		}
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := fs.MkdirAll(header.Name, os.ModePerm); err != nil && !errors.Is(err, os.ErrExist) {
+			if err := fs.MkdirAll(header.Name, os.ModePerm); err != nil {
 				return err
 			}
 		case tar.TypeReg:
 			err := func() error {
-				f, err := ensureFile(fs, header)
+				dir := filepath.Dir(header.Name)
+				if dir != "." {
+					if err := fs.MkdirAll(dir, os.ModePerm); err != nil {
+						return err
+					}
+				}
+				f, err := fs.OpenFile(header.Name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
 				if err != nil {
 					return err
 				}
 				defer f.Close()
-				return options.copy(f, t)
+				if err := options.copy(f, t); err != nil {
+					return err
+				}
+				return nil
 			}()
 			if err != nil {
 				return err
@@ -61,33 +71,12 @@ func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) er
 				return err
 			}
 		default:
-			return fmt.Errorf("unimplmented file type %q for %s", header.Typeflag, header.Name)
+			// just ignore anything else
 		}
 	}
 	return nil
 }
 
-func ensureFile(fs afero.Fs, header *tar.Header) (afero.File, error) {
-	path, isDirFile := isDirectoryFile(header.Name)
-	if isDirFile {
-		_ = fs.MkdirAll(path, os.ModePerm)
-	}
-	f, err := fs.OpenFile(header.Name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
-	if err != nil {
-		return f, nil
-	}
-	return f, nil
-}
-
 func Untar(src afero.File, fs afero.Fs, options *Options) error {
 	return UntarReader(src, strings.HasSuffix(src.Name(), ".gz"), fs, options)
-}
-
-func isDirectoryFile(path string) (dir string, b bool) {
-	isDirFile := strings.Contains(path, "/")
-	if isDirFile {
-		last := path[:strings.LastIndex(path, "/")]
-		return last, isDirFile
-	}
-	return "", false
 }
