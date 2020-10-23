@@ -1,4 +1,4 @@
-package client
+package xcp
 
 import (
 	"os"
@@ -13,6 +13,7 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("GITHUB_BRANCH", "yyy")
 	os.Setenv("BUILDKITE_AGENT_ACCESS_TOKEN", "xxx")
 	os.Setenv("BUILDKITE_COMMAND", "yyy")
+	os.Setenv("BUILDKITE_S3_ACCESS_URL", "xxx")
 	env := getCIEnv()
 	for k, v := range env {
 		if v == "xxx" {
@@ -25,5 +26,11 @@ func TestGetCIEnv(t *testing.T) {
 				t.Error(kv)
 			}
 		}
+	}
+}
+
+func TestNormalizeGitRemote(t *testing.T) {
+	if s := normalizeGitRemote("git@github.com:fizz/buzz.git"); s != "github.com/fizz/buzz" {
+		t.Error(s)
 	}
 }

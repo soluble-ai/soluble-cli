@@ -3,8 +3,8 @@ package iacscan
 import (
 	"bytes"
 
-	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
 type Reporter struct {
@@ -25,7 +25,7 @@ func (r *Reporter) Run() (*Result, error) {
 		"scannerType": r.ScannerType,
 	}
 	err = r.APIClient.XCPPost(r.Organizaton, r.module, nil, values,
-		client.XCPWithCIEnv, client.XCPWithReader("results_json", "results.json", rr))
+		xcp.WithCIEnv, xcp.WithReader("results_json", "results.json", rr))
 	if err != nil {
 		return nil, err
 	}
