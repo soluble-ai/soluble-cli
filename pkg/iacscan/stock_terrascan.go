@@ -43,7 +43,6 @@ func (t *StockTerrascan) Run() (*Result, error) {
 	// we can pass any valid value.
 	scan := exec.Command(program, "scan", "-t", "aws", "-d", t.directory, "-p", t.policyPath, "-o", "json")
 	scan.Stderr = os.Stderr
-	scan.Stderr = os.Stderr
 	output, err := scan.Output()
 	if err != nil {
 		ee, ok := err.(*exec.ExitError)
