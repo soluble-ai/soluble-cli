@@ -1,11 +1,7 @@
 package iacinventory
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,7 +12,9 @@ import (
 	"time"
 
 	"github.com/google/go-github/v32/github"
+	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"golang.org/x/oauth2"
 )
 
@@ -27,174 +25,140 @@ type GithubRepo struct {
 	Name string `json:"name"`
 
 	// CI is the repo's configured CI system, if present.
-	CISystems []CI
+	CISystems []CI `json:"ci_systems,omitempty"`
 
 	// TerraformDirs are directories that contain '.tf' files
-	TerraformDirs []string
+	TerraformDirs []string `json:"terraform_dirs,omitempty"`
 
 	// CloudformationDirs are directories that contain cloudformation files
-	CloudformationDirs []string
-
-	// dir is where we've unarchived the tarball for analysis.
-	dir string
-
-	repo *github.Repository
-}
-
-func (g GithubRepo) getCISystems() []string {
-	var out []string
-	for _, ci := range g.CISystems {
-		out = append(out, string(ci))
-	}
-	return out
-}
-
-func (g GithubRepo) getTerraformDirs() []string {
-	var out []string
-	for _, v := range g.TerraformDirs {
-		out = append(out, strings.TrimPrefix(filepath.Dir(filepath.Clean(v)), g.dir+"/"))
-	}
-	return out
-}
-
-func (g GithubRepo) getCloudformationDirs() []string {
-	var out []string
-	for _, v := range g.TerraformDirs {
-		out = append(out, strings.TrimPrefix(filepath.Dir(filepath.Clean(v)), g.dir+"/"))
-	}
-	return out
+	CloudformationDirs []string `json:"cloudformation_dirs,omitempty"`
 }
 
 // getRepos fetches the list of all repositories accessiable to a given credential pair.
-func getRepos(username, oauthToken string) ([]*github.Repository, error) {
-	ctx := context.Background()
+func getRepos(username, oauthToken string, all bool, repoNames []string) ([]*github.Repository, error) {
+	ctx, cf := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cf()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: oauthToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	opt := &github.RepositoryListOptions{
-		ListOptions: github.ListOptions{PerPage: 10}, // TODO: revert to 100
+
+	var repos []*github.Repository
+	if len(repoNames) == 0 {
+		opt := &github.RepositoryListOptions{
+			ListOptions: github.ListOptions{PerPage: 10}, // TODO: revert to 100
+		}
+		if !all {
+			opt.Visibility = "public"
+		}
+		var err error
+		repos, _, err = client.Repositories.List(ctx, "", opt)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		const githubcom = "github.com/"
+		for _, name := range repoNames {
+			n := name
+			if strings.HasPrefix(name, githubcom) {
+				n = n[len(githubcom):]
+			}
+			p := strings.Split(n, "/")
+			if len(p) != 2 {
+				return nil, fmt.Errorf("illegal github repository name %s", name)
+			}
+			repo, _, err := client.Repositories.Get(ctx, p[0], p[1])
+			if err != nil {
+				return nil, err
+			}
+			repos = append(repos, repo)
+		}
 	}
-	repos, _, err := client.Repositories.List(ctx, "", opt)
-	if err != nil {
-		return nil, err
-	}
-	return repos, err
+	return repos, nil
 }
 
 // download the tarball of the default branch for a repository.
-func (g *GithubRepo) download(username, oauthToken string, repo *github.Repository) ([]byte, error) {
+func (g *GithubRepo) downloadTarball(username, oauthToken string, repo *github.Repository, dir string) (string, error) {
 	if username == "" || oauthToken == "" {
-		return nil, fmt.Errorf("error fetching repository: credentials are not set")
+		return "", fmt.Errorf("error fetching repository: credentials are not set")
 	}
-	ctx := context.TODO()
 	url := "https://api.github.com/repos/" + g.FullName + "/tarball"
-	log.Debugf("downloading repository tarball at: %s", url)
+	log.Infof("Downloading {primary:%s}", url)
+	ctx, cf := context.WithTimeout(context.Background(), time.Second*120)
+	defer cf()
 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	req.Header.Set("Authorization", "token "+oauthToken)
 	req.Header.Set("Accept", "application/vnd.github.v3.raw")
-	c := http.Client{
-		Timeout: time.Second * 120, // sometimes pulling github repos can be slow (on GitHub's end).
-	}
-	resp, err := c.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending HTTP request: %w", err)
+		return "", fmt.Errorf("could not download tarball: %w", err)
 	}
 	defer resp.Body.Close()
-	return ioutil.ReadAll(resp.Body)
+	f, err := os.Create(filepath.Join(dir, ".tarball.tar.gz"))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return f.Name(), nil
 }
 
-// extract tarballs of a github repository to g.dir
-func (g *GithubRepo) extract(r io.Reader) error {
-	// we stuff the extracted tarball into a temporary directory
-	dir, err := ioutil.TempDir("", "soluble-iac-scan")
+func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository) error {
+	dir, err := ioutil.TempDir("", "iacinventory*")
 	if err != nil {
-		return fmt.Errorf("error creating temporary directory: %w", err)
+		return err
 	}
-	g.dir = dir
-	gunzip, err := gzip.NewReader(r)
+	defer os.RemoveAll(dir)
+	tarball, err := g.downloadTarball(user, token, repo, dir)
 	if err != nil {
-		// If there is no repository data, we'll encounter a gzip error
-		if errors.Is(err, gzip.ErrHeader) {
-			return fmt.Errorf("repository has no contents")
-		}
-		return fmt.Errorf("error creating gzip reader for tarball: %w", err)
+		return fmt.Errorf("could not download and unpack %s: %w", repo.GetFullName(), err)
 	}
-	defer gunzip.Close()
-	t := tar.NewReader(gunzip)
+	info, err := os.Stat(tarball)
+	if err == nil {
+		log.Infof("Tarball is {info:%dK}", info.Size()>>10)
+	}
+	err = archive.Do(archive.Untar, tarball, dir, &archive.Options{
+		TruncateFileSize: 1 << 20,
+		IgnoreSymLinks:   true,
+	})
+	if err != nil {
+		return fmt.Errorf("could not unpack tarball: %w", err)
+	}
 
-	// write the tarball'd files to disk in the temporary directory
-	for {
-		header, err := t.Next()
-		if errors.Is(err, io.EOF) {
-			break
+	terraformDirs := util.NewStringSet()
+	cfnDirs := util.NewStringSet()
+	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		ci, err := walkCI(path, info, err)
+		if ci != "" {
+			g.CISystems = append(g.CISystems, ci)
 		}
 		if err != nil {
-			log.Errorf("error extracting file from tarball: %w", err)
-			break
+			return err
 		}
-
-		// cut out the top level directory to place files directly in g.dir
-		outfile := filepath.Join(g.dir,
-			filepath.Clean(strings.Join(strings.Split(header.Name, string(filepath.Separator))[1:], string(filepath.Separator))))
-		log.Debugf("writing file: %s", outfile)
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.Mkdir(outfile, 0o755); err != nil {
-				if os.IsExist(err) {
-					continue
-				}
-				return fmt.Errorf("error creating directory for tarball extraction: %w", err)
+		if info.Mode().IsRegular() {
+			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
+			if isTerraformFile(path, info) {
+				terraformDirs.Add(dirName)
 			}
-		case tar.TypeReg:
-			// cut out the outer directory from the filename to ensure we add the files to g.dir (and not g.dir/some-random-subdir)
-			err := func() error {
-				f, err := os.Create(outfile)
-				if err != nil {
-					return fmt.Errorf("error creating file: %w", err)
-				}
-				defer f.Close()
-				c, err := io.CopyN(f, t, 1<<(10*2)) // 1MB max size
-				if err != nil {
-					if !errors.Is(err, io.EOF) {
-						return fmt.Errorf("eror copying file: %w", err)
-					}
-				}
-				if c == 1<<(10*2) { // 1MB max file size
-					log.Debugf("file in tarball for repository %q was larger than 1MB - skipping", g.FullName)
-				}
-				return nil
-			}()
-			if err != nil {
-				log.Infof("error extracting tarball: %v", err)
-				continue
+			if isCloudFormationFile(path, info) {
+				cfnDirs.Add(dirName)
 			}
-		case tar.TypeXGlobalHeader, tar.TypeSymlink, tar.TypeLink:
-			// we silently ignore (sym)links without failure, as they are not relevant (, as we walk all files)
-			continue
-		default:
-			return fmt.Errorf("unknown filetype %q encountered during extraction of %q archive",
-				header.Typeflag, header.Name)
 		}
-	}
-	return nil
-}
-
-// getCode fetches and extracts the tarball of the master branch.
-func (g *GithubRepo) getCode(username string, oauthToken string) error {
-	log.Debugf("downloading tarball for repo: %s", g.FullName)
-	tarballData, err := g.download(username, oauthToken, g.repo)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	log.Debugf("downloaded tarball for repo: %s", g.FullName)
-	r := bytes.NewReader(tarballData)
-	log.Debugf("extracting tarball for repo: %s", g.FullName)
-	if err := g.extract(r); err != nil {
-		return err
-	}
-	log.Debugf("extracted tarball for repo: %s", g.FullName)
-	// TODO: validate that files actually ended up in g.dir
+	g.TerraformDirs = terraformDirs.Values()
+	g.CloudformationDirs = cfnDirs.Values()
+	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories",
+		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs))
 	return nil
 }

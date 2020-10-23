@@ -23,6 +23,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
 	"github.com/soluble-ai/soluble-cli/cmd/downloadcmd"
+	"github.com/soluble-ai/soluble-cli/cmd/iacinventorycmd"
 	"github.com/soluble-ai/soluble-cli/cmd/iacscan"
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
@@ -103,6 +104,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		postcmd.Command(),
 		iacscan.Command(),
 		imagescan.Command(),
+		iacinventorycmd.Command(),
 	}
 	for _, c := range commands {
 		rootCmd.AddCommand(c)

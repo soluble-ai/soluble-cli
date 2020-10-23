@@ -2,6 +2,8 @@ package iacinventory
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 // CI is the type of CI used for a repository.
@@ -15,10 +17,11 @@ const (
 	CIDrone     CI = "drone"
 	CIJenkins   CI = "jenkins"
 	CIAzure     CI = "azure"
+	CITravis    CI = "travis"
 )
 
 // walkCI Tests a given CI system against a file for a match, implements filepath.WalkFunc
-func walkCI(_ string, info os.FileInfo, err error) (CI, error) {
+func walkCI(path string, info os.FileInfo, err error) (CI, error) {
 	if err != nil {
 		return "", err
 	}
@@ -27,8 +30,10 @@ func walkCI(_ string, info os.FileInfo, err error) (CI, error) {
 	var ci CI
 	if info.IsDir() {
 		switch info.Name() {
-		case ".github":
-			ci = CIGithub
+		case "workflows":
+			if strings.HasSuffix(path, filepath.Join(".github", "workflows")) {
+				ci = CIGithub
+			}
 		case ".buildkite":
 			ci = CIBuildkite
 		case ".gitlab":
@@ -45,6 +50,8 @@ func walkCI(_ string, info os.FileInfo, err error) (CI, error) {
 			ci = CIJenkins
 		case "azure-pipelines.yml":
 			ci = CIAzure
+		case ".travis.yml":
+			ci = CITravis
 		}
 	}
 	return ci, nil

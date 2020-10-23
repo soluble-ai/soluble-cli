@@ -1,57 +1,27 @@
 package iacinventorycmd
 
 import (
-	"bytes"
-	"encoding/json"
-
-	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/iacinventory"
-	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
 
 func Command() *cobra.Command {
-	var username string
-	var oauthToken string
-	var submit bool
-	opts := options.PrintClientOpts{}
+	tool := &iacinventory.GithubIacInventoryScanner{}
+	opts := tools.ToolOpts{}
 	c := &cobra.Command{
 		Use:   "iac-inventory",
-		Short: "Run an Infrastructure-as-code inventorier on repositories",
+		Short: "Look for infrastructure-as-code and optionally send the inventory to Soluble",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// For now, we only support Github.
-			inventorier := iacinventory.New(&iacinventory.GithubInventorier{
-				User:       username,
-				OauthToken: oauthToken,
-			})
-			result, err := inventorier.Run()
-			if err != nil {
-				return err
-			}
-			j, err := json.MarshalIndent(result, "", "    ")
-			if err != nil {
-				return err
-			}
-			n, err := jnode.FromJSON(j)
-			if err != nil {
-				return err
-			}
-			opts.PrintResult(n)
-			if !submit {
-				// TODO: also early exit if auth is not configured
-				return nil
-			}
-
-			return opts.GetAPIClient().XCPPost(opts.GetAPIClientConfig().Organization, "iac-inventory", nil, nil,
-				xcp.WithCIEnv,
-				xcp.WithFileFromReader("iac_inventory", "iac_inventory.json", bytes.NewReader(j)))
+			return opts.RunTool(tool)
 		},
 	}
 	opts.Register(c)
 	flags := c.Flags()
-	flags.StringVar(&username, "gh-username", "", "Github Username")
-	flags.StringVar(&oauthToken, "gh-oauthtoken", "", "Github OAuthToken")
-	flags.BoolVar(&submit, "submit", false, "submit results to the Soluble API")
+	flags.StringVar(&tool.User, "gh-username", "", "Github Username")
+	flags.StringVar(&tool.OauthToken, "gh-oauthtoken", "", "Github OAuthToken")
+	flags.BoolVar(&tool.AllRepos, "all", false, "Inventory all accessible public and private repostories.")
+	flags.BoolVar(&tool.PublicRepos, "public", false, "Inventory accessible public repositories.")
+	flags.StringSliceVar(&tool.ExplicitRepositories, "repository", nil, "Inventory this repository.  May be repeated.")
 	return c
 }
