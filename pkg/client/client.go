@@ -55,6 +55,7 @@ type Interface interface {
 	Delete(path string, options ...Option) (*jnode.Node, error)
 	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error
 	GetClient() *resty.Client
+	GetOrganization() string
 }
 
 type clientT struct {
@@ -201,4 +202,8 @@ func (c *clientT) XCPPost(orgID string, module string, files []string, values ma
 	req = applyOptions(req, options)
 	_, err := req.Post(fmt.Sprintf("/api/v1/xcp/%s/data", module))
 	return err
+}
+
+func (c *clientT) GetOrganization() string {
+	return c.Organization
 }

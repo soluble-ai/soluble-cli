@@ -14,9 +14,8 @@ import (
 
 var _ Unpack = Untar
 
-func Untar(src afero.File, fs afero.Fs, options *Options) error {
-	var r io.Reader = src
-	if strings.HasSuffix(src.Name(), ".gz") {
+func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) error {
+	if compressed {
 		gunzip, err := gzip.NewReader(r)
 		if err != nil {
 			return err
@@ -40,7 +39,7 @@ func Untar(src afero.File, fs afero.Fs, options *Options) error {
 			}
 		case tar.TypeReg:
 			err := func() error {
-				f, err := fs.Create(header.Name)
+				f, err := fs.OpenFile(header.Name, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
 				if err != nil {
 					return err
 				}
@@ -66,4 +65,8 @@ func Untar(src afero.File, fs afero.Fs, options *Options) error {
 		}
 	}
 	return nil
+}
+
+func Untar(src afero.File, fs afero.Fs, options *Options) error {
+	return UntarReader(src, strings.HasSuffix(src.Name(), ".gz"), fs, options)
 }
