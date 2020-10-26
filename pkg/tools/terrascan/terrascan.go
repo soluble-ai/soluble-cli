@@ -61,11 +61,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tools.Result{
+	result := &tools.Result{
 		Data:         n,
+		Directory:    t.Directory,
 		PrintPath:    []string{"results", "violations"},
 		PrintColumns: []string{"category", "severity", "file", "line", "rule_id", "description"},
-	}, nil
+	}
+	for _, v := range n.Path("results").Path("violations").Elements() {
+		file := v.Path("file").AsText()
+		if file != "" {
+			result.AddFile(file)
+		}
+	}
+	return result, nil
 }
 
 func (t *Tool) downloadPolicies() error {

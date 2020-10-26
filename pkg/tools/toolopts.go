@@ -2,24 +2,34 @@ package tools
 
 import (
 	"bytes"
+	"io"
+	"os"
+	"path/filepath"
 
+	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
 type ToolOpts struct {
 	options.PrintClientOpts
-	ReportEnabled bool
+	UploadEnabled bool
+	OmitContext   bool
 }
 
 var _ options.Interface = &ToolOpts{}
 
 func (o *ToolOpts) Register(c *cobra.Command) {
+	o.PrintClientOpts.Register(c)
 	flags := c.Flags()
-	flags.BoolVar(&o.ReportEnabled, "report", false, "Upload report to Soluble")
+	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload report to Soluble")
+	flags.BoolVar(&o.OmitContext, "omit-context", false, "Don't include the source files with violations in the upload")
 }
 
 func (o *ToolOpts) SetContextValues(m map[string]string) {}
@@ -29,12 +39,9 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 	if err != nil {
 		return err
 	}
-	if result.Values == nil {
-		result.Values = map[string]string{}
-	}
-	result.Values["TOOL_NAME"] = tool.Name()
-	result.Values["CLI_VERSION"] = version.Version
-	if o.ReportEnabled {
+	result.AddValue("TOOL_NAME", tool.Name()).
+		AddValue("CLI_VERSION", version.Version)
+	if o.UploadEnabled {
 		err = o.reportResult(tool, result)
 		if err != nil {
 			return err
@@ -49,6 +56,45 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 func (o *ToolOpts) reportResult(tool Interface, result *Result) error {
 	rr := bytes.NewReader([]byte(result.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", tool.Name())
-	return o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, result.Values,
-		xcp.WithCIEnv, xcp.WithFileFromReader("results_json", "results.json", rr))
+	options := []client.Option{
+		xcp.WithCIEnv, xcp.WithFileFromReader("results_json", "results.json", rr),
+	}
+	if !o.OmitContext && result.Files != nil {
+		tarball, err := o.createTarball(result)
+		if err != nil {
+			return err
+		}
+		defer tarball.Close()
+		defer os.Remove(tarball.Name())
+		options = append(options, xcp.WithFileFromReader("tarball", "context.tar.gz", tarball))
+	}
+	return o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, result.Values, options...)
+}
+
+func (o *ToolOpts) createTarball(result *Result) (afero.File, error) {
+	fs := afero.NewOsFs()
+	f, err := afero.TempFile(fs, "", "soluble-cli*")
+	if err != nil {
+		return nil, err
+	}
+	tar := archive.NewTarballWriter(f)
+	err = util.PropagateCloseError(tar, func() error {
+		if result.Files != nil {
+			for _, file := range result.Files.Values() {
+				path := filepath.Join(result.Directory, file)
+				if err := tar.WriteFile(fs, path); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		_ = f.Close()
+		_ = os.Remove(f.Name())
+		return nil, err
+	}
+	// leave the tarball open, but rewind it to the start
+	_, err = f.Seek(0, io.SeekStart)
+	return f, err
 }

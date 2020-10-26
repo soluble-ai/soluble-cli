@@ -33,6 +33,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Values: map[string]string{
 			"TFSEC_VERSION": d.Version,
 		},
+		Directory: t.Directory,
 		PrintPath: []string{"results"},
 		PrintColumns: []string{
 			"rule_id",
@@ -62,6 +63,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		r.Put("line", r.Path("location").Path("start_line").AsInt())
 		file, _ := filepath.Rel(t.Directory, r.Path("location").Path("filename").AsText())
 		r.Put("file", file)
+		result.AddFile(file)
 	}
 	result.Data = n
 	return result, nil

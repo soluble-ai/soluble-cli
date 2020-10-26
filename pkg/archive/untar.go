@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/afero"
 )
 
@@ -50,11 +51,9 @@ func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) er
 				if err != nil {
 					return err
 				}
-				defer f.Close()
-				if err := options.copy(f, t); err != nil {
-					return err
-				}
-				return nil
+				return util.PropagateCloseError(f, func() error {
+					return options.copy(f, t)
+				})
 			}()
 			if err != nil {
 				return err
