@@ -32,6 +32,12 @@ type GithubRepo struct {
 
 	// CloudformationDirs are directories that contain cloudformation files
 	CloudformationDirs []string `json:"cloudformation_dirs,omitempty"`
+
+	// DockerfileFiles are... Dockerfile files.
+	DockerfileFiles []string `json:"dockerfile_files,omitempty"`
+
+	// K8sManifestDirs are directories that contain Kubernetes manifest files
+	K8sManifestDirs []string `json:"k8s_manifest_dirs,omitempty"`
 }
 
 // getRepos fetches the list of all repositories accessiable to a given credential pair.
@@ -131,6 +137,8 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 
 	terraformDirs := util.NewStringSet()
 	cfnDirs := util.NewStringSet()
+	dockerFiles := util.NewStringSet()
+	k8sManifestDirs := util.NewStringSet()
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -150,6 +158,12 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 			if isCloudFormationFile(path, info) {
 				cfnDirs.Add(dirName)
 			}
+			if isDockerFile(path, info) {
+				dockerFiles.Add(path)
+			}
+			if isKubernetesManifest(path, info) {
+				k8sManifestDirs.Add(dirName)
+			}
 		}
 		return nil
 	})
@@ -158,7 +172,9 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 	}
 	g.TerraformDirs = terraformDirs.Values()
 	g.CloudformationDirs = cfnDirs.Values()
-	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories",
-		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs))
+	g.DockerfileFiles = dockerFiles.Values()
+	g.K8sManifestDirs = k8sManifestDirs.Values()
+	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories, {info:%d} dockerfiles, {info:%d} k8s manifest directories",
+		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs), len(g.DockerfileFiles), len(g.K8sManifestDirs))
 	return nil
 }
