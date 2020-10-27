@@ -17,7 +17,7 @@ func listCommand() *cobra.Command {
 	opts := options.PrintOpts{
 		Path: []string{"data"},
 		Columns: []string{
-			"Name", "Version", "Dir",
+			"Name", "Version", "Dir", "LatestCheckTs",
 		},
 		WideColumns: []string{
 			"URL", "InstallTime",
@@ -36,6 +36,9 @@ func listCommand() *cobra.Command {
 					m, err := print.ToResult(v)
 					if err != nil {
 						return err
+					}
+					if v.Version == r.LatestVersion {
+						m.Put("LatestCheckTs", r.LatestCheckTime.String())
 					}
 					a.Append(m)
 				}

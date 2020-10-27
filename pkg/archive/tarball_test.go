@@ -22,7 +22,7 @@ func TestTarball(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := tarball.WriteFile(fs, "foo.txt"); err != nil {
+	if err := tarball.WriteFile(fs, "", "foo.txt"); err != nil {
 		t.Fatal(err)
 	}
 	tarball.Close()
