@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
@@ -81,8 +80,7 @@ func (o *ToolOpts) createTarball(result *Result) (afero.File, error) {
 	err = util.PropagateCloseError(tar, func() error {
 		if result.Files != nil {
 			for _, file := range result.Files.Values() {
-				path := filepath.Join(result.Directory, file)
-				if err := tar.WriteFile(fs, path); err != nil {
+				if err := tar.WriteFile(fs, result.Directory, file); err != nil {
 					return err
 				}
 			}
