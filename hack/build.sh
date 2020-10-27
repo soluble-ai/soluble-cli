@@ -42,7 +42,7 @@ else
 fi
 
 echo "Running go generate"
-go generate
+go generate ./...
 
 rm -rf dist
 mkdir -p dist
