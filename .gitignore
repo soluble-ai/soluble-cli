@@ -18,6 +18,3 @@ dist/
 target/
 soluble-agent.*
 *.log
-
-# go:generate'd test files for iacinventory
-pkg/tools/iacinventory/testdata/*.tar.gz
