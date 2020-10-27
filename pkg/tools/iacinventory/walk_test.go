@@ -41,6 +41,7 @@ var tests = []struct {
 		"./testdata/k8s.tar.gz",
 		map[string][]string{
 			"./k8s/dir_with_manifests/namespace.yaml":     {"kubernetes"},
+			"./k8s/dir_with_manifests/Chart.yaml":         {"kubernetes"}, // "helm"
 			"./k8s/dir_without_manifests/incomplete.yaml": {},
 			"./k8s/dir_without_manifests/not-a-manifest":  {},
 		},

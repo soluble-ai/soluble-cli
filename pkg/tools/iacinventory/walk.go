@@ -93,7 +93,18 @@ func isKubernetesManifest(path string, info os.FileInfo) bool {
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
-	requiredFields := map[string]bool{
+
+	// special case: helm charts
+	if info.Name() == "Chart.yaml" {
+		for scanner.Scan() {
+			if bytes.Contains(scanner.Bytes(), []byte("apiVersion")) {
+				return true
+			}
+		}
+	}
+
+	// regular k8s manifests
+	manifestRequiredFields := map[string]bool{
 		"apiVersion": false,
 		"kind":       false,
 		"metadata":   false,
@@ -101,13 +112,13 @@ func isKubernetesManifest(path string, info os.FileInfo) bool {
 	}
 	for scanner.Scan() {
 		// and should always contain a FROM directive.
-		for k := range requiredFields {
+		for k := range manifestRequiredFields {
 			if bytes.Contains(scanner.Bytes(), []byte(k)) {
-				requiredFields[k] = true
+				manifestRequiredFields[k] = true
 			}
 		}
 	}
-	for _, v := range requiredFields {
+	for _, v := range manifestRequiredFields {
 		// if a required key was missing
 		if !v {
 			return false
