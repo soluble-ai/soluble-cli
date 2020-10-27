@@ -82,9 +82,9 @@ func isKubernetesManifest(path string, info os.FileInfo) bool {
 	}
 
 	// file must end in '.yaml', '.yml', or '.json'
-	if strings.HasSuffix(info.Name(), ".yaml") &&
-		strings.HasSuffix(info.Name(), ".yml") &&
-		strings.HasSuffix(info.Name(), ".json") {
+	if !strings.HasSuffix(info.Name(), ".yaml") &&
+		!strings.HasSuffix(info.Name(), ".yml") &&
+		!strings.HasSuffix(info.Name(), ".json") {
 		return false
 	}
 	f, err := os.Open(filepath.Clean(path))
