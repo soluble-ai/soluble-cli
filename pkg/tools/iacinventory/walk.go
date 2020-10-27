@@ -33,7 +33,7 @@ func isCloudFormationFile(path string, info os.FileInfo) bool {
 		return false
 	}
 
-	f, err := os.Open(filepath.Clean(info.Name()))
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return false
 	}
@@ -48,7 +48,7 @@ func isCloudFormationFile(path string, info os.FileInfo) bool {
 }
 
 // isTerraformFile implements WalkFunc to search for directories that contain Terraform files.
-func isTerraformFile(path string, info os.FileInfo) bool {
+func isTerraformFile(_ string, info os.FileInfo) bool {
 	return strings.HasSuffix(info.Name(), ".tf")
 }
 
@@ -61,7 +61,7 @@ func isDockerFile(path string, info os.FileInfo) bool {
 	if !strings.Contains(strings.ToUpper(info.Name()), "DOCKERFILE") {
 		return false
 	}
-	f, err := os.Open(filepath.Clean(info.Name()))
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return false
 	}
@@ -87,7 +87,7 @@ func isKubernetesManifest(path string, info os.FileInfo) bool {
 		strings.HasSuffix(info.Name(), ".json") {
 		return false
 	}
-	f, err := os.Open(filepath.Clean(info.Name()))
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return false
 	}
