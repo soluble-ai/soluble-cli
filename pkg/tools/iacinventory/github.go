@@ -56,7 +56,7 @@ func (g *GithubIacInventoryScanner) Run() (*tools.Result, error) {
 		Values:    map[string]string{"USER": g.User},
 		PrintPath: []string{"repositories"},
 		PrintColumns: []string{
-			"full_name", "ci_systems", "terraform_dir_count", "cloudformation_dir_count",
+			"full_name", "ci_systems", "terraform_dir_count", "cloudformation_dir_count", "dockerfile_count", "k8s_manifest_dir_count",
 		},
 	}
 	a := result.Data.PutArray("repositories")
@@ -71,6 +71,8 @@ func (g *GithubIacInventoryScanner) Run() (*tools.Result, error) {
 		}
 		r.Put("terraform_dir_count", r.Path("terraform_dirs").Size())
 		r.Put("cloudformation_dir_count", r.Path("cloudformation_dirs").Size())
+		r.Put("dockerfile_count", r.Path("dockerfile_files").Size())
+		r.Put("k8s_manifest_dir_count", r.Path("k8s_manifest_dirs").Size())
 		a.Append(r)
 	}
 	return result, nil
@@ -152,6 +154,7 @@ func (g *GithubIacInventoryScanner) scanRepos() ([]*GithubRepo, error) {
 		r := &GithubRepo{
 			Name:     repo.GetName(),
 			FullName: repo.GetFullName(),
+			GitRepo:  "github.com/" + repo.GetFullName(),
 		}
 		if err := r.downloadAndScan(g.User, g.OauthToken, repo); err != nil {
 			log.Warnf("Failed to scan {warning:%s} - {danger:%s}", repo.GetFullName(), err.Error())

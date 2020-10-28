@@ -1,0 +1,10 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "fizz buzz",
+    "Parameters" : {
+        "HostedZone" : {
+          "Type" : "AWS::Route53::HostedZone::Id",
+          "Description" : "zone"
+        }
+    }
+}

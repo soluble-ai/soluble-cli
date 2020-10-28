@@ -24,6 +24,9 @@ ldflags="-ldflags=-X 'github.com/soluble-ai/soluble-cli/pkg/version.Version=${VE
 
 set -e
 
+echo "Running go generate"
+go generate ./...
+
 echo "Running go test"
 go test -cover ./...
 
@@ -40,9 +43,6 @@ if "${linter}" --help > /dev/null 2>&1; then
 else
     echo "golangci-lint not available, skipping lint"
 fi
-
-echo "Running go generate"
-go generate
 
 rm -rf dist
 mkdir -p dist

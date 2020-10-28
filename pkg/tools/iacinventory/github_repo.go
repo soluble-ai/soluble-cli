@@ -24,6 +24,9 @@ type GithubRepo struct {
 	// Name is only the repository name, as in "example".
 	Name string `json:"name"`
 
+	// "github.com/"+FullName
+	GitRepo string `json:"git_repo"`
+
 	// CI is the repo's configured CI system, if present.
 	CISystems []CI `json:"ci_systems,omitempty"`
 
@@ -32,6 +35,12 @@ type GithubRepo struct {
 
 	// CloudformationDirs are directories that contain cloudformation files
 	CloudformationDirs []string `json:"cloudformation_dirs,omitempty"`
+
+	// DockerfileDirs are... Dockerfile files.
+	DockerfileDirs []string `json:"dockerfile_files,omitempty"`
+
+	// K8sManifestDirs are directories that contain Kubernetes manifest files
+	K8sManifestDirs []string `json:"k8s_manifest_dirs,omitempty"`
 }
 
 // getRepos fetches the list of all repositories accessiable to a given credential pair.
@@ -131,24 +140,46 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 
 	terraformDirs := util.NewStringSet()
 	cfnDirs := util.NewStringSet()
+	dockerFileDirs := util.NewStringSet()
+	k8sManifestDirs := util.NewStringSet()
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		ci, err := walkCI(path, info, err)
 		if ci != "" {
-			g.CISystems = append(g.CISystems, ci)
+			contains := false
+			for _, cisys := range g.CISystems {
+				if cisys == ci {
+					contains = true
+				}
+			}
+			if !contains {
+				g.CISystems = append(g.CISystems, ci)
+			}
 		}
 		if err != nil {
 			return err
 		}
 		if info.Mode().IsRegular() {
 			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
+			splitPath := strings.SplitN(dirName, string(filepath.Separator), 2)
+			if len(splitPath) == 1 {
+				// walk on the root folder
+				return nil
+			}
+			pathRelativeToRepoRoot := splitPath[1]
 			if isTerraformFile(path, info) {
-				terraformDirs.Add(dirName)
+				terraformDirs.Add(pathRelativeToRepoRoot)
 			}
 			if isCloudFormationFile(path, info) {
-				cfnDirs.Add(dirName)
+				cfnDirs.Add(pathRelativeToRepoRoot)
+			}
+			if isDockerFile(path, info) {
+				dockerFileDirs.Add(pathRelativeToRepoRoot)
+			}
+			if isKubernetesManifest(path, info) {
+				k8sManifestDirs.Add(pathRelativeToRepoRoot)
 			}
 		}
 		return nil
@@ -158,7 +189,9 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 	}
 	g.TerraformDirs = terraformDirs.Values()
 	g.CloudformationDirs = cfnDirs.Values()
-	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories",
-		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs))
+	g.DockerfileDirs = dockerFileDirs.Values()
+	g.K8sManifestDirs = k8sManifestDirs.Values()
+	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories, {info:%d} dockerfiles, {info:%d} k8s manifest directories",
+		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs), len(g.DockerfileDirs), len(g.K8sManifestDirs))
 	return nil
 }
