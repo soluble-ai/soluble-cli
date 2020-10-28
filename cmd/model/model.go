@@ -45,6 +45,7 @@ func listModels() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "List API models",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			result := jnode.NewObjectNode()
 			a := result.PutArray("models")
@@ -66,6 +67,7 @@ func addModel() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "add-git-location",
 		Short: "Add an API model from git",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !strings.HasPrefix(url, "git@") {
 				return fmt.Errorf("only git@... urls are supported")

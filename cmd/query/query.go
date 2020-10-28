@@ -44,6 +44,7 @@ func listCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "List available queries",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			result, err := opts.GetAPIClient().Get("/api/v1/org/{org}/queries")
 			if err != nil {
@@ -68,6 +69,7 @@ func listParametersCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list-parameters",
 		Short: "List the parameters of a query",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			result, err := opts.GetAPIClient().Get("/api/v1/org/{org}/queries")
 			if err != nil {
@@ -101,6 +103,7 @@ func runCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "run",
 		Short: "Run a query",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := fmt.Sprintf("/api/v1/org/{org}/queries/%s", queryName)
 			if textSearch != "" {

@@ -75,6 +75,13 @@ reverse numeric sort.`)
 			`When printing diffs, the number of lines to print before and
 after a a diff.`)
 	}
+	AddHiddenOptionsGroup(cmd, &HiddenOptionsGroup{
+		Use:         "show-print-options",
+		Description: "control how results are printed",
+		OptionNames: []string{
+			"format", "no-headers", "wide", "sort-by", "filter", "print-limit", "diff-context",
+		},
+	})
 }
 
 func (p *PrintOpts) GetPrinter() print.Interface {

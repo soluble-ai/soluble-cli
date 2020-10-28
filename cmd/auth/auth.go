@@ -41,6 +41,7 @@ func profileCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "profile",
 		Short: "Display the user's Soluble profile",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiClient := opts.GetAPIClient()
 			result, err := apiClient.Get("/api/v1/users/profile")
@@ -65,6 +66,7 @@ func printTokenCmd() *cobra.Command {
 		Long: `Print the access token, e.g. for use with curl:
 		
 curl -H “Authorization: Bearer $(soluble print-access-token)” ...`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if config.Config.APIToken == "" {
 				return fmt.Errorf("not authenticated, use login to authenticate")
@@ -85,6 +87,7 @@ func setAccessTokenCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "set-access-token",
 		Short: "Add an access token",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config.Config.APIToken = accessToken
 			cfg := opts.GetAPIClientConfig()
@@ -113,6 +116,7 @@ func setOrgCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "set-org",
 		Short: "Change the user's current organization",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			body := jnode.NewObjectNode()
 			body.Put("orgId", opts.Organization)

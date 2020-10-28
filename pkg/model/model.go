@@ -101,6 +101,7 @@ func (cm *CommandModel) GetCommand() Command {
 	c := &cobra.Command{
 		Use:   cm.Name,
 		Short: cm.Short,
+		Args:  cobra.NoArgs,
 	}
 	if cm.Use != nil {
 		c.Use = *cm.Use

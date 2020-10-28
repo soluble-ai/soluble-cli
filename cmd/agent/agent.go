@@ -32,6 +32,7 @@ func pingClusterCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "ping",
 		Short: "Send a ping message the cluster operator",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clusterID := opts.GetClusterID()
 			path := fmt.Sprintf("org/{org}/clusters/%s/ping", clusterID)
@@ -74,6 +75,7 @@ func deployAgentCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "deploy",
 		Short: "Download the kubenertes resources to deploy the agent in a cluster",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiClient := opts.GetAPIClient()
 			var tail string

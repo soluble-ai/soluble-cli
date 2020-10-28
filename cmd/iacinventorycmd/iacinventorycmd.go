@@ -12,6 +12,7 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "iac-inventory",
 		Short: "Look for infrastructure-as-code and optionally send the inventory to Soluble",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.RunTool(tool)
 		},
