@@ -19,6 +19,7 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "iac-scan",
 		Short: "Run an Infrastructure-as-code scanner",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if scannerType == "" {
 				prompt := promptui.Select{

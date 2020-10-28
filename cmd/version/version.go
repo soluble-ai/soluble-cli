@@ -24,6 +24,7 @@ func Command() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Shows soluble CLI version",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			colorize.Colorize("version: {info:%s}\nbuilt:   %s\n", v.Version, v.BuildTime)
 		},

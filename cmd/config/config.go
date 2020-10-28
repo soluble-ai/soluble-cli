@@ -75,6 +75,7 @@ func setProfileCmd() *cobra.Command {
 		Use:     "set-profile",
 		Aliases: []string{"new-profile"},
 		Short:   "Set the current profile (or create a new one)",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config.SelectProfile(name)
 			if copyFrom != "" {
@@ -102,6 +103,7 @@ func updateProfileCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "update-profile",
 		Short: "Rename or delete a profile",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if name == "" {
 				name = config.GlobalConfig.CurrentProfile
@@ -138,6 +140,7 @@ func listProfilesCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list-profiles",
 		Short: "Lists the CLI profiles",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintResult(getProfiles(nil))
 		},
@@ -166,6 +169,7 @@ func showConfigCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "show",
 		Short: "Show the configuration of the CLI",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintConfig()
 		},

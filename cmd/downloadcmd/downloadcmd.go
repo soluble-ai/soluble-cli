@@ -17,7 +17,7 @@ func listCommand() *cobra.Command {
 	opts := options.PrintOpts{
 		Path: []string{"data"},
 		Columns: []string{
-			"Name", "Version", "Dir",
+			"Name", "Version", "Dir", "LatestCheckTs",
 		},
 		WideColumns: []string{
 			"URL", "InstallTime",
@@ -26,6 +26,7 @@ func listCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "List downloaded components",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := download.NewManager()
 			result := m.List()
@@ -36,6 +37,9 @@ func listCommand() *cobra.Command {
 					m, err := print.ToResult(v)
 					if err != nil {
 						return err
+					}
+					if v.Version == r.LatestVersion {
+						m.Put("LatestCheckTs", r.LatestCheckTime.String())
 					}
 					a.Append(m)
 				}

@@ -54,14 +54,14 @@ func GetGitSource(url string) (Source, error) {
 	switch {
 	case gitConfig == nil:
 		// repo doesn't exist, clone the repo
-		log.Infof("Cloning {primary:%s} to {info:%s}", url, dir)
+		log.Debugf("Cloning {primary:%s} to {info:%s}", url, dir)
 		err := git("clone", "--depth", "1", url, dir).Run()
 		if err != nil {
 			return nil, err
 		}
 	case fetchHead == nil || time.Now().After(fetchHead.ModTime().Add(5*time.Minute)):
 		// repo exists, and we haven't fetched it in a while
-		log.Infof("Updating git model repository {primary:%s}", dir)
+		log.Debugf("Updating git model repository {primary:%s}", dir)
 		c := git("fetch", "-q", "--depth", "1")
 		c.Dir = dir
 		done := make(chan error)

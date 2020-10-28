@@ -111,6 +111,7 @@ func (m *Manager) InstallGithubRelease(owner, repo, tag string) (*Download, erro
 		return nil, err
 	}
 	if latest := meta.updateLatestInfo(tag, release.GetTagName()); latest != nil {
+		_ = m.save(meta)
 		return latest, nil
 	}
 	return meta.install(m, release.GetTagName(), asset.GetBrowserDownloadURL())
@@ -122,7 +123,15 @@ func (m *Manager) Install(name, version, url string, options ...DownloadOption) 
 	if v != nil {
 		return v, nil
 	}
-	return meta.install(m, version, url, options...)
+	d, err := meta.install(m, version, url, options...)
+	if err == nil {
+		if latest := meta.updateLatestInfo(version, version); latest != nil {
+			// for plain url downloads, if version == "latest", then
+			// just remember the last time we downloaded it
+			_ = m.save(meta)
+		}
+	}
+	return d, err
 }
 
 func (m *Manager) Remove(name, version string) error {
