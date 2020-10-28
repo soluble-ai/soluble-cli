@@ -145,24 +145,38 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 		}
 		ci, err := walkCI(path, info, err)
 		if ci != "" {
-			g.CISystems = append(g.CISystems, ci)
+			contains := false
+			for _, cisys := range g.CISystems {
+				if cisys == ci {
+					contains = true
+				}
+			}
+			if !contains {
+				g.CISystems = append(g.CISystems, ci)
+			}
 		}
 		if err != nil {
 			return err
 		}
 		if info.Mode().IsRegular() {
 			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
+			splitPath := strings.SplitN(dirName, string(filepath.Separator), 2)
+			if len(splitPath) == 1 {
+				// walk on the root folder
+				return nil
+			}
+			pathRelativeToRepoRoot := splitPath[1]
 			if isTerraformFile(path, info) {
-				terraformDirs.Add(dirName)
+				terraformDirs.Add(pathRelativeToRepoRoot)
 			}
 			if isCloudFormationFile(path, info) {
-				cfnDirs.Add(dirName)
+				cfnDirs.Add(pathRelativeToRepoRoot)
 			}
 			if isDockerFile(path, info) {
-				dockerFiles.Add(path)
+				dockerFiles.Add(pathRelativeToRepoRoot)
 			}
 			if isKubernetesManifest(path, info) {
-				k8sManifestDirs.Add(dirName)
+				k8sManifestDirs.Add(pathRelativeToRepoRoot)
 			}
 		}
 		return nil
