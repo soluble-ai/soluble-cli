@@ -24,6 +24,9 @@ type GithubRepo struct {
 	// Name is only the repository name, as in "example".
 	Name string `json:"name"`
 
+	// "github.com/"+FullName
+	GitRepo string `json:"git_repo"`
+
 	// CI is the repo's configured CI system, if present.
 	CISystems []CI `json:"ci_systems,omitempty"`
 

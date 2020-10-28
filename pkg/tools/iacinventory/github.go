@@ -154,6 +154,7 @@ func (g *GithubIacInventoryScanner) scanRepos() ([]*GithubRepo, error) {
 		r := &GithubRepo{
 			Name:     repo.GetName(),
 			FullName: repo.GetFullName(),
+			GitRepo:  "github.com/" + repo.GetFullName(),
 		}
 		if err := r.downloadAndScan(g.User, g.OauthToken, repo); err != nil {
 			log.Warnf("Failed to scan {warning:%s} - {danger:%s}", repo.GetFullName(), err.Error())
