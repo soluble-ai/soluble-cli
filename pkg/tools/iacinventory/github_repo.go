@@ -126,6 +126,10 @@ func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository
 	if err != nil {
 		return fmt.Errorf("could not download and unpack %s: %w", repo.GetFullName(), err)
 	}
+	return g.scanTarball(dir, tarball)
+}
+
+func (g *GithubRepo) scanTarball(dir, tarball string) error {
 	info, err := os.Stat(tarball)
 	if err == nil {
 		log.Infof("Tarball is {info:%dK}", info.Size()>>10)
