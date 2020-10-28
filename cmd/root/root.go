@@ -72,6 +72,7 @@ func Command() *cobra.Command {
 			}
 			return nil
 		},
+		Version: v.Version,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")

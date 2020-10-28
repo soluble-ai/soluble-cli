@@ -18,6 +18,7 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "post",
 		Short: "Send data to soluble",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var options []client.Option
 			if withEnv {

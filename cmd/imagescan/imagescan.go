@@ -12,6 +12,7 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "image-scan",
 		Short: "Scan a container image and optionally upload the results",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return opts.RunTool(tool)
 		},

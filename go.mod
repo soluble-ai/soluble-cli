@@ -23,7 +23,7 @@ require (
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.4.1
 	github.com/spf13/cobra v1.0.0
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be

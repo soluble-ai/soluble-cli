@@ -43,8 +43,16 @@ func (opts *ClientOpts) Register(cmd *cobra.Command) {
 	cmd.Flags().StringSliceVar(&opts.Headers, "header", nil, "Set custom headers on request")
 	if !opts.AuthNotRequired {
 		cmd.Flags().StringVar(&opts.Organization, "organization", "", "The organization to use.")
-		cmd.Flags().StringVar(&opts.APIToken, "token", "", "The authentication token (read from profile by default)")
+		cmd.Flags().StringVar(&opts.APIToken, "api-token", "", "The authentication token (read from profile by default)")
 	}
+	AddHiddenOptionsGroup(cmd, &HiddenOptionsGroup{
+		Use:         "show-client-options",
+		Description: "control how the CLI connects to Soluble",
+		OptionNames: []string{
+			"api-server", "disable-tls-verify", "timeout", "retry", "header", "organization",
+			"api-token", "retry-wait",
+		},
+	})
 }
 
 func (opts *ClientOpts) GetAPIClientConfig() *client.Config {

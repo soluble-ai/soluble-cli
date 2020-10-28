@@ -37,6 +37,7 @@ func setupCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "get-setup",
 		Short: "Return the aws CLI commands to create a role for Soluble to use",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiClient := opts.GetAPIClient()
 			response, err := apiClient.GetClient().R().

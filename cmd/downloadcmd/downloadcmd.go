@@ -26,6 +26,7 @@ func listCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "list",
 		Short: "List downloaded components",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := download.NewManager()
 			result := m.List()
