@@ -84,7 +84,7 @@ func IsDockerFile(path string, info os.FileInfo) bool {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		// and should always contain a FROM directive.
-		if bytes.Contains(scanner.Bytes(), []byte("FROM ")) {
+		if bytes.Contains(bytes.ToUpper(scanner.Bytes()), []byte("FROM ")) {
 			return true
 		}
 	}

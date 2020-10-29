@@ -151,6 +151,9 @@ func (g *GithubRepo) scanTarball(dir, tarball string) error {
 			return err
 		}
 		ci, err := walkCI(path, info, err)
+		if err != nil {
+			return err
+		}
 		if ci != "" {
 			contains := false
 			for _, cisys := range g.CISystems {
@@ -161,9 +164,6 @@ func (g *GithubRepo) scanTarball(dir, tarball string) error {
 			if !contains {
 				g.CISystems = append(g.CISystems, ci)
 			}
-		}
-		if err != nil {
-			return err
 		}
 		if info.Mode().IsRegular() {
 			dirName, _ := filepath.Rel(dir, filepath.Dir(path))

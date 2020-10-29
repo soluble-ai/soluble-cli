@@ -107,9 +107,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 				}
 			}
 			violations = append(violations, Violation{
-				OffendingFileAbs: templateAbsPath,
-				RuleFile:         rf,
-				RawOutput:        string(output),
+				OffendingFile: templateAbsPath,
+				RuleFile:      rf,
+				RawOutput:     string(output),
 			})
 		}
 		return nil
@@ -138,7 +138,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		if v.RawOutput == "" {
 			continue
 		}
-		result.AddFile(v.OffendingFileAbs)
+		result.AddFile(v.OffendingFile)
 	}
 	return result, nil
 }
