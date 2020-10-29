@@ -105,7 +105,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 					log.Debugf("identified %d violations in template %q", len(strings.Split(string(output), "\n"))-2, path)
 				default:
 					log.Debugf("exit code: %v", ec)
-
 				}
 			}
 			violations = append(violations, Violation{
