@@ -1,10 +1,12 @@
 package cloudformationguard
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
@@ -15,9 +17,16 @@ import (
 )
 
 const (
-	rulesZip  = "cloudformation-guard-rulesets.zip"
-	rulesPath = "cloudformation-guard"
+	rulesZip  = "cfn-guard.zip"
+	rulesPath = "cfn-guard"
 )
+
+type Violation struct {
+	OffendingFileRel string `json:"file"`
+	OffendingFileAbs string `json:"file_abs"`
+	RuleFile         string `json:"rule_file"`  // the rule file that matched the violation
+	RawOutput        string `json:"raw_output"` // TODO: parse into fields
+}
 
 type Tool struct {
 	Directory string
@@ -51,7 +60,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		if !info.Mode().IsRegular() {
 			return nil
 		}
-		if filepath.Ext(path) != "ruleset" {
+		if filepath.Ext(path) != ".ruleset" {
 			return nil
 		}
 		ruleFiles = append(ruleFiles, path)
@@ -61,14 +70,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, fmt.Errorf("error getting rule files: %w", err)
 	}
 
-	// TODO: move this out of inline func
-	type violation struct {
-		OffendingFileRel string `json:"file"`
-		OffendingFileAbs string `json:"file_abs"`
-		RuleFile         string `json:"rule_file"`  // the rule file that matched the violation
-		RawOutput        string `json:"raw_output"` // TODO: parse into fields
-	}
-	var violations []violation
+	var violations []Violation
 	err = filepath.Walk(t.Directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -94,13 +96,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 			scan.Stderr = os.Stdout
 			output, err := scan.Output()
 			if err != nil {
-				ee, ok := err.(*exec.ExitError)
-				// TODO: handle exit code
-				if !ok || ee.ExitCode() != 0 {
-					log.Infof("exit code: %v", ee.ExitCode())
+				ec := err.(*exec.ExitError).ExitCode()
+				switch ec {
+				case 0:
+				case 1:
+					log.Debugf("invalid rule set: %q", rf)
+				case 2:
+					log.Debugf("identified %d violations in template %q", len(strings.Split(string(output), "\n"))-2, path)
+				default:
+					log.Debugf("exit code: %v", ec)
+
 				}
 			}
-			violations = append(violations, violation{
+			violations = append(violations, Violation{
 				OffendingFileAbs: templateAbsPath,
 				OffendingFileRel: path,
 				RuleFile:         rf,
@@ -114,10 +122,18 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 
 	// Eventually this will need a parser, but inline is fine for PoC
+	violationsJSON, err := json.MarshalIndent(violations, "", "    ")
+	if err != nil {
+		return nil, err
+	}
+	data, err := jnode.FromJSON(violationsJSON)
+	if err != nil {
+		return nil, err
+	}
 	result := &tools.Result{
-		Data:         jnode.FromSlice(violations),
+		Data:         data,
 		Directory:    t.Directory,
-		PrintPath:    []string{""},
+		PrintPath:    []string{"file", "rule_file"},
 		PrintColumns: []string{"file", "result"},
 	}
 	// add offending files to output
