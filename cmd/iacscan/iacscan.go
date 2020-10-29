@@ -5,6 +5,7 @@ import (
 
 	"github.com/manifoldco/promptui"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
@@ -43,6 +44,12 @@ func Command() *cobra.Command {
 				tool = &tfsec.Tool{
 					Directory: directory,
 				}
+			case "cfn-guard":
+				tool = &cloudformationguard.Tool{
+					Directory: directory,
+					APIClient: opts.GetAPIClient(),
+				}
+
 			default:
 				return fmt.Errorf("unknown scanner type %s", scannerType)
 			}

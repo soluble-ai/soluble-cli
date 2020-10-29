@@ -16,7 +16,7 @@ var archSubstrings = map[string][]string{
 
 var osSubstrings = map[string][]string{
 	"linux":   {"_linux"},
-	"darwin":  {"_darwin", "_macos", "_osx", "-darwin-"},
+	"darwin":  {"_darwin", "_macos", "_osx", "-darwin-", "-osx-"},
 	"windows": {"_windows", "-windows"},
 }
 
@@ -26,7 +26,11 @@ func isThisRuntimeRelease(r string) bool {
 
 func isMatchingReleaseName(r, o, a string) bool {
 	r = strings.ToLower(r)
-	archOK := false
+	// TODO: fix this function. Not all releases provide an arch.
+	// some only provide OS substrings. See:
+	// https://github.com/aws-cloudformation/cloudformation-guard/releases/tag/1.0.0
+	archOK := true
+	// archOK := false
 	for _, a := range archSubstrings[a] {
 		if strings.Contains(r, a) {
 			archOK = true

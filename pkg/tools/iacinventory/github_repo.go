@@ -173,16 +173,16 @@ func (g *GithubRepo) scanTarball(dir, tarball string) error {
 				return nil
 			}
 			pathRelativeToRepoRoot := splitPath[1]
-			if isTerraformFile(path, info) {
+			if IsTerraformFile(path, info) {
 				terraformDirs.Add(pathRelativeToRepoRoot)
 			}
-			if isCloudFormationFile(path, info) {
+			if IsCloudFormationFile(path, info) {
 				cfnDirs.Add(pathRelativeToRepoRoot)
 			}
-			if isDockerFile(path, info) {
+			if IsDockerFile(path, info) {
 				dockerFileDirs.Add(pathRelativeToRepoRoot)
 			}
-			if isKubernetesManifest(path, info) {
+			if IsKubernetesManifest(path, info) {
 				k8sManifestDirs.Add(pathRelativeToRepoRoot)
 			}
 		}

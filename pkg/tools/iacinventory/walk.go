@@ -14,7 +14,7 @@ func fileTooLarge(info os.FileInfo) bool {
 	return info.Size() > maxSize
 }
 
-func isCloudFormationFile(path string, info os.FileInfo) bool {
+func IsCloudFormationFile(path string, info os.FileInfo) bool {
 	// Cloudformation files do not have a unique extension, and are *typically*
 	// ".yaml" or ".json" by convention. However, sometimes organizations use
 	// Jinja, Go, or some other utility to template their Cloudformation.
@@ -39,21 +39,36 @@ func isCloudFormationFile(path string, info os.FileInfo) bool {
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
+	// If the resource contains `AWSTemplateFormatVersion`, it is almost certainly
+	// a cloudformation file.
+	// If the resource did not contain `AWSTemplateFormatVersion`, it may still be
+	// a valid cloudformation file.
+	var hasResources bool
+	var hasAWScoloncolon bool
 	for scanner.Scan() {
 		if bytes.Contains(scanner.Bytes(), []byte("AWSTemplateFormatVersion")) {
 			return true
 		}
+		if bytes.Contains(scanner.Bytes(), []byte("Resources")) {
+			hasResources = true
+		}
+		if bytes.Contains(scanner.Bytes(), []byte("AWS::")) {
+			hasAWScoloncolon = true
+		}
+	}
+	if hasResources && hasAWScoloncolon {
+		return true
 	}
 	return false
 }
 
-// isTerraformFile implements WalkFunc to search for directories that contain Terraform files.
-func isTerraformFile(_ string, info os.FileInfo) bool {
+// IsTerraformFile implements WalkFunc to search for directories that contain Terraform files.
+func IsTerraformFile(_ string, info os.FileInfo) bool {
 	return strings.HasSuffix(info.Name(), ".tf")
 }
 
-// isDockerFile returns true if a file is a dockerfile.
-func isDockerFile(path string, info os.FileInfo) bool {
+// IsDockerFile returns true if a file is a dockerfile.
+func IsDockerFile(path string, info os.FileInfo) bool {
 	if fileTooLarge(info) {
 		return false
 	}
@@ -76,7 +91,7 @@ func isDockerFile(path string, info os.FileInfo) bool {
 	return false
 }
 
-func isKubernetesManifest(path string, info os.FileInfo) bool {
+func IsKubernetesManifest(path string, info os.FileInfo) bool {
 	if fileTooLarge(info) {
 		return false
 	}
