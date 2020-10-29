@@ -22,10 +22,9 @@ const (
 )
 
 type Violation struct {
-	OffendingFileRel string `json:"file"`
-	OffendingFileAbs string `json:"file_abs"`
-	RuleFile         string `json:"rule_file"`  // the rule file that matched the violation
-	RawOutput        string `json:"raw_output"` // TODO: parse into fields
+	OffendingFile string `json:"file"`
+	RuleFile      string `json:"rule_file"`  // the rule file that matched the violation
+	RawOutput     string `json:"raw_output"` // TODO: parse into fields
 }
 
 type Tool struct {
@@ -109,7 +108,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 			}
 			violations = append(violations, Violation{
 				OffendingFileAbs: templateAbsPath,
-				OffendingFileRel: path,
 				RuleFile:         rf,
 				RawOutput:        string(output),
 			})
