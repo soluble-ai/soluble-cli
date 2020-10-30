@@ -10,6 +10,11 @@ type Interface interface {
 	Name() string
 }
 
+type InterfaceWithDirectory interface {
+	Interface
+	SetDirectory(dir string)
+}
+
 type Result struct {
 	Data         *jnode.Node
 	Values       map[string]string

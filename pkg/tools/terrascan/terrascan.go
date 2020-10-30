@@ -13,7 +13,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
-var _ tools.Interface = &Tool{}
+var _ tools.InterfaceWithDirectory = &Tool{}
 
 const (
 	policyZip = "rego-policies.zip"
@@ -29,6 +29,10 @@ type Tool struct {
 
 func (t *Tool) Name() string {
 	return "terrascan"
+}
+
+func (t *Tool) SetDirectory(dir string) {
+	t.Directory = dir
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -62,8 +66,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	result := &tools.Result{
-		Data:         n,
-		Directory:    t.Directory,
+		Data:      n,
+		Directory: t.Directory,
+		Values: map[string]string{
+			"TERRASCAN_VERSION": d.Version,
+		},
 		PrintPath:    []string{"results", "violations"},
 		PrintColumns: []string{"category", "severity", "file", "line", "rule_id", "description"},
 	}

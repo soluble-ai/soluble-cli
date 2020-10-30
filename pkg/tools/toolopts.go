@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -42,6 +43,12 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 	}
 	result.AddValue("TOOL_NAME", tool.Name()).
 		AddValue("CLI_VERSION", version.Version)
+	if result.Data != nil && result.PrintPath != nil {
+		// include the print config in the results
+		p := result.Data.PutObject("soluble_print_config")
+		p.Put("print_path", jnode.FromSlice(result.PrintPath))
+		p.Put("print_columns", jnode.FromSlice(result.PrintColumns))
+	}
 	if o.UploadEnabled {
 		err = o.reportResult(tool, result)
 		if err != nil {

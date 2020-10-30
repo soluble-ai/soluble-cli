@@ -16,10 +16,14 @@ type Tool struct {
 	Directory string
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.InterfaceWithDirectory = &Tool{}
 
 func (t *Tool) Name() string {
 	return "tfsec"
+}
+
+func (t *Tool) SetDirectory(dir string) {
+	t.Directory = dir
 }
 
 func (t *Tool) Run() (*tools.Result, error) {

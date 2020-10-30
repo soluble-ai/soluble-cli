@@ -2,13 +2,21 @@ package iacscan
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/manifoldco/promptui"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
 )
+
+var supportedTools = []tools.InterfaceWithDirectory{
+	&terrascan.Tool{},
+	&tfsec.Tool{},
+	&checkov.Tool{},
+}
 
 func Command() *cobra.Command {
 	var (
@@ -21,10 +29,15 @@ func Command() *cobra.Command {
 		Short: "Run an Infrastructure-as-code scanner",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			toolNames := []string{}
+			for _, tool := range supportedTools {
+				toolNames = append(toolNames, tool.Name())
+			}
+
 			if scannerType == "" {
 				prompt := promptui.Select{
 					Label: "Select Tool",
-					Items: []string{"terrascan", "tfsec"},
+					Items: toolNames,
 				}
 				_, selection, err := prompt.Run()
 				if err != nil {
@@ -32,20 +45,18 @@ func Command() *cobra.Command {
 				}
 				scannerType = selection
 			}
-			var tool tools.Interface
-			switch scannerType {
-			case "terrascan":
-				tool = &terrascan.Tool{
-					APIClient: opts.GetAPIClient(),
-					Directory: directory,
+			var tool tools.InterfaceWithDirectory
+			for _, t := range supportedTools {
+				if t.Name() == scannerType {
+					tool = t
+					break
 				}
-			case "tfsec":
-				tool = &tfsec.Tool{
-					Directory: directory,
-				}
-			default:
-				return fmt.Errorf("unknown scanner type %s", scannerType)
 			}
+			if tool == nil {
+				return fmt.Errorf("unknown scanner type %s, must be one of: %s", scannerType,
+					strings.Join(toolNames, " "))
+			}
+			tool.SetDirectory(directory)
 			return opts.RunTool(tool)
 		},
 	}
