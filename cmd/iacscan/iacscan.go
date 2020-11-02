@@ -5,6 +5,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/trivy"
@@ -42,6 +43,15 @@ func createCommand(tool tools.Interface) *cobra.Command {
 	return c
 }
 
+func cloudformationGuard() *cobra.Command {
+	t := &cloudformationguard.Tool{}
+	c := createCommand(t)
+	flags := c.Flags()
+	flags.StringVar(&t.File, "file", "", "The cloudformation file to scan")
+	_ = c.MarkFlagRequired("file")
+	return c
+}
+
 func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "iac-scan",
@@ -55,5 +65,6 @@ func Command() *cobra.Command {
 	c.AddCommand(createCommand(&checkov.Tool{}))
 	c.AddCommand(createCommand(&tfsec.Tool{}))
 	c.AddCommand(createCommand(&trivy.Tool{}))
+	c.AddCommand(cloudformationGuard())
 	return c
 }
