@@ -63,6 +63,7 @@ func installCommand() *cobra.Command {
 		Use:     "install",
 		Short:   "Install a downloadable component",
 		Aliases: []string{"reinstall"},
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := download.NewManager()
 			var d *download.Download
@@ -102,6 +103,7 @@ func removeCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove an installed component",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if name == "" {
 				return fmt.Errorf("--name is required")
