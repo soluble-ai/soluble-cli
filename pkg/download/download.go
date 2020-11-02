@@ -39,6 +39,21 @@ type DownloadMeta struct {
 	Dir             string
 }
 
+type Spec struct {
+	Name                 string
+	RequestedVersion     string
+	URL                  string
+	APIServerArtifact    string
+	APIServer            APIServer
+	GithubReleaseMatcher func(release string) bool
+}
+
+type APIServer interface {
+	GetHostURL() string
+	GetOrganization() string
+	GetAuthToken() string
+}
+
 func NewManager() *Manager {
 	return &Manager{
 		downloadDir: filepath.Join(config.ConfigDir, "downloads"),
@@ -99,39 +114,62 @@ func (m *Manager) findOrCreateMeta(name string) *DownloadMeta {
 	}
 }
 
-func (m *Manager) InstallGithubRelease(owner, repo, tag string) (*Download, error) {
-	name := fmt.Sprintf("%s-%s", owner, repo)
-	meta := m.findOrCreateMeta(name)
-	v := meta.FindVersion(tag)
-	if v != nil {
-		return v, nil
-	}
-	release, asset, err := getGithubReleaseAsset(owner, repo, tag)
-	if err != nil {
-		return nil, err
-	}
-	if latest := meta.updateLatestInfo(tag, release.GetTagName()); latest != nil {
-		_ = m.save(meta)
-		return latest, nil
-	}
-	return meta.install(m, release.GetTagName(), asset.GetBrowserDownloadURL())
-}
-
-func (m *Manager) Install(name, version, url string, options ...DownloadOption) (*Download, error) {
-	meta := m.findOrCreateMeta(name)
-	v := meta.FindVersion(version)
-	if v != nil {
-		return v, nil
-	}
-	d, err := meta.install(m, version, url, options...)
-	if err == nil {
-		if latest := meta.updateLatestInfo(version, version); latest != nil {
-			// for plain url downloads, if version == "latest", then
-			// just remember the last time we downloaded it
-			_ = m.save(meta)
+func (m *Manager) Reinstall(spec *Spec) (*Download, error) {
+	name := spec.Name
+	if name == "" {
+		owner, repo := parseGithubRepo(spec.URL)
+		if owner != "" {
+			name = fmt.Sprintf("%s-%s", owner, repo)
 		}
 	}
-	return d, err
+	meta := m.GetMeta(name)
+	if meta != nil {
+		_ = m.Remove(name, spec.RequestedVersion)
+	}
+	return m.Install(spec)
+}
+
+func (m *Manager) Install(spec *Spec) (*Download, error) {
+	owner, repo := parseGithubRepo(spec.URL)
+	if owner != "" {
+		spec.Name = fmt.Sprintf("%s-%s", owner, repo)
+	}
+	if spec.Name == "" {
+		return nil, fmt.Errorf("name must be specified for plain URL downloads")
+	}
+	// see if we've already installed it
+	meta := m.findOrCreateMeta(spec.Name)
+	v := meta.FindVersion(spec.RequestedVersion)
+	if v != nil {
+		return v, nil
+	}
+	actualVersion := spec.RequestedVersion
+	if owner != "" {
+		// find the github release
+		release, asset, err := getGithubReleaseAsset(owner, repo, spec.RequestedVersion, spec.GithubReleaseMatcher)
+		if err != nil {
+			return nil, err
+		}
+		actualVersion = release.GetTagName()
+		spec.URL = asset.GetBrowserDownloadURL()
+		if latest := meta.updateLatestInfo(spec.RequestedVersion, actualVersion); latest != nil {
+			// if we've requested "latest" and we've already got that specific version
+			// installed, then just update the latest check time and we're done
+			_ = m.save(meta)
+			return latest, nil
+		}
+	}
+	options := []downloadOption{}
+	if spec.APIServerArtifact != "" {
+		url := fmt.Sprintf("%s%s", spec.APIServer.GetHostURL(), spec.APIServerArtifact)
+		spec.URL = strings.ReplaceAll(url, "{org}", spec.APIServer.GetOrganization())
+		options = append(options, withBearerToken(spec.APIServer.GetAuthToken()))
+		actualVersion = "latest"
+	}
+	if spec.URL == "" {
+		return nil, fmt.Errorf("download URL must be specified")
+	}
+	return meta.install(m, spec, actualVersion, options)
 }
 
 func (m *Manager) Remove(name, version string) error {
@@ -166,18 +204,18 @@ func (m *Manager) save(meta *DownloadMeta) error {
 	return nil
 }
 
-func (meta *DownloadMeta) updateLatestInfo(tag, version string) *Download {
-	if isLatestTag(tag) {
+func (meta *DownloadMeta) updateLatestInfo(requestedVersion, actualVersion string) *Download {
+	if isLatestTag(requestedVersion) {
 		meta.LatestCheckTime = time.Now()
-		meta.LatestVersion = version
+		meta.LatestVersion = actualVersion
 		log.Infof("Latest release of {secondary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
-		return meta.findVersionExactly(version)
+		return meta.findVersionExactly(actualVersion)
 	}
 	return nil
 }
 
-func (meta *DownloadMeta) install(m *Manager, version, url string, options ...DownloadOption) (*Download, error) {
-	base, err := getBaseName(url)
+func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, options []downloadOption) (*Download, error) {
+	base, err := getBaseName(spec.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -191,8 +229,8 @@ func (meta *DownloadMeta) install(m *Manager, version, url string, options ...Do
 		return nil, err
 	}
 	defer w.Close()
-	log.Infof("Getting {info:%s}", url)
-	req, err := http.NewRequest("GET", url, nil)
+	log.Infof("Getting {info:%s}", spec.URL)
+	req, err := http.NewRequest("GET", spec.URL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +245,7 @@ func (meta *DownloadMeta) install(m *Manager, version, url string, options ...Do
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s returned %d", url, resp.StatusCode)
+		return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
 	}
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
@@ -215,9 +253,9 @@ func (meta *DownloadMeta) install(m *Manager, version, url string, options ...Do
 	}
 	d := &Download{
 		Name:        meta.Name,
-		Version:     version,
-		URL:         url,
-		Dir:         filepath.Join(m.downloadDir, meta.Name, version),
+		Version:     actualVersion,
+		URL:         spec.URL,
+		Dir:         filepath.Join(m.downloadDir, meta.Name, actualVersion),
 		InstallTime: time.Now(),
 	}
 	meta.removeInstalledVersion(d.Version)
@@ -226,6 +264,7 @@ func (meta *DownloadMeta) install(m *Manager, version, url string, options ...Do
 	if err != nil {
 		return nil, err
 	}
+	meta.updateLatestInfo(spec.RequestedVersion, actualVersion)
 	err = m.save(meta)
 	if err != nil {
 		return nil, err

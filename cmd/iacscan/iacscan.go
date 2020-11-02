@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var supportedTools = []tools.InterfaceWithDirectory{
+var supportedTools = []tools.Interface{
 	&terrascan.Tool{},
 	&tfsec.Tool{},
 	&checkov.Tool{},
@@ -24,16 +24,15 @@ func Command() *cobra.Command {
 		scannerType string
 	)
 	opts := &tools.ToolOpts{}
+	toolNames := []string{}
+	for _, tool := range supportedTools {
+		toolNames = append(toolNames, tool.Name())
+	}
 	c := &cobra.Command{
 		Use:   "iac-scan",
 		Short: "Run an Infrastructure-as-code scanner",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			toolNames := []string{}
-			for _, tool := range supportedTools {
-				toolNames = append(toolNames, tool.Name())
-			}
-
 			if scannerType == "" {
 				prompt := promptui.Select{
 					Label: "Select Tool",
@@ -45,7 +44,7 @@ func Command() *cobra.Command {
 				}
 				scannerType = selection
 			}
-			var tool tools.InterfaceWithDirectory
+			var tool tools.Interface
 			for _, t := range supportedTools {
 				if t.Name() == scannerType {
 					tool = t
@@ -56,14 +55,22 @@ func Command() *cobra.Command {
 				return fmt.Errorf("unknown scanner type %s, must be one of: %s", scannerType,
 					strings.Join(toolNames, " "))
 			}
-			tool.SetDirectory(directory)
+			if u, ok := tool.(tools.RunsInDirectory); ok {
+				if directory == "" {
+					return fmt.Errorf("the %s scanner requires a directory to run in", scannerType)
+				}
+				u.SetDirectory(directory)
+			}
+			if u, ok := tool.(tools.RunsWithAPIClient); ok {
+				u.SetAPIClient(opts.GetAPIClient())
+			}
 			return opts.RunTool(tool)
 		},
 	}
 	opts.Register(c)
 	flags := c.Flags()
 	flags.StringVarP(&directory, "directory", "d", "", "Directory to scan")
-	flags.StringVar(&scannerType, "scanner-type", "", "The scanner to use")
-	_ = c.MarkFlagRequired("directory")
+	flags.StringVar(&scannerType, "scanner-type", "",
+		fmt.Sprintf("The scanner to use, should be one of: %s", strings.Join(toolNames, " ")))
 	return c
 }

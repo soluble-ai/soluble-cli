@@ -2,7 +2,6 @@ package downloadcmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
@@ -10,8 +9,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
 )
-
-const githubCom = "github.com"
 
 func listCommand() *cobra.Command {
 	opts := options.PrintOpts{
@@ -54,38 +51,26 @@ func listCommand() *cobra.Command {
 
 func installCommand() *cobra.Command {
 	var (
-		name      string
-		version   string
-		url       string
+		spec      download.Spec
 		reinstall bool
 	)
-	opts := options.PrintOpts{}
+	opts := options.PrintClientOpts{
+		ClientOpts: options.ClientOpts{
+			AuthNotRequired: true,
+		},
+	}
 	c := &cobra.Command{
 		Use:     "install",
 		Short:   "Install a downloadable component",
 		Aliases: []string{"reinstall"},
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			m := download.NewManager()
 			var d *download.Download
-			owner, repo := githubRepo(url)
-			if owner != "" && version == "" {
-				version = "latest"
-			}
-			if version == "" {
-				return fmt.Errorf("--version must be given for plain URL downloads")
-			}
-			if reinstall || cmd.CalledAs() == "reinstall" {
-				if err := m.Remove(name, version); err != nil {
-					return err
-				}
-			}
-			if owner != "" {
-				d, err = m.InstallGithubRelease(owner, repo, version)
+			var err error
+			if cmd.CalledAs() == "reinstall" && reinstall {
+				d, err = m.Reinstall(&spec)
 			} else {
-				if name == "" || version == "" {
-					return fmt.Errorf("--name and --version must be given for plain URL downloads")
-				}
-				d, err = m.Install(name, version, url)
+				d, err = m.Install(&spec)
 			}
 			if err != nil {
 				return err
@@ -100,9 +85,10 @@ func installCommand() *cobra.Command {
 	}
 	opts.Register(c)
 	flags := c.Flags()
-	flags.StringVar(&name, "name", "", "The name of the component to install")
-	flags.StringVar(&version, "version", "", "The version to install.  Defaults to the latest release if using github.  Otherwise is required.")
-	flags.StringVar(&url, "url", "", "The URL to install. If the URL is in the form github.com/owner/repo then use the github api to install a release")
+	flags.StringVar(&spec.Name, "name", "", "The name of the component to install")
+	flags.StringVar(&spec.RequestedVersion, "version", "", "The version to install.  Defaults to the latest release if using github.  Otherwise is required.")
+	flags.StringVar(&spec.URL, "url", "", "The URL to install. If the URL is in the form github.com/owner/repo then use the github api to install a release")
+	flags.StringVar(&spec.APIServerArtifact, "soluble-artifact", "", "Install an artifact from Soluble")
 	flags.BoolVar(&reinstall, "reinstall", false, "Reinstall the component")
 	return c
 }
@@ -134,16 +120,6 @@ func removeCommand() *cobra.Command {
 	flags.StringVar(&version, "version", "", "The version to remove")
 	flags.BoolVar(&all, "all", false, "Remove all versions")
 	return c
-}
-
-func githubRepo(url string) (string, string) {
-	if strings.HasPrefix(url, githubCom) {
-		parts := strings.Split(url[len(githubCom)+1:], "/")
-		if len(parts) == 2 {
-			return parts[0], parts[1]
-		}
-	}
-	return "", ""
 }
 
 func Command() *cobra.Command {

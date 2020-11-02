@@ -2,6 +2,8 @@ package tools
 
 import (
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
@@ -10,9 +12,12 @@ type Interface interface {
 	Name() string
 }
 
-type InterfaceWithDirectory interface {
-	Interface
+type RunsInDirectory interface {
 	SetDirectory(dir string)
+}
+
+type RunsWithAPIClient interface {
+	SetAPIClient(apiClient client.Interface)
 }
 
 type Result struct {
@@ -38,4 +43,13 @@ func (r *Result) AddValue(name, value string) *Result {
 	}
 	r.Values[name] = value
 	return r
+}
+
+func InstallAPIServerArtifact(apiClient client.Interface, name, urlPath string) (*download.Download, error) {
+	m := download.NewManager()
+	return m.Install(&download.Spec{
+		Name:              name,
+		APIServerArtifact: urlPath,
+		APIServer:         apiClient.(*client.Client),
+	})
 }

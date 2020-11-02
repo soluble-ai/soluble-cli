@@ -25,7 +25,7 @@ import (
 func TestClient(t *testing.T) {
 	c := NewClient(&Config{
 		APIServer: "https://api.soluble.cloud",
-	}).(*clientT)
+	}).(*Client)
 	c.Organization = "1234"
 	httpmock.ActivateNonDefault(c.Client.GetClient())
 

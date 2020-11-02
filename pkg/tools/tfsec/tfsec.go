@@ -16,7 +16,7 @@ type Tool struct {
 	Directory string
 }
 
-var _ tools.InterfaceWithDirectory = &Tool{}
+var _ tools.RunsInDirectory = &Tool{}
 
 func (t *Tool) Name() string {
 	return "tfsec"
@@ -29,7 +29,10 @@ func (t *Tool) SetDirectory(dir string) {
 func (t *Tool) Run() (*tools.Result, error) {
 	m := download.NewManager()
 	// versions past v0.30.0 seem broken?
-	d, err := m.InstallGithubRelease("tfsec", "tfsec", "v0.30.0")
+	d, err := m.Install(&download.Spec{
+		URL:              "github.com/tfsec/tfsec",
+		RequestedVersion: "v0.30.0",
+	})
 	if err != nil {
 		return nil, err
 	}
