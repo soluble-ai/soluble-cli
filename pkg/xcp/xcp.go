@@ -34,17 +34,18 @@ var (
 	// that we never capture these. Unlike above, these are an
 	// exact match and not a substring match.
 	explicitOmitEnv = []string{
-		"BUILDKITE_S3_SECRET_ACCESS_KEY",
-		"BUILDKITE_S3_ACCESS_KEY_ID",
-		"BUILDKITE_S3_ACCESS_URL",
-		"KEY",                  // CircleCI encrypted-files decryption key
-		"CI_DEPLOY_PASSWORD",   // Gitlab
-		"CI_DEPLOY_USER",       // Gitlab
-		"CI_JOB_TOKEN",         // Gitlab
-		"CI_JOB_JWT",           // Gitlab
-		"CI_REGISTRY_USER",     // Gitlab
-		"CI_REGISTRY_PASSWORD", // Gitlab
-		"CI_REGISTRY_USER",     // Gitlab
+		"BUILDKITE_S3_SECRET_ACCESS_KEY", // Buildkite
+		"BUILDKITE_S3_ACCESS_KEY_ID",     // Buildkite
+		"BUILDKITE_S3_ACCESS_URL",        // Buildkite
+		"BUILDKITE_COMMAND",              // Buildkite
+		"KEY",                            // CircleCI encrypted-files decryption key
+		"CI_DEPLOY_PASSWORD",             // Gitlab
+		"CI_DEPLOY_USER",                 // Gitlab
+		"CI_JOB_TOKEN",                   // Gitlab
+		"CI_JOB_JWT",                     // Gitlab
+		"CI_REGISTRY_USER",               // Gitlab
+		"CI_REGISTRY_PASSWORD",           // Gitlab
+		"CI_REGISTRY_USER",               // Gitlab
 	}
 )
 

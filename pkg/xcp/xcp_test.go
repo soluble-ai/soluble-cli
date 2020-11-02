@@ -12,7 +12,7 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("GITHUB_TOKEN", "xxx")
 	os.Setenv("GITHUB_BRANCH", "yyy")
 	os.Setenv("BUILDKITE_AGENT_ACCESS_TOKEN", "xxx")
-	os.Setenv("BUILDKITE_COMMAND", "yyy")
+	os.Setenv("BUILDKITE_COMMAND", "xxx")
 	os.Setenv("BUILDKITE_S3_ACCESS_URL", "xxx")
 	env := getCIEnv()
 	for k, v := range env {
