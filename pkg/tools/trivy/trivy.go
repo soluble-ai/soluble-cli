@@ -25,7 +25,9 @@ func (t *Tool) Name() string {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	m := download.NewManager()
-	d, err := m.InstallGithubRelease("aquasecurity", "trivy", "")
+	d, err := m.Install(&download.Spec{
+		URL: "github.com/aquasecurity/trivy",
+	})
 	if err != nil {
 		return nil, err
 	}

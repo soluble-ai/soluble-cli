@@ -17,7 +17,7 @@ func TestDownload(t *testing.T) {
 	if result := m.List(); len(result) != 0 {
 		t.Error("non-empty list")
 	}
-	d, err := m.Install("hello", "1.0", "https://example.com/hello.tar.gz")
+	d, err := m.Install(&Spec{Name: "hello", RequestedVersion: "1.0", URL: "https://example.com/hello.tar.gz"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestDownload(t *testing.T) {
 	if meta == nil {
 		t.Error("no meta after install")
 	}
-	_, err = m.Install("hello", "2.0", "https://example.com/hello.tar.gz")
+	_, err = m.Install(&Spec{Name: "hello", RequestedVersion: "2.0", URL: "https://example.com/hello.tar.gz"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,7 +56,7 @@ func TestDownload(t *testing.T) {
 func TestDownloadZip(t *testing.T) {
 	setupHTTP()
 	m := setupManager()
-	d, err := m.Install("hello-zip", "1.0", "https://example.com/hello.zip")
+	d, err := m.Install(&Spec{Name: "hello-zip", RequestedVersion: "1.0", URL: "https://example.com/hello.zip"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -66,14 +66,26 @@ func TestDownloadZip(t *testing.T) {
 	}
 }
 
-func TestAuth(t *testing.T) {
+type apiServer string
+
+func (apiServer) GetOrganization() string { return "9999" }
+func (apiServer) GetHostURL() string      { return "https://example.com/secure" }
+func (a apiServer) GetAuthToken() string  { return string(a) }
+
+func TestAPIServerArtifact(t *testing.T) {
 	setupHTTP()
 	m := setupManager()
-	_, err := m.Install("secure", "1.0", "https://example.com/secure/hello.zip")
+	_, err := m.Install(&Spec{
+		Name: "secure", RequestedVersion: "1.0", APIServerArtifact: "/hello.zip",
+		APIServer: apiServer(""),
+	})
 	if err == nil {
 		t.Fatal("should have failed")
 	}
-	_, err = m.Install("secure", "1.0", "https://example.com/secure/hello.zip", WithBearerToken("foo"))
+	_, err = m.Install(&Spec{
+		Name: "secure", RequestedVersion: "1.0", APIServerArtifact: "/hello.zip",
+		APIServer: apiServer("foo"),
+	})
 	if err != nil {
 		t.Fatal("should have worked")
 	}

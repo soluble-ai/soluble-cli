@@ -41,10 +41,8 @@ func (opts *ClientOpts) Register(cmd *cobra.Command) {
 		`The initial time in seconds to wait between retry attempts, e.g.
 0.5 to wait 500 millis`)
 	cmd.Flags().StringSliceVar(&opts.Headers, "header", nil, "Set custom headers on request")
-	if !opts.AuthNotRequired {
-		cmd.Flags().StringVar(&opts.Organization, "organization", "", "The organization to use.")
-		cmd.Flags().StringVar(&opts.APIToken, "api-token", "", "The authentication token (read from profile by default)")
-	}
+	cmd.Flags().StringVar(&opts.Organization, "organization", "", "The organization to use.")
+	cmd.Flags().StringVar(&opts.APIToken, "api-token", "", "The authentication token (read from profile by default)")
 	AddHiddenOptionsGroup(cmd, &HiddenOptionsGroup{
 		Use:         "show-client-options",
 		Description: "control how the CLI connects to Soluble",

@@ -3,6 +3,7 @@ package download
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v32/github"
@@ -12,7 +13,18 @@ func isLatestTag(tag string) bool {
 	return tag == "" || tag == "latest"
 }
 
-func getGithubReleaseAsset(owner, repo, tag string) (*github.RepositoryRelease, *github.ReleaseAsset, error) {
+func parseGithubRepo(url string) (string, string) {
+	const githubCom = "github.com"
+	if strings.HasPrefix(url, githubCom) {
+		parts := strings.Split(url[len(githubCom)+1:], "/")
+		if len(parts) == 2 {
+			return parts[0], parts[1]
+		}
+	}
+	return "", ""
+}
+
+func getGithubReleaseAsset(owner, repo, tag string, releaseMatcher func(string) bool) (*github.RepositoryRelease, *github.ReleaseAsset, error) {
 	client := github.NewClient(nil)
 	var release *github.RepositoryRelease
 	var err error
@@ -30,9 +42,13 @@ func getGithubReleaseAsset(owner, repo, tag string) (*github.RepositoryRelease, 
 	if err != nil {
 		return nil, nil, err
 	}
+	rm := releaseMatcher
+	if rm == nil {
+		rm = DefaultReleaseMatcher
+	}
 	for _, asset := range assets {
 		name := asset.GetName()
-		if isThisRuntimeRelease(name) {
+		if rm(name) {
 			return release, asset, nil
 		}
 	}

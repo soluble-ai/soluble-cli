@@ -15,7 +15,7 @@ type Tool struct {
 	Directory string
 }
 
-var _ tools.InterfaceWithDirectory = &Tool{}
+var _ tools.RunsInDirectory = &Tool{}
 
 func (t *Tool) Name() string {
 	return "checkov"

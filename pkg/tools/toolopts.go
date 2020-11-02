@@ -28,6 +28,7 @@ var _ options.Interface = &ToolOpts{}
 func (o *ToolOpts) Register(c *cobra.Command) {
 	// set this now so help shows up, it will be corrected before we print anything
 	o.Path = []string{}
+	o.AuthNotRequired = true
 	o.PrintClientOpts.Register(c)
 	flags := c.Flags()
 	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload report to Soluble")

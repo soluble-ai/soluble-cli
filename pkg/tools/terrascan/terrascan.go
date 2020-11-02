@@ -13,7 +13,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
-var _ tools.InterfaceWithDirectory = &Tool{}
+var _ tools.RunsInDirectory = &Tool{}
+var _ tools.RunsWithAPIClient = &Tool{}
 
 const (
 	policyZip = "rego-policies.zip"
@@ -35,17 +36,21 @@ func (t *Tool) SetDirectory(dir string) {
 	t.Directory = dir
 }
 
+func (t *Tool) SetAPIClient(apiClient client.Interface) {
+	t.APIClient = apiClient
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
 	m := download.NewManager()
-	d, err := m.InstallGithubRelease("accurics", "terrascan", "")
+	d, err := m.Install(&download.Spec{
+		URL: "github.com/accurics/terrascan",
+	})
 	if err != nil {
 		return nil, err
 	}
-
 	if err = t.downloadPolicies(); err != nil {
 		return nil, err
 	}
-
 	log.Infof("Running {info:terrascan} -d %s", t.Directory)
 	program := filepath.Join(d.Dir, "terrascan")
 	// the -t argument is required but it only selects what policies are
@@ -84,11 +89,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func (t *Tool) downloadPolicies() error {
-	m := download.NewManager()
-	url := fmt.Sprintf("%s/api/v1/org/%s/opa/%s", t.APIClient.GetClient().HostURL, t.APIClient.GetOrganization(),
-		policyZip)
-	d, err :=
-		m.Install("terrascan-policies", "latest", url, download.WithBearerToken(t.APIClient.GetClient().Token))
+	d, err := tools.InstallAPIServerArtifact(t.APIClient, "terrascan-policies",
+		fmt.Sprintf("/api/v1/org/{org}/opa/%s", policyZip))
 	if err != nil {
 		return err
 	}

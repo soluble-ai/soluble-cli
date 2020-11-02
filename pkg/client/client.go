@@ -55,16 +55,15 @@ type Interface interface {
 	Delete(path string, options ...Option) (*jnode.Node, error)
 	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error
 	GetClient() *resty.Client
-	GetOrganization() string
 }
 
-type clientT struct {
+type Client struct {
 	*resty.Client
 	Config
 }
 
 func NewClient(config *Config) Interface {
-	c := &clientT{
+	c := &Client{
 		Client: resty.New(),
 		Config: *config,
 	}
@@ -140,7 +139,7 @@ func applyOptions(r *resty.Request, options []Option) *resty.Request {
 	return r
 }
 
-func (c *clientT) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
+func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 	if _, err := applyOptions(c.R().SetBody(body).SetResult(result), options).Post(path); err != nil {
 		return nil, err
@@ -148,7 +147,7 @@ func (c *clientT) Post(path string, body *jnode.Node, options ...Option) (*jnode
 	return result, nil
 }
 
-func (c *clientT) Get(path string, options ...Option) (*jnode.Node, error) {
+func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 	if _, err := applyOptions(c.R().SetResult(result), options).Get(path); err != nil {
 		return nil, err
@@ -156,7 +155,7 @@ func (c *clientT) Get(path string, options ...Option) (*jnode.Node, error) {
 	return result, nil
 }
 
-func (c *clientT) GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error) {
+func (c *Client) GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 	if _, err := applyOptions(c.R().SetQueryParams(params).SetResult(result), options).Get(path); err != nil {
 		return nil, err
@@ -164,7 +163,7 @@ func (c *clientT) GetWithParams(path string, params map[string]string, options .
 	return result, nil
 }
 
-func (c *clientT) Delete(path string, options ...Option) (*jnode.Node, error) {
+func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 	if _, err := applyOptions(c.R().SetResult(result), options).Delete(path); err != nil {
 		return nil, err
@@ -172,7 +171,7 @@ func (c *clientT) Delete(path string, options ...Option) (*jnode.Node, error) {
 	return result, nil
 }
 
-func (c *clientT) Patch(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
+func (c *Client) Patch(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 	if _, err := applyOptions(c.R().SetResult(result).SetBody(body), options).Patch(path); err != nil {
 		return nil, err
@@ -180,11 +179,11 @@ func (c *clientT) Patch(path string, body *jnode.Node, options ...Option) (*jnod
 	return result, nil
 }
 
-func (c *clientT) GetClient() *resty.Client {
+func (c *Client) GetClient() *resty.Client {
 	return c.Client
 }
 
-func (c *clientT) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error {
+func (c *Client) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error {
 	if module == "" {
 		return fmt.Errorf("module parameter is required")
 	}
@@ -204,6 +203,14 @@ func (c *clientT) XCPPost(orgID string, module string, files []string, values ma
 	return err
 }
 
-func (c *clientT) GetOrganization() string {
+func (c *Client) GetOrganization() string {
 	return c.Organization
+}
+
+func (c *Client) GetHostURL() string {
+	return c.HostURL
+}
+
+func (c *Client) GetAuthToken() string {
+	return c.APIToken
 }
