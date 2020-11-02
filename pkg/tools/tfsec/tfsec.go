@@ -1,6 +1,7 @@
 package tfsec
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,11 +67,20 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	dir := t.Directory
+	if !filepath.IsAbs(dir) {
+		// tfsec reports absolute paths which we have to convert to
+		// relative paths
+		dir, err = filepath.Abs(dir)
+		if err != nil {
+			return nil, fmt.Errorf("could not determine absolute path of %s: %w", dir, err)
+		}
+	}
 	for _, r := range n.Path("results").Elements() {
-		r.Put("line", r.Path("location").Path("start_line").AsInt())
-		file, _ := filepath.Rel(t.Directory, r.Path("location").Path("filename").AsText())
+		loc := r.Path("location")
+		r.Put("line", loc.Path("start_line").AsInt())
+		file, _ := filepath.Rel(dir, loc.Path("filename").AsText())
 		r.Put("file", file)
-		result.AddFile(file)
 	}
 	result.Data = n
 	return result, nil
