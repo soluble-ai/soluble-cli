@@ -8,7 +8,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/trivy"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +63,6 @@ func Command() *cobra.Command {
 	c.AddCommand(t)
 	c.AddCommand(createCommand(&checkov.Tool{}))
 	c.AddCommand(createCommand(&tfsec.Tool{}))
-	c.AddCommand(createCommand(&trivy.Tool{}))
 	c.AddCommand(cloudformationGuard())
 	return c
 }
