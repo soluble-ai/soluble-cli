@@ -8,7 +8,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/trivy"
 	"github.com/spf13/cobra"
 )
 
