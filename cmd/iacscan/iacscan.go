@@ -64,7 +64,6 @@ func Command() *cobra.Command {
 	c.AddCommand(t)
 	c.AddCommand(createCommand(&checkov.Tool{}))
 	c.AddCommand(createCommand(&tfsec.Tool{}))
-	c.AddCommand(createCommand(&trivy.Tool{}))
 	c.AddCommand(cloudformationGuard())
 	return c
 }
