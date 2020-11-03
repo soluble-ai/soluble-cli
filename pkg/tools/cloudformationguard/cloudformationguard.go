@@ -57,10 +57,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 			if ee.ExitCode() != 2 {
 				return nil, err
 			}
+		} else {
+			return nil, err
 		}
 	}
 	n := jnode.NewObjectNode()
 	s := string(output)
+	log.Debugf("raw output is:\n%s", s)
 	n.Put("raw_output", s)
 	failures := n.PutArray("failures")
 	for _, f := range parseFailures(s) {
@@ -83,14 +86,28 @@ func (t *Tool) Run() (*tools.Result, error) {
 func (t *Tool) installProgram() error {
 	m := download.NewManager()
 	d, err := m.Install(&download.Spec{
-		URL:                  "github.com/aws-cloudformation/cloudformation-guard",
-		GithubReleaseMatcher: func(release string) bool { return download.IsMatchingOS(release, runtime.GOOS) },
+		URL: "github.com/aws-cloudformation/cloudformation-guard",
+		GithubReleaseMatcher: func(release string) download.ReleasePriority {
+			if download.IsMatchingOS(release, runtime.GOOS) {
+				return download.DefaultReleasePriority(release)
+			}
+			return download.NoMatch
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("error downloading cloudformation-guard from GitHub: %w", err)
 	}
-	binDir := filepath.Join(d.Dir, "cfn-guard-osx")
-	t.program = binDir + "/cfn-guard"
+	// look for the first executable cfn-guard-*
+	_ = filepath.Walk(d.Dir, func(path string, info os.FileInfo, err error) error {
+		if t.program == "" && info != nil && strings.HasPrefix(info.Name(), "cfn-guard") &&
+			info.Mode().IsRegular() && (info.Mode()&0500) != 0 {
+			t.program = path
+		}
+		return err
+	})
+	if t.program == "" {
+		return fmt.Errorf("cannot find cfn-guard executable in %s", d.Dir)
+	}
 	t.version = d.Version
 	return nil
 }

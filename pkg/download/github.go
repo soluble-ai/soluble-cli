@@ -2,7 +2,6 @@ package download
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -24,7 +23,7 @@ func parseGithubRepo(url string) (string, string) {
 	return "", ""
 }
 
-func getGithubReleaseAsset(owner, repo, tag string, releaseMatcher func(string) bool) (*github.RepositoryRelease, *github.ReleaseAsset, error) {
+func getGithubReleaseAsset(owner, repo, tag string, releaseMatcher GithubReleaseMatcher) (*github.RepositoryRelease, *github.ReleaseAsset, error) {
 	client := github.NewClient(nil)
 	var release *github.RepositoryRelease
 	var err error
@@ -42,15 +41,9 @@ func getGithubReleaseAsset(owner, repo, tag string, releaseMatcher func(string) 
 	if err != nil {
 		return nil, nil, err
 	}
-	rm := releaseMatcher
-	if rm == nil {
-		rm = DefaultReleaseMatcher
+	asset, err := chooseReleaseAsset(assets, releaseMatcher)
+	if err != nil {
+		return nil, nil, err
 	}
-	for _, asset := range assets {
-		name := asset.GetName()
-		if rm(name) {
-			return release, asset, nil
-		}
-	}
-	return nil, nil, fmt.Errorf("cannot find release for %s/%s", owner, repo)
+	return release, asset, nil
 }
