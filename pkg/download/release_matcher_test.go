@@ -1,6 +1,10 @@
 package download
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/google/go-github/v32/github"
+)
 
 func TestOsArch(t *testing.T) {
 	// See https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63
@@ -37,4 +41,28 @@ func TestOsArch(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestReleasePriority(t *testing.T) {
+	assets := []*github.ReleaseAsset{
+		makeReleaseAsset("foo.tar.gz"),
+		makeReleaseAsset("foo.zip"),
+		makeReleaseAsset("foo.deb"),
+		makeReleaseAsset("foo"),
+	}
+	asset, err := chooseReleaseAsset(assets, DefaultReleasePriority)
+	if asset == nil || err != nil {
+		t.Error(asset, err)
+	}
+	if asset.GetName() != "foo.tar.gz" {
+		t.Error(asset)
+	}
+	_, err = chooseReleaseAsset(assets, func(string) ReleasePriority { return Match })
+	if err == nil {
+		t.Error("should have errored")
+	}
+}
+
+func makeReleaseAsset(name string) *github.ReleaseAsset {
+	return &github.ReleaseAsset{Name: &name}
 }

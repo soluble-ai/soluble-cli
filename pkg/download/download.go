@@ -45,7 +45,7 @@ type Spec struct {
 	URL                  string
 	APIServerArtifact    string
 	APIServer            APIServer
-	GithubReleaseMatcher func(release string) bool
+	GithubReleaseMatcher GithubReleaseMatcher
 }
 
 type APIServer interface {
