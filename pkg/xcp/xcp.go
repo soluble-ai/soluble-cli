@@ -38,6 +38,7 @@ var (
 		"BUILDKITE_S3_ACCESS_KEY_ID",     // Buildkite
 		"BUILDKITE_S3_ACCESS_URL",        // Buildkite
 		"BUILDKITE_COMMAND",              // Buildkite
+		"BUILDKITE_SCRIPT_PATH",          // Buildkite
 		"KEY",                            // CircleCI encrypted-files decryption key
 		"CI_DEPLOY_PASSWORD",             // Gitlab
 		"CI_DEPLOY_USER",                 // Gitlab
