@@ -21,6 +21,7 @@ func TestScanTarball(t *testing.T) {
 	assert.ElementsMatch(g.DockerfileDirs, []string{
 		"docker/dir_with_docker/dot",
 		"docker/dir_with_docker/plain",
+		".", // should detect "dockerfile.rootdirtest" at repository root
 	})
 	assert.ElementsMatch(g.K8sManifestDirs, []string{
 		"k8s/dir_with_manifests",

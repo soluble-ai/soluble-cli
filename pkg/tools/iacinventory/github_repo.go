@@ -168,11 +168,12 @@ func (g *GithubRepo) scanTarball(dir, tarball string) error {
 		if info.Mode().IsRegular() {
 			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
 			splitPath := strings.SplitN(dirName, string(filepath.Separator), 2)
-			if len(splitPath) == 1 {
-				// walk on the root folder
-				return nil
+			pathRelativeToRepoRoot := "."
+			if len(splitPath) > 1 {
+				// if we're not in the root, set the directory
+				// relative to the git repository root
+				pathRelativeToRepoRoot = splitPath[1]
 			}
-			pathRelativeToRepoRoot := splitPath[1]
 			if isTerraformFile(path, info) {
 				terraformDirs.Add(pathRelativeToRepoRoot)
 			}
