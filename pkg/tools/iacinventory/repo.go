@@ -28,19 +28,11 @@ func scanRepo(r Repo, dir string) error {
 			return err
 		}
 		ci, err := walkCI(path, info, err)
-		if ci != "" {
-			contains := false
-			for _, cisys := range ciSystems.Values() {
-				if cisys == string(ci) {
-					contains = true
-				}
-			}
-			if !contains {
-				ciSystems.Add(string(ci))
-			}
-		}
 		if err != nil {
 			return err
+		}
+		if ci != "" {
+			ciSystems.Add(string(ci))
 		}
 		if info.Mode().IsRegular() {
 			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
