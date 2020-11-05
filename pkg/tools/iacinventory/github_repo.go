@@ -61,10 +61,19 @@ func getRepos(username, oauthToken string, all bool, repoNames []string) ([]*git
 		if !all {
 			opt.Visibility = "public"
 		}
-		var err error
-		repos, _, err = client.Repositories.List(ctx, "", opt)
-		if err != nil {
-			return nil, err
+		for {
+			pageCtx, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+			pageRepos, resp, err := client.Repositories.List(pageCtx, "", opt)
+			defer resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			repos = append(repos, pageRepos...)
+			if resp.NextPage == 0 {
+				break
+			}
+			opt.Page = resp.NextPage
 		}
 	} else {
 		const githubcom = "github.com/"
