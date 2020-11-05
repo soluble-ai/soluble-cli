@@ -29,5 +29,5 @@ func TestScanTarball(t *testing.T) {
 	assert.ElementsMatch(g.TerraformDirs, []string{
 		"terraform/dir_with_tf",
 	})
-	assert.ElementsMatch(g.CISystems, []CI{CIGithub})
+	assert.ElementsMatch(g.CISystems, []string{string(CIGithub)})
 }
