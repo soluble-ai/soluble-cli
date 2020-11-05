@@ -8,6 +8,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -59,6 +60,17 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 	o.Path = result.PrintPath
 	o.Columns = result.PrintColumns
 	o.PrintResult(result.Data)
+
+	// if no config is set, we prompt signup
+	if config.Config.Email == "" {
+		log.Infof(`
+----------------------------------------------
+You are not currently logged into Soluble.
+
+Visit https://app.soluble.cloud/ to sign in!
+----------------------------------------------
+`)
+	}
 	return nil
 }
 
