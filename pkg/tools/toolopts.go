@@ -10,6 +10,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
@@ -21,6 +22,7 @@ type ToolOpts struct {
 	options.PrintClientOpts
 	UploadEnabled bool
 	OmitContext   bool
+	ExitCode      int
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -58,7 +60,15 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 	}
 	o.Path = result.PrintPath
 	o.Columns = result.PrintColumns
+
 	o.PrintResult(result.Data)
+
+	if o.ExitCode != 0 {
+		output := print.Nav(result.Data, o.Path)
+		if len(output.Elements()) > 0 {
+			os.Exit(o.ExitCode)
+		}
+	}
 	return nil
 }
 

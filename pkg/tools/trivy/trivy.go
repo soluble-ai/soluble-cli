@@ -14,7 +14,9 @@ import (
 )
 
 type Tool struct {
-	Image string
+	Image         string
+	IgnoreUnfixed bool
+	ClearCache    bool
 }
 
 var _ tools.Interface = &Tool{}
@@ -36,14 +38,27 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	program := filepath.Join(d.Dir, "trivy")
-	scan := exec.Command(program, "image", "--format", "json", "--output", outfile, t.Image)
-	log.Infof("Running {info:%s}", strings.Join(scan.Args, " "))
-	scan.Stderr = os.Stderr
-	scan.Stdout = os.Stdout
-	err = scan.Run()
+
+	if t.ClearCache {
+		err := runCommand(program, "image", "--clear-cache")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Generate params for the scanner
+	args := []string{"image", "--format", "json", "--output", outfile}
+	if t.IgnoreUnfixed {
+		args = append(args, "--ignore-unfixed")
+	}
+	// specify the image to scan at the end of params
+	args = append(args, t.Image)
+
+	err = runCommand(program, args...)
 	if err != nil {
 		return nil, err
 	}
+
 	dat, err := ioutil.ReadFile(outfile)
 	if err != nil {
 		return nil, err
@@ -61,6 +76,18 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PrintPath:    []string{"Vulnerabilities"},
 		PrintColumns: []string{"PkgName", "VulnerabilityID", "Severity", "InstalledVersion", "FixedVersion", "Title"},
 	}, nil
+}
+
+func runCommand(program string, args ...string) error {
+	scan := exec.Command(program, args...)
+	log.Infof("Running {info:%s}", strings.Join(scan.Args, " "))
+	scan.Stderr = os.Stderr
+	scan.Stdout = os.Stdout
+	err := scan.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func tempfile() (name string, err error) {

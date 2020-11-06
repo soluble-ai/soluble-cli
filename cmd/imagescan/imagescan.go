@@ -19,7 +19,10 @@ func Command() *cobra.Command {
 	}
 	opts.Register(c)
 	flags := c.Flags()
-	flags.StringVar(&tool.Image, "image", "", "The image to scan")
+	flags.StringVarP(&tool.Image, "image", "i", "", "The image to scan")
+	flags.BoolVarP(&tool.ClearCache, "clear-cache", "c", false, "clear image caches and then start scanning")
+	flags.BoolVarP(&tool.IgnoreUnfixed, "ignore-unfixed", "u", false, "display only fixed vulnerabilities")
+	flags.IntVarP(&opts.ExitCode, "exit-code", "e", 0, "Exit code when vulnerabilities are found")
 	_ = c.MarkFlagRequired("image")
 	return c
 }
