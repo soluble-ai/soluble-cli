@@ -35,6 +35,7 @@ func createCommand(tool tools.Interface) *cobra.Command {
 	flags := c.Flags()
 	if _, ok := tool.(tools.RunsInDirectory); ok {
 		flags.StringP("directory", "d", "", "Directory to scan")
+		flags.IntVarP(&opts.ExitCode, "exit-code", "e", 0, "Exit code when vulnerabilities were found")
 	}
 	if _, ok := tool.(tools.RunsWithAPIClient); !ok {
 		opts.AuthNotRequired = true
