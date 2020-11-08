@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+soluble_exe=soluble
+
+if [ "$(uname -s)" != "Linux" ]; then
+    echo "ERROR: not linux"
+    exit 1
+fi
 
 if curl --help > /dev/null 2>&1 ; then
 http_get () {
@@ -20,7 +26,7 @@ http_get () {
     curl -L -H "$1" -s "$2"
 }
 http_download () {
-    curl -L "$2"
+    curl -sL "$2"
 }
 else
 http_get () {
@@ -30,6 +36,42 @@ http_download () {
     wget -O - --header "$1" "$2"
 }
 fi
+
+configure_cli () {
+
+    if [ -f "${HOME}/.soluble/cli-config.json" ]; then
+        echo "soluble config (${HOME}/.soluble/cli-config.json already exists"
+    else 
+        if [ "${SOLUBLE_API_URL}" != "" ]; then
+            echo "Setting SOLUBLE_API_URL=${SOLUBLE_API_URL}"
+            ${soluble_exe} config  set APIServer "${SOLUBLE_API_URL}" >/dev/null
+        fi
+        if [ "${SOLUBLE_API_TOKEN}" != "" ]; then
+            echo "Setting SOLUBLE_TOKEN=*******"
+            ${soluble_exe} config  set APIToken "${SOLUBLE_API_TOKEN}" >/dev/null
+        fi
+        if [ "${SOLUBLE_ORG_ID}" != "" ]; then
+            echo "Setting SOLUBLE_ORG_ID=${SOLUBLE_ORG_ID}"
+            ${soluble_exe} config  set Organization "${SOLUBLE_ORG_ID}" >/dev/null
+        fi
+    fi
+}
+
+install_cli () {
+    if [ "$(whoami)" = "root" ]; then
+        mv ./soluble /usr/local/bin/soluble
+    else 
+        if [[ $(sudo -n whoami) = "root" ]]; then
+            sudo -n mv ./soluble /usr/local/bin/soluble
+        else
+            echo "Could not install to /usr/local/bin/soluble"
+        fi
+    fi
+
+    if [ -x "/usr/local/bin/soluble" ]; then
+        soluble_exe=/usr/local/bin/soluble
+    fi
+}
 
 releases=https://github.com/soluble-ai/soluble-cli/releases
 tag="$1"
@@ -51,6 +93,10 @@ if [ -f soluble ]; then
     chmod a+rx soluble
     ls -l ./soluble
     ./soluble version
+
+    install_cli
+    configure_cli
+
 else
     echo "Download failed"
     exit 1
