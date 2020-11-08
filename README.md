@@ -18,7 +18,15 @@ On linux, run:
     # or
     curl https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/linux-install.sh | sh
 
-The install will drop the executable in the current directory.  Move it to wherever is convenient.
+The install will drop the executable in the current directory.  If you run this as `root` or can sudo to root,
+the install will try to move the binary to `/usr/local/bin/soluble`.
+
+If `${HOME}/.soluble/cli-config.json` does not exist and the following environment variables are set, the installation will
+set up the configuration.  This is useful in CI environments.
+
+* `SOLUBLE_API_URL` 
+* `SOLUBLE_API_TOKEN`
+* `SOLUBLE_ORG_ID`
 
 Windows executables can be found on the releases page.
 

@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# Defaults
 soluble_exe=soluble
+SOLUBLE_API_URL=${SOLUBLE_API_URL-"https://app.soluble.cloud"}
 
 if [ "$(uname -s)" != "Linux" ]; then
     echo "ERROR: not linux"
