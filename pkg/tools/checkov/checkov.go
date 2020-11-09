@@ -32,7 +32,10 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 
 	// use absolute path for docker volume mapping
-	absPath, _ := filepath.Abs(t.Directory)
+	absPath, err := filepath.Abs(t.Directory)
+	if err != nil {
+		return nil, err
+	}
 
 	// #nosec G204
 	c := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:%s", absPath, "/tf"),
