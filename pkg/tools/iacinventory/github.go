@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
+	"github.com/google/go-github/v32/github"
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -15,6 +17,7 @@ import (
 
 type GithubIacInventoryScanner struct {
 	User                 string
+	Org                  string // used for targeting a specific org
 	OauthToken           string
 	AllRepos             bool
 	PublicRepos          bool
@@ -45,7 +48,7 @@ func (g *GithubIacInventoryScanner) Run() (*tools.Result, error) {
 		}
 	}
 
-	// fetch the repositories associated with the account
+	// fetch and analyze repositories
 	repos, err := g.scanRepos()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching github repositories: %w", err)
@@ -143,20 +146,34 @@ func (g *GithubIacInventoryScanner) scanRepos() ([]*GithubRepo, error) {
 	if g.User == "" || g.OauthToken == "" {
 		return nil, fmt.Errorf("no credentials provided")
 	}
-	repos, err := getRepos(g.User, g.OauthToken, g.AllRepos, g.ExplicitRepositories)
+	repos, err := getRepos(g.OauthToken, g.AllRepos, g.ExplicitRepositories)
 	if err != nil {
 		return nil, fmt.Errorf("error getting repositories: %w", err)
 	}
 
+	// filter out non-org repos (keeps count consistent in the loop below)
+	var filteredRepos []*github.Repository
+	for _, repo := range repos {
+		if g.Org != "" {
+			// repo.GetOwner().GetName() does not behave.
+			owner := strings.Split(repo.GetFullName(), "/")[0]
+			if owner != g.Org {
+				// skip repositories that do not match the selected org
+				continue
+			}
+			filteredRepos = append(filteredRepos, repo)
+		}
+	}
+
 	result := []*GithubRepo{}
-	for i, repo := range repos {
-		log.Infof("Analyzing repo {primary:%s} (%d of %d)", repo.GetFullName(), i+1, len(repos))
+	for i, repo := range filteredRepos {
+		log.Infof("Analyzing repo {primary:%s} (%d of %d)", repo.GetFullName(), i+1, len(filteredRepos))
 		r := &GithubRepo{
 			Name:     repo.GetName(),
 			FullName: repo.GetFullName(),
 			GitRepo:  "github.com/" + repo.GetFullName(),
 		}
-		if err := r.downloadAndScan(g.User, g.OauthToken, repo); err != nil {
+		if err := r.downloadAndScan(g.OauthToken, repo); err != nil {
 			log.Warnf("Failed to scan {warning:%s} - {danger:%s}", repo.GetFullName(), err.Error())
 			continue
 		}
