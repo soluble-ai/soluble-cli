@@ -70,6 +70,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		fn, _ := print.ToResult(f)
 		failures.Append(fn)
 	}
+
 	result := &tools.Result{
 		Data: n,
 		Values: map[string]string{
@@ -79,7 +80,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PrintPath:    []string{"failures"},
 		PrintColumns: []string{"resource", "attribute", "attribute_value", "message"},
 	}
-	result.AddFile(t.File)
+	result.AddFile(filepath.Base(t.File))
 	return result, nil
 }
 
