@@ -44,7 +44,7 @@ type GithubRepo struct {
 }
 
 // getRepos fetches the list of all repositories accessiable to a given credential pair.
-func getRepos(username, oauthToken string, all bool, repoNames []string) ([]*github.Repository, error) {
+func getRepos(oauthToken string, all bool, repoNames []string) ([]*github.Repository, error) {
 	ctx, cf := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cf()
 	ts := oauth2.StaticTokenSource(
@@ -58,6 +58,7 @@ func getRepos(username, oauthToken string, all bool, repoNames []string) ([]*git
 		opt := &github.RepositoryListOptions{
 			ListOptions: github.ListOptions{PerPage: 10}, // TODO: revert to 100
 		}
+
 		if !all {
 			opt.Visibility = "public"
 		}
@@ -97,8 +98,8 @@ func getRepos(username, oauthToken string, all bool, repoNames []string) ([]*git
 }
 
 // download the tarball of the default branch for a repository.
-func (g *GithubRepo) downloadTarball(username, oauthToken string, repo *github.Repository, dir string) (string, error) {
-	if username == "" || oauthToken == "" {
+func (g *GithubRepo) downloadTarball(oauthToken string, repo *github.Repository, dir string) (string, error) {
+	if oauthToken == "" {
 		return "", fmt.Errorf("error fetching repository: credentials are not set")
 	}
 	url := "https://api.github.com/repos/" + g.FullName + "/tarball"
@@ -125,13 +126,13 @@ func (g *GithubRepo) downloadTarball(username, oauthToken string, repo *github.R
 	return f.Name(), nil
 }
 
-func (g *GithubRepo) downloadAndScan(user, token string, repo *github.Repository) error {
+func (g *GithubRepo) downloadAndScan(token string, repo *github.Repository) error {
 	dir, err := ioutil.TempDir("", "iacinventory*")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dir)
-	tarball, err := g.downloadTarball(user, token, repo, dir)
+	tarball, err := g.downloadTarball(token, repo, dir)
 	if err != nil {
 		return fmt.Errorf("could not download and unpack %s: %w", repo.GetFullName(), err)
 	}
