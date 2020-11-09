@@ -62,10 +62,12 @@ configure_cli () {
 
 install_cli () {
     if [ "$(whoami)" = "root" ]; then
-        mv ./soluble /usr/local/bin/soluble
+        cp ./soluble /usr/local/bin/soluble
+        chmod +x /usr/local/bin/soluble
     else 
         if [ "$(sudo -n whoami)" = "root" ]; then
-            sudo -n mv ./soluble /usr/local/bin/soluble
+            sudo -n cp ./soluble /usr/local/bin/soluble
+            chmod +x /usr/local/bin/soluble
         else
             echo "Could not install to /usr/local/bin/soluble"
         fi
