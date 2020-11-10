@@ -9,7 +9,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 )
 
-var blurbed = false
+var Blurbed = false
 
 type authenticatedP interface {
 	IsAuthenticated() bool
@@ -20,10 +20,10 @@ func cap(s string) string {
 }
 
 func SignupBlurb(opts options.Interface, first, use string) {
-	if blurbed {
+	if Blurbed {
 		return
 	}
-	blurbed = true
+	Blurbed = true
 	auth := config.Config.APIToken != ""
 	if c, ok := opts.(authenticatedP); ok {
 		auth = c.IsAuthenticated()

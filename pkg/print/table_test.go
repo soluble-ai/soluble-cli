@@ -30,6 +30,12 @@ func TestHeader(t *testing.T) {
 	if s := toHeader("update_Ts"); s != "UPDATE-TS" {
 		t.Error(s)
 	}
+	if s := toHeader("rule.id"); s != "RULE.ID" {
+		t.Error(s)
+	}
+	if s := toHeader("Rule.Id"); s != "RULE.ID" {
+		t.Error(s)
+	}
 }
 
 func TestTable(t *testing.T) {

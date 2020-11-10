@@ -84,3 +84,32 @@ func TestDurationFormatter(t *testing.T) {
 		}
 	}
 }
+
+func TestGetCellValue(t *testing.T) {
+	var testCases = []struct {
+		n *jnode.Node
+		c string
+		v string
+	}{
+		{makeNode("1", "one"), "one", "1"},
+		{makeNode("2", "one", "two"), "one.two", "2"},
+		{makeNode("3", "one", "two", "three.dot"), "one.two.three..dot", "3"},
+		{makeNode("4", "one.dot"), "one..dot", "4"},
+	}
+	for _, c := range testCases {
+		v := getCellValue(c.n, c.c).AsText()
+		if v != c.v {
+			t.Error(c.n, c.c, c.v, v)
+		}
+	}
+}
+
+func makeNode(val string, path ...string) *jnode.Node {
+	n := jnode.NewObjectNode()
+	x := n
+	for _, p := range path[0 : len(path)-1] {
+		x = x.PutObject(p)
+	}
+	x.Put(path[len(path)-1], val)
+	return n
+}

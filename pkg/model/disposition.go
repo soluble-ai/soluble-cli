@@ -25,12 +25,18 @@ type ParameterDisposition string
 const (
 	// Put the parameter value in the context
 	ContextDisposition = ParameterDisposition("context")
+	// Read a file and post its content as the body
+	JSONFileBodyDisposition = ParameterDisposition("json_file_body")
 )
 
 func (d ParameterDisposition) validate() error {
-	if d == "" || d == ContextDisposition {
+	if d == "" || d == ContextDisposition || d == JSONFileBodyDisposition {
 		return nil
 	}
-	return fmt.Errorf("invalid parameter disposition '%s' must be one of %s",
-		d, ContextDisposition)
+	return fmt.Errorf("invalid parameter disposition '%s' must be one of %s, %s",
+		d, ContextDisposition, JSONFileBodyDisposition)
+}
+
+func (d ParameterDisposition) isDefault() bool {
+	return string(d) == ""
 }

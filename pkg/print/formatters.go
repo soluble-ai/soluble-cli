@@ -15,6 +15,7 @@
 package print
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
@@ -44,7 +45,7 @@ type Formatters map[string]Formatter
 
 func (f Formatters) Format(columnName string, n *jnode.Node) string {
 	formatter, columnName := f.getFormatter(columnName)
-	cell := n.Path(columnName)
+	cell := getCellValue(n, columnName)
 	if cell.IsArray() {
 		b := strings.Builder{}
 		for _, e := range cell.Elements() {
@@ -74,6 +75,30 @@ func (f Formatters) getFormatter(columnName string) (Formatter, string) {
 	default:
 		return defaultFormatter, columnName
 	}
+}
+
+func getCellValue(n *jnode.Node, columnName string) *jnode.Node {
+	name := bytes.Buffer{}
+	wasdot := false
+	for _, ch := range columnName {
+		switch {
+		case ch == '.':
+			if wasdot {
+				name.WriteRune('.')
+				wasdot = false
+			} else {
+				wasdot = true
+			}
+		case wasdot:
+			n = n.Path(name.String())
+			wasdot = false
+			name.Reset()
+			name.WriteRune(ch)
+		default:
+			name.WriteRune(ch)
+		}
+	}
+	return n.Path(name.String())
 }
 
 func defaultFormatter(n *jnode.Node) string {
