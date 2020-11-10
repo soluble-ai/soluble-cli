@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
@@ -14,7 +16,7 @@ func listCommand() *cobra.Command {
 	opts := options.PrintOpts{
 		Path: []string{"data"},
 		Columns: []string{
-			"Name", "Version", "Dir", "LatestCheckTs",
+			"Name", "Version", "Dir", "LatestCheckTs+",
 		},
 		WideColumns: []string{
 			"URL", "InstallTime",
@@ -68,7 +70,8 @@ func installCommand() *cobra.Command {
 			m := download.NewManager()
 			var d *download.Download
 			var err error
-			if cmd.CalledAs() == "reinstall" && reinstall {
+			spec.APIServer = opts.GetAPIClient().(*client.Client)
+			if cmd.CalledAs() == "reinstall" || reinstall {
 				d, err = m.Reinstall(&spec)
 			} else {
 				d, err = m.Install(&spec)
@@ -124,6 +127,30 @@ func removeCommand() *cobra.Command {
 	return c
 }
 
+func getCommand() *cobra.Command {
+	var name string
+	opts := options.PrintOpts{}
+	c := &cobra.Command{
+		Use:   "get",
+		Short: "Get details of a downloaded component",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			m := download.NewManager()
+			meta := m.GetMeta(name)
+			if meta == nil {
+				log.Errorf("The component {warning:%s} is not installed", name)
+				return fmt.Errorf("component not installed")
+			}
+			n, _ := print.ToResult(meta)
+			opts.PrintResult(n)
+			return nil
+		},
+	}
+	opts.Register(c)
+	c.Flags().StringVar(&name, "name", "", "The name of the component to display")
+	_ = c.MarkFlagRequired("name")
+	return c
+}
+
 func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "download",
@@ -132,5 +159,6 @@ func Command() *cobra.Command {
 	c.AddCommand(listCommand())
 	c.AddCommand(installCommand())
 	c.AddCommand(removeCommand())
+	c.AddCommand(getCommand())
 	return c
 }

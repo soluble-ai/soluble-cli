@@ -24,11 +24,12 @@ type Manager struct {
 }
 
 type Download struct {
-	Name        string
-	Version     string
-	URL         string
-	Dir         string
-	InstallTime time.Time
+	Name              string
+	Version           string
+	URL               string
+	APIServerArtifact string
+	Dir               string
+	InstallTime       time.Time
 }
 
 type DownloadMeta struct {
@@ -124,7 +125,16 @@ func (m *Manager) Reinstall(spec *Spec) (*Download, error) {
 	}
 	meta := m.GetMeta(name)
 	if meta != nil {
+		d := meta.FindVersion(spec.RequestedVersion, true)
 		_ = m.Remove(name, spec.RequestedVersion)
+		if d != nil {
+			if spec.URL == "" {
+				spec.URL = d.URL
+			}
+			if spec.APIServerArtifact == "" {
+				spec.APIServerArtifact = d.APIServerArtifact
+			}
+		}
 	}
 	return m.Install(spec)
 }
@@ -139,7 +149,7 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 	}
 	// see if we've already installed it
 	meta := m.findOrCreateMeta(spec.Name)
-	v := meta.FindVersion(spec.RequestedVersion)
+	v := meta.FindVersion(spec.RequestedVersion, false)
 	if v != nil {
 		return v, nil
 	}
@@ -252,11 +262,12 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		return nil, err
 	}
 	d := &Download{
-		Name:        meta.Name,
-		Version:     actualVersion,
-		URL:         spec.URL,
-		Dir:         filepath.Join(m.downloadDir, meta.Name, actualVersion),
-		InstallTime: time.Now(),
+		Name:              meta.Name,
+		Version:           actualVersion,
+		URL:               spec.URL,
+		APIServerArtifact: spec.APIServerArtifact,
+		Dir:               filepath.Join(m.downloadDir, meta.Name, actualVersion),
+		InstallTime:       time.Now(),
 	}
 	meta.removeInstalledVersion(d.Version)
 	meta.Installed = append(meta.Installed, d)
@@ -272,9 +283,9 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	return d, nil
 }
 
-func (meta *DownloadMeta) FindVersion(version string) *Download {
+func (meta *DownloadMeta) FindVersion(version string, stale bool) *Download {
 	if isLatestTag(version) {
-		if meta.LatestVersion != "" && meta.LatestCheckTime.After(time.Now().Add(-24*time.Hour)) {
+		if meta.LatestVersion != "" && (stale || meta.LatestCheckTime.After(time.Now().Add(-24*time.Hour))) {
 			version = meta.LatestVersion
 		} else {
 			return nil
@@ -299,7 +310,7 @@ func (meta *DownloadMeta) findVersionExactly(version string) *Download {
 }
 
 func (meta *DownloadMeta) removeVersion(m *Manager, version string) error {
-	v := meta.FindVersion(version)
+	v := meta.FindVersion(version, false)
 	if v != nil {
 		log.Infof("Removing {info:%s}", v.Dir)
 		err := os.RemoveAll(v.Dir)

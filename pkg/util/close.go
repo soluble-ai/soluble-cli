@@ -7,9 +7,11 @@ import "io"
 func CloseAll(closers ...io.Closer) error {
 	var result error
 	for _, c := range closers {
-		err := c.Close()
-		if result == nil {
-			result = err
+		if c != nil {
+			err := c.Close()
+			if result == nil {
+				result = err
+			}
 		}
 	}
 	return result

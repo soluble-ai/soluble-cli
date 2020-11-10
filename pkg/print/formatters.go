@@ -26,6 +26,9 @@ var (
 	formatterNow       *time.Time
 	formatterLocation  *time.Location
 	hundredYearsFuture = time.Date(2120, 1, 1, 0, 0, 0, 0, time.UTC)
+	timeFormats        = []string{
+		time.RFC3339Nano, RFC3339Millis, time.RFC3339, GODefaultFormat,
+	}
 )
 
 const (
@@ -33,7 +36,8 @@ const (
 	mb = float64(int64(1) << 20)
 	gb = float64(int64(1) << 30)
 
-	RFC3339Millis = "2006-01-02T15:04:05.999Z07:00"
+	RFC3339Millis   = "2006-01-02T15:04:05.999Z07:00"
+	GODefaultFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 )
 
 type Formatters map[string]Formatter
@@ -76,13 +80,22 @@ func defaultFormatter(n *jnode.Node) string {
 	return n.AsText()
 }
 
+func ParseTime(s string) (time.Time, error) {
+	for _, f := range timeFormats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("not a time")
+}
+
 func TimestampFormatter(n *jnode.Node) string {
 	s := n.AsText()
 	if formatterLocation == nil {
 		formatterLocation = time.Local
 	}
 	// try and render timestamps in the local timezone
-	if t, err := time.Parse(RFC3339Millis, s); err == nil {
+	if t, err := ParseTime(s); err == nil {
 		return t.In(formatterLocation).Format(RFC3339Millis)
 	}
 	return s
@@ -91,7 +104,7 @@ func TimestampFormatter(n *jnode.Node) string {
 func RelativeTimestampFormatter(n *jnode.Node) string {
 	// render timestamp as relative time
 	s := n.AsText()
-	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+	if t, err := ParseTime(s); err == nil {
 		if formatterNow == nil {
 			n := time.Now()
 			formatterNow = &n

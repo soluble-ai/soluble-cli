@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
@@ -124,6 +125,14 @@ func (c *ProfileT) String() string {
 	}
 	s, _ := yaml.Marshal(cfg)
 	return string(s)
+}
+
+func (c *ProfileT) GetAppURL() string {
+	const httpAPI = "https://api."
+	if strings.HasPrefix(c.APIServer, httpAPI) {
+		return "https://app." + c.APIServer[len(httpAPI):]
+	}
+	return "https://app.soluble.cloud"
 }
 
 func Save() {
