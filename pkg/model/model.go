@@ -16,7 +16,9 @@ package model
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"unicode"
 
@@ -163,10 +165,27 @@ func (cm *CommandModel) validate(m *Model, parent *CommandModel) error {
 			return fmt.Errorf("command %s: path is required", cm.Name)
 		}
 	}
+	hasReadFileParameter := false
+	hasDefaultDispositionParamters := false
 	for _, p := range cm.Parameters {
+		if p.getDisposition() == JSONFileBodyDisposition {
+			if hasReadFileParameter {
+				return fmt.Errorf("only one non-context parameter may be set as %s", JSONFileBodyDisposition)
+			}
+			if cm.Method == nil || !(*cm.Method == PostMethod || *cm.Method == PatchMethod) {
+				return fmt.Errorf("%s may only be used with POST or PATCH", JSONFileBodyDisposition)
+			}
+			hasReadFileParameter = true
+		}
+		if p.getDisposition().isDefault() {
+			hasDefaultDispositionParamters = true
+		}
 		if err := p.validate(); err != nil {
 			return fmt.Errorf("command %s: invalid parameter %s: %w", cm.Name, p.Name, err)
 		}
+	}
+	if hasReadFileParameter && hasDefaultDispositionParamters {
+		return fmt.Errorf("%s parameter may only be used with context parameters", JSONFileBodyDisposition)
 	}
 	if cm.Result != nil {
 		if err := (*cm.Result).validate(); err != nil {
@@ -225,7 +244,7 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 	var result *jnode.Node
 	contextValues := NewContextValues()
 	command.SetContextValues(contextValues.values)
-	parameters, err := cm.processParameters(cmd, contextValues)
+	parameters, body, err := cm.processParameters(cmd, contextValues)
 	if err != nil {
 		return err
 	}
@@ -242,12 +261,19 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 	case DeleteMethod:
 		result, err = apiClient.Delete(path)
 	case PostMethod:
-		result, err = apiClient.Post(path, toBody(parameters))
+		if body == nil {
+			body = toBody(parameters)
+		}
+		result, err = apiClient.Post(path, body)
 	case PatchMethod:
-		result, err = apiClient.Patch(path, toBody(parameters))
+		if body == nil {
+			body = toBody(parameters)
+		}
+		result, err = apiClient.Patch(path, body)
 	default:
 		panic(fmt.Errorf("unknown method %s", *cm.Method))
 	}
+
 	if err != nil {
 		return err
 	}
@@ -284,8 +310,9 @@ func (cm *CommandModel) getPath(contextValues *ContextValues) string {
 	return path
 }
 
-func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *ContextValues) (map[string]string, error) {
+func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *ContextValues) (map[string]string, *jnode.Node, error) {
 	values := map[string]string{}
+	var body *jnode.Node
 	for _, p := range cm.parameters {
 		var value string
 		flagName := p.getFlagName()
@@ -298,18 +325,29 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 		default:
 			v, err := contextValues.Get(*p.ContextValue)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			value = v
 		}
 		switch p.getDisposition() {
 		case ContextDisposition:
 			contextValues.values[p.Name] = value
+		case JSONFileBodyDisposition:
+			f, err := os.Open(value)
+			defer f.Close()
+			if err != nil {
+				return nil, nil, err
+			}
+			body = jnode.NewObjectNode()
+			err = json.NewDecoder(f).Decode(&body)
+			if err != nil {
+				return nil, nil, fmt.Errorf("could not read %s: %w", value, err)
+			}
 		default:
 			values[p.Name] = value
 		}
 	}
-	return values, nil
+	return values, body, nil
 }
 
 func (d *ParameterDefs) validate() error {

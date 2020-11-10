@@ -76,10 +76,14 @@ func toHeader(c string) string {
 		if i > 0 && wasUpper == 0 && upper {
 			w.WriteRune('-')
 		}
-		if ch == '_' {
+		switch {
+		case ch == '_':
 			w.WriteRune('-')
 			wasUpper = -1
-		} else {
+		case ch == '.':
+			w.WriteRune('.')
+			wasUpper = -1
+		default:
 			w.WriteRune(unicode.ToUpper(ch))
 			wasUpper = 0
 			if upper {

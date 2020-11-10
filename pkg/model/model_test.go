@@ -70,7 +70,7 @@ func TestModel(t *testing.T) {
 	_ = f.Value.Set("1")
 	_ = ping.GetCobraCommand().Flag("action").Value.Set("update")
 	context := NewContextValues()
-	params, err := pingModel.processParameters(ping.GetCobraCommand(), context)
+	params, _, err := pingModel.processParameters(ping.GetCobraCommand(), context)
 	if err != nil {
 		t.Fatal(err)
 	}

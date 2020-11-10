@@ -35,19 +35,21 @@ func (t *Tool) Run() (*tools.Result, error) {
 		"/data/**/*.yaml", "/data/**/*.yml", "/data/**/*.json", "/data/**/*.template")
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
 	c.Stderr = os.Stderr
-	d, err := c.Output()
+	d, _ := c.Output()
+	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {
 			os.Stderr.Write(d)
 		}
-	}
-	n, err := jnode.FromJSON(d)
-	if err != nil {
 		return nil, err
 	}
+	n := jnode.NewObjectNode()
+	n.Put("results", results)
 	result := &tools.Result{
-		Directory: t.Directory,
-		Data:      n,
+		Directory:    t.Directory,
+		Data:         n,
+		PrintPath:    []string{"results"},
+		PrintColumns: []string{"Rule.Id", "Level", "Filename", "Message"},
 	}
 	return result, nil
 }

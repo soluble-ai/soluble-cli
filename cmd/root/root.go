@@ -28,7 +28,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
 	"github.com/soluble-ai/soluble-cli/cmd/logincmd"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
-	"github.com/soluble-ai/soluble-cli/cmd/org"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
@@ -85,12 +84,14 @@ func Command() *cobra.Command {
 		Version: v.Version,
 	}
 
-	rootCmd.PersistentFlags().StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
-	rootCmd.PersistentFlags().StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
-	rootCmd.PersistentFlags().Bool("debug", false, "Run with debug logging")
-	rootCmd.PersistentFlags().Bool("quiet", false, "Run with no logging")
-	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
-	rootCmd.PersistentFlags().Bool("force-color", false, "Enable color output")
+	flags := rootCmd.PersistentFlags()
+	flags.StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
+	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
+	flags.Bool("debug", false, "Run with debug logging")
+	flags.Bool("quiet", false, "Run with no logging")
+	flags.Bool("no-color", false, "Disable color output")
+	flags.Bool("force-color", false, "Enable color output")
+	flags.BoolVar(&banner.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
 
 	config.Load()
 	addBuiltinCommands(rootCmd)
@@ -116,7 +117,6 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		iacscan.Command(),
 		imagescan.Command(),
 		iacinventorycmd.Command(),
-		org.Command(),
 		logincmd.Command(),
 	}
 	for _, c := range commands {
