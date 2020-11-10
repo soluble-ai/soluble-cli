@@ -26,11 +26,13 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/iacinventorycmd"
 	"github.com/soluble-ai/soluble-cli/cmd/iacscan"
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
+	"github.com/soluble-ai/soluble-cli/cmd/logincmd"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/org"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
+	"github.com/soluble-ai/soluble-cli/pkg/banner"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
@@ -73,6 +75,13 @@ func Command() *cobra.Command {
 			}
 			return nil
 		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if config.Config.APIToken == "" {
+				if cmd.Use != "version" {
+					banner.SignupBlurb(nil, "Finding {priary:soluble} useful?", "")
+				}
+			}
+		},
 		Version: v.Version,
 	}
 
@@ -108,6 +117,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		imagescan.Command(),
 		iacinventorycmd.Command(),
 		org.Command(),
+		logincmd.Command(),
 	}
 	for _, c := range commands {
 		rootCmd.AddCommand(c)

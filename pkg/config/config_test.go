@@ -60,3 +60,12 @@ func TestConfig(t *testing.T) {
 		t.Error("profile wasn't deleted")
 	}
 }
+
+func TestGetAppURL(t *testing.T) {
+	c := &ProfileT{
+		APIServer: "https://api.example.com",
+	}
+	if u := c.GetAppURL(); u != "https://app.example.com" {
+		t.Error(c.APIServer, u)
+	}
+}

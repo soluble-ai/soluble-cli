@@ -184,6 +184,10 @@ func (c *Client) GetClient() *resty.Client {
 }
 
 func (c *Client) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error {
+	if c.APIToken == "" {
+		// don't even try if it's not going to work
+		return fmt.Errorf("not authenticated with Soluble")
+	}
 	if module == "" {
 		return fmt.Errorf("module parameter is required")
 	}

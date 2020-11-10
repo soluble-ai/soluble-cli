@@ -90,3 +90,7 @@ func (opts *ClientOpts) GetUnauthenticatedAPIClient() client.Interface {
 	cfg.APIToken = ""
 	return client.NewClient(cfg)
 }
+
+func (opts *ClientOpts) IsAuthenticated() bool {
+	return opts.GetAPIClientConfig().APIToken != ""
+}

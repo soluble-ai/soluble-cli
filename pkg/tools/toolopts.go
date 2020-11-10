@@ -2,11 +2,13 @@ package tools
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/soluble-ai/soluble-cli/pkg/banner"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -40,6 +42,10 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 func (o *ToolOpts) SetContextValues(m map[string]string) {}
 
 func (o *ToolOpts) RunTool(tool Interface) error {
+	if o.UploadEnabled && o.APIToken == "" {
+		banner.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble", "")
+		return fmt.Errorf("not authenticated with Soluble")
+	}
 	result, err := tool.Run()
 	if err != nil {
 		return err
@@ -68,6 +74,9 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 		if len(output.Elements()) > 0 {
 			os.Exit(o.ExitCode)
 		}
+	}
+	if !o.UploadEnabled {
+		banner.SignupBlurb(o, "Want to manage results centrally with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
 	}
 	return nil
 }
