@@ -31,4 +31,13 @@ command "group" "org" {
       columns = ["displayName", "userId", "orgId", "status", "role", "lastLoginTs", "createTs"]
     }
   }
+  command "print_client" "get-config" {
+    short  = "Get the configuration of an organization"
+    method = "GET"
+    path   = "org/{org}/config"
+    result {
+      path    = ["integrations"]
+      columns = ["displayName", "createTs"]
+    }
+  }
 }
