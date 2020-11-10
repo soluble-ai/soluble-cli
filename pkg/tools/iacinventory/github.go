@@ -17,11 +17,11 @@ import (
 
 type GithubIacInventoryScanner struct {
 	User                 string
-	Org                  string // used for targeting a specific org
 	OauthToken           string
 	AllRepos             bool
 	PublicRepos          bool
 	ExplicitRepositories []string
+	Orgs                 []string
 }
 
 var _ tools.Interface = &GithubIacInventoryScanner{}
@@ -153,15 +153,21 @@ func (g *GithubIacInventoryScanner) scanRepos() ([]*GithubRepo, error) {
 
 	// filter out non-org repos (keeps count consistent in the loop below)
 	var filteredRepos []*github.Repository
-	for _, repo := range repos {
-		if g.Org != "" {
-			// repo.GetOwner().GetName() does not behave.
-			owner := strings.Split(repo.GetFullName(), "/")[0]
-			if owner != g.Org {
-				// skip repositories that do not match the selected org
-				continue
+	if len(g.Orgs) == 0 {
+		filteredRepos = repos
+	} else {
+		for _, repo := range repos {
+			for _, org := range g.Orgs {
+				if org != "" {
+					// repo.GetOwner().GetName() does not behave.
+					owner := strings.Split(repo.GetFullName(), "/")[0]
+					if owner != org {
+						// skip repositories that do not match the selected org
+						continue
+					}
+					filteredRepos = append(filteredRepos, repo)
+				}
 			}
-			filteredRepos = append(filteredRepos, repo)
 		}
 	}
 
