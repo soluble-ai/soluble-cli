@@ -53,26 +53,49 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// checkov runs various types of check such as kubernetes, terraform etc if the folder has
+	// different types of them in the same folder the result will be an array
+	output := jnode.NewObjectNode()
+	data := output.PutArray("data")
+
+	// checkov has passed_checks and failed_checks so we'll combine them
+	// into a summary that we can print out
+	s := output.PutArray("soluble_summary")
+
+	var checkovVersion string
+	if n.IsArray() {
+		for _, e := range n.Elements() {
+			data = data.Append(e)
+		}
+		checkovVersion = n.Get(0).Path("summary").Path("checkov_version").AsText()
+	} else {
+		checkovVersion = n.Path("summary").Path("checkov_version").AsText()
+		data.Append(n)
+	}
+
 	result := &tools.Result{
 		Directory: t.Directory,
-		Data:      n,
+		Data:      output,
 		Values: map[string]string{
-			"CHECKOV_VERSION": n.Path("summary").Path("checkov_version").AsText(),
+			"CHECKOV_VERSION": checkovVersion,
 		},
 		PrintPath: []string{"soluble_summary"},
 		PrintColumns: []string{
-			"check_id", "check_result", "file_path", "line", "check_name",
+			"check_id", "check_result", "check_type", "file_path", "line", "check_name",
 		},
 	}
-	// checkov has passed_checks and failed_checks so we'll combine them
-	// into a summary that we can print out
-	s := n.PutArray("soluble_summary")
-	processChecks(result, s, n.Path("results").Path("passed_checks"))
-	processChecks(result, s, n.Path("results").Path("failed_checks"))
+
+	for _, e := range output.Path("data").Elements() {
+		checkType := e.Path("check_type").AsText()
+		processChecks(result, s, e.Path("results").Path("passed_checks"), checkType)
+		processChecks(result, s, e.Path("results").Path("failed_checks"), checkType)
+	}
+
 	return result, nil
 }
 
-func processChecks(result *tools.Result, s, checks *jnode.Node) {
+func processChecks(result *tools.Result, s, checks *jnode.Node, checkType string) {
 	for _, n := range checks.Elements() {
 		filePath := n.Path("file_path").AsText()
 		if len(filePath) > 0 && filePath[0] == '/' {
@@ -82,6 +105,7 @@ func processChecks(result *tools.Result, s, checks *jnode.Node) {
 			Put("check_result", n.Path("check_result").Path("result").AsText()).
 			Put("file_path", filePath).
 			Put("line", n.Path("file_line_range").Get(0).AsInt()).
-			Put("check_name", n.Path("check_name").AsText())
+			Put("check_name", n.Path("check_name").AsText()).
+			Put("check_type", checkType)
 	}
 }
