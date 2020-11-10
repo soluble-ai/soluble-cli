@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
@@ -65,5 +66,6 @@ func Command() *cobra.Command {
 	c.AddCommand(createCommand(&checkov.Tool{}))
 	c.AddCommand(createCommand(&tfsec.Tool{}))
 	c.AddCommand(cloudformationGuard())
+	c.AddCommand(createCommand(&cfnpythonlint.Tool{}))
 	return c
 }
