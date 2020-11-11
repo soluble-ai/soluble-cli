@@ -16,6 +16,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/fatih/color"
 	"github.com/soluble-ai/soluble-cli/cmd/agent"
@@ -31,8 +32,9 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
-	"github.com/soluble-ai/soluble-cli/pkg/banner"
+	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
@@ -77,8 +79,12 @@ func Command() *cobra.Command {
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if config.Config.APIToken == "" {
 				if cmd.Use != "version" {
-					banner.SignupBlurb(nil, "Finding {priary:soluble} useful?", "")
+					blurb.SignupBlurb(nil, "Finding {priary:soluble} useful?", "")
 				}
+			}
+			if exit.Code != 0 {
+				log.Errorf(exit.Message)
+				os.Exit(exit.Code)
 			}
 		},
 		Version: v.Version,
@@ -91,7 +97,7 @@ func Command() *cobra.Command {
 	flags.Bool("quiet", false, "Run with no logging")
 	flags.Bool("no-color", false, "Disable color output")
 	flags.Bool("force-color", false, "Enable color output")
-	flags.BoolVar(&banner.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
+	flags.BoolVar(&blurb.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
 
 	config.Load()
 	addBuiltinCommands(rootCmd)

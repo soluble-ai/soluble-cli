@@ -18,7 +18,9 @@ type DiffPrinter struct {
 	Formatters
 }
 
-func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) {
+var _ Interface = &DiffPrinter{}
+
+func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	rows := d.getRows(result)
 	sort.Slice(rows, func(i, j int) bool {
 		// assume version column is a number
@@ -57,4 +59,5 @@ func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) {
 		}
 		fmt.Fprintln(w, diffs[i])
 	}
+	return len(rows)
 }

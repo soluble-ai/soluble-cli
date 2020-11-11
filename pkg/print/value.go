@@ -46,18 +46,22 @@ func NewValuePrinter(format string, path []string, sortBy []string) *ValuePrinte
 	}
 }
 
-func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) {
+func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	if len(p.Path) == 0 {
 		n := Nav(result, p.Name)
 		if !n.IsMissing() {
 			fmt.Fprintln(w, n.AsText())
+			return 1
 		}
+		return 0
 	} else {
-		for _, row := range p.getRows(result) {
+		rows := p.getRows(result)
+		for _, row := range rows {
 			n := Nav(row, p.Name)
 			if !n.IsMissing() {
 				fmt.Fprintln(w, n.AsText())
 			}
 		}
+		return len(rows)
 	}
 }

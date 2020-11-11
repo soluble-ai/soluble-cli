@@ -25,8 +25,9 @@ type JSONPrinter struct{}
 
 var _ Interface = &JSONPrinter{}
 
-func (p *JSONPrinter) PrintResult(w io.Writer, n *jnode.Node) {
+func (p *JSONPrinter) PrintResult(w io.Writer, n *jnode.Node) int {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(n)
+	return 1
 }

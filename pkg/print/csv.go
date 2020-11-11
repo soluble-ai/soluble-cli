@@ -30,13 +30,13 @@ type CSVPrinter struct {
 
 var _ Interface = &CSVPrinter{}
 
-func (p *CSVPrinter) PrintResult(w io.Writer, result *jnode.Node) {
+func (p *CSVPrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	cw := csv.NewWriter(w)
 	if !p.NoHeaders {
 		p.printHeaders(cw)
 	}
-	p.printRows(cw, result)
-	cw.Flush()
+	defer cw.Flush()
+	return p.printRows(cw, result)
 }
 
 func (p *CSVPrinter) printHeaders(w *csv.Writer) {
@@ -47,7 +47,7 @@ func (p *CSVPrinter) printHeaders(w *csv.Writer) {
 	_ = w.Write(row)
 }
 
-func (p *CSVPrinter) printRows(w *csv.Writer, result *jnode.Node) {
+func (p *CSVPrinter) printRows(w *csv.Writer, result *jnode.Node) int {
 	rows := p.getRows(result)
 	for _, row := range rows {
 		rec := make([]string, len(p.Columns))
@@ -56,4 +56,5 @@ func (p *CSVPrinter) printRows(w *csv.Writer, result *jnode.Node) {
 		}
 		_ = w.Write(rec)
 	}
+	return len(rows)
 }

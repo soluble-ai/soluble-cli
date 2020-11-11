@@ -57,7 +57,17 @@ func NewFilter(s string) Filter {
 
 func (f Filter) matches(row *jnode.Node) bool {
 	if f.name != "" {
+		// should fix - print columns supports paths a.b but filtering does not
 		n := row.Path(f.name)
+		if n.IsMissing() {
+			// slow path - try case insensitive key name
+			for k, v := range row.Entries() {
+				if strings.EqualFold(k, f.name) {
+					n = v
+					break
+				}
+			}
+		}
 		if n.IsMissing() {
 			return f.not
 		}

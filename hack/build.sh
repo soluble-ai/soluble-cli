@@ -15,6 +15,10 @@
 
 VERSION=$(git describe --tags --dirty --always)
 
+# run with ./build.sh none to skip building executables
+# or ./build.sh windows to build only windows, etc
+exes="$1"
+
 echo "Version ${VERSION}"
 
 build_time=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)
@@ -50,6 +54,10 @@ mkdir -p dist
 IFS=" "
 
 for p in "linux amd64 tar" "windows amd64 zip .exe" "darwin amd64 tar"; do
+    if [ -n "$exes" ] && (echo $p | grep -v "$exes" > /dev/null); then
+        echo "Skipping build of $p"
+        continue
+    fi
     read -a os_arch <<< "$p"
     echo "Building $VERSION for ${os_arch[0]} ${os_arch[1]}"
     rm -rf target
@@ -78,4 +86,4 @@ for p in "linux amd64 tar" "windows amd64 zip .exe" "darwin amd64 tar"; do
     )
 done
 
-ls -l dist/*
+ls -l dist
