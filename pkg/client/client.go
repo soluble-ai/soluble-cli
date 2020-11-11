@@ -53,7 +53,7 @@ type Interface interface {
 	Get(path string, options ...Option) (*jnode.Node, error)
 	GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error)
 	Delete(path string, options ...Option) (*jnode.Node, error)
-	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error
+	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) (*jnode.Node, error)
 	GetClient() *resty.Client
 }
 
@@ -183,24 +183,26 @@ func (c *Client) GetClient() *resty.Client {
 	return c.Client
 }
 
-func (c *Client) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) error {
+func (c *Client) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) (*jnode.Node, error) {
 	if module == "" {
-		return fmt.Errorf("module parameter is required")
+		return nil, fmt.Errorf("module parameter is required")
 	}
 	req := c.R()
 	for i, file := range files {
 		f, err := os.Open(file)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer f.Close()
 		req.SetFileReader(fmt.Sprintf("file_%d", i), filepath.Base(file), f)
 	}
 	req.SetHeader("X-SOLUBLE-ORG-ID", orgID)
 	req.SetMultipartFormData(values)
+	result := jnode.NewObjectNode()
+	req.SetResult(result)
 	req = applyOptions(req, options)
 	_, err := req.Post(fmt.Sprintf("/api/v1/xcp/%s/data", module))
-	return err
+	return result, err
 }
 
 func (c *Client) GetOrganization() string {

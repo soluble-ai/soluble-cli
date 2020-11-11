@@ -8,11 +8,10 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
-	"github.com/soluble-ai/soluble-cli/pkg/banner"
+	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
@@ -24,7 +23,6 @@ type ToolOpts struct {
 	options.PrintClientOpts
 	UploadEnabled bool
 	OmitContext   bool
-	ExitCode      int
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -43,7 +41,7 @@ func (o *ToolOpts) SetContextValues(m map[string]string) {}
 
 func (o *ToolOpts) RunTool(tool Interface) error {
 	if o.UploadEnabled && o.GetAPIClientConfig().APIToken == "" {
-		banner.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble}.", "")
+		blurb.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble}.", "")
 		return fmt.Errorf("not authenticated with Soluble")
 	}
 	result, err := tool.Run()
@@ -58,30 +56,31 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 		p.Put("print_path", jnode.FromSlice(result.PrintPath))
 		p.Put("print_columns", jnode.FromSlice(result.PrintColumns))
 	}
+
+	assessmentURL := ""
 	if o.UploadEnabled {
-		err = o.reportResult(tool, result)
+		response, err := o.reportResult(tool, result)
 		if err != nil {
 			return err
 		}
+		assessmentURL = response.Path("assessment").Path("appUrl").AsText()
 	}
+
 	o.Path = result.PrintPath
 	o.Columns = result.PrintColumns
-
 	o.PrintResult(result.Data)
 
-	if o.ExitCode != 0 {
-		output := print.Nav(result.Data, o.Path)
-		if len(output.Elements()) > 0 {
-			os.Exit(o.ExitCode)
-		}
-	}
 	if !o.UploadEnabled {
-		banner.SignupBlurb(o, "Want to manage results centrally with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
+		blurb.SignupBlurb(o, "Want to manage results centrally with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
 	}
+	if assessmentURL != "" {
+		log.Infof("Results uploaded, see {primary:%s} for more information", assessmentURL)
+	}
+
 	return nil
 }
 
-func (o *ToolOpts) reportResult(tool Interface, result *Result) error {
+func (o *ToolOpts) reportResult(tool Interface, result *Result) (*jnode.Node, error) {
 	rr := bytes.NewReader([]byte(result.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", tool.Name())
 	options := []client.Option{
@@ -90,7 +89,7 @@ func (o *ToolOpts) reportResult(tool Interface, result *Result) error {
 	if !o.OmitContext && result.Files != nil {
 		tarball, err := o.createTarball(result)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer tarball.Close()
 		defer os.Remove(tarball.Name())

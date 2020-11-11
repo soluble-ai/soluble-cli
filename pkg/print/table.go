@@ -33,16 +33,16 @@ type TablePrinter struct {
 
 var _ Interface = &TablePrinter{}
 
-func (p *TablePrinter) PrintResult(w io.Writer, result *jnode.Node) {
+func (p *TablePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	tw := tabwriter.NewWriter(w, 5, 0, 1, ' ', 0)
 	if !p.NoHeaders {
 		p.PrintHeader(tw)
 	}
-	p.PrintRows(tw, result)
-	_ = tw.Flush()
+	defer tw.Flush()
+	return p.PrintRows(tw, result)
 }
 
-func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) {
+func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) int {
 	rows := p.getRows(result)
 	for _, row := range rows {
 		for i, c := range p.Columns {
@@ -53,6 +53,7 @@ func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) {
 		}
 		fmt.Fprint(w, "\n")
 	}
+	return len(rows)
 }
 
 func (p *TablePrinter) PrintHeader(w io.Writer) {

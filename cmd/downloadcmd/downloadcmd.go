@@ -151,6 +151,44 @@ func getCommand() *cobra.Command {
 	return c
 }
 
+func printDirCommand() *cobra.Command {
+	var (
+		name    string
+		version string
+	)
+	opts := options.PrintOpts{}
+	c := &cobra.Command{
+		Use:   "print-dir",
+		Short: "Print the installation directory a downloaded component",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			m := download.NewManager()
+			meta := m.GetMeta(name)
+			if meta == nil {
+				return fmt.Errorf("component not installed")
+			}
+			var v *download.Download
+			if version == "" {
+				v = meta.FindLatestOrLastInstalledVersion()
+			} else {
+				v = meta.FindVersion(version, true)
+			}
+			if v == nil {
+				return fmt.Errorf("version not found")
+			}
+			fmt.Println(v.Dir)
+			return nil
+		},
+		PreRun: func(cmd *cobra.Command, args []string) {
+			log.Level = log.Error
+		},
+	}
+	opts.Register(c)
+	c.Flags().StringVar(&name, "name", "", "The name of the component to display")
+	c.Flags().StringVar(&version, "version", "", "The version.  If unspecified, the latest version.")
+	_ = c.MarkFlagRequired("name")
+	return c
+}
+
 func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "download",
@@ -160,5 +198,6 @@ func Command() *cobra.Command {
 	c.AddCommand(installCommand())
 	c.AddCommand(removeCommand())
 	c.AddCommand(getCommand())
+	c.AddCommand(printDirCommand())
 	return c
 }

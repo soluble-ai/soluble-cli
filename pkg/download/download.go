@@ -333,6 +333,19 @@ func (meta *DownloadMeta) removeInstalledVersion(version string) {
 	meta.Installed = installed
 }
 
+func (meta *DownloadMeta) FindLatestOrLastInstalledVersion() *Download {
+	if meta.LatestVersion != "" {
+		return meta.findVersionExactly(meta.LatestVersion)
+	}
+	var v *Download
+	for _, d := range meta.Installed {
+		if v == nil || d.InstallTime.After(v.InstallTime) {
+			v = d
+		}
+	}
+	return v
+}
+
 func (d *Download) Install(file string) error {
 	base := filepath.Base(file)
 	var unpack archive.Unpack

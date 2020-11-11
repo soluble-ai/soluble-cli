@@ -26,7 +26,8 @@ type YAMLPrinter struct{}
 
 var _ Interface = &YAMLPrinter{}
 
-func (p *YAMLPrinter) PrintResult(w io.Writer, n *jnode.Node) {
+func (p *YAMLPrinter) PrintResult(w io.Writer, n *jnode.Node) int {
 	s, _ := yaml.Marshal(n.Unwrap())
 	fmt.Fprintln(w, string(s))
+	return 1
 }

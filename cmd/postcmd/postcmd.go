@@ -24,7 +24,8 @@ func Command() *cobra.Command {
 			if withEnv {
 				options = []client.Option{xcp.WithCIEnv}
 			}
-			return opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
+			_, err := opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
+			return err
 		},
 	}
 	opts.Register(c)

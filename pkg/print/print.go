@@ -21,7 +21,7 @@ import (
 )
 
 type Interface interface {
-	PrintResult(w io.Writer, result *jnode.Node)
+	PrintResult(w io.Writer, result *jnode.Node) int
 }
 
 type Formatter func(n *jnode.Node) string

@@ -24,4 +24,6 @@ type NonePrinter struct{}
 
 var _ Interface = &NonePrinter{}
 
-func (p *NonePrinter) PrintResult(w io.Writer, result *jnode.Node) {}
+func (p *NonePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
+	return 0
+}
