@@ -42,8 +42,8 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 func (o *ToolOpts) SetContextValues(m map[string]string) {}
 
 func (o *ToolOpts) RunTool(tool Interface) error {
-	if o.UploadEnabled && o.APIToken == "" {
-		banner.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble", "")
+	if o.UploadEnabled && o.GetAPIClientConfig().APIToken == "" {
+		banner.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble}.", "")
 		return fmt.Errorf("not authenticated with Soluble")
 	}
 	result, err := tool.Run()
