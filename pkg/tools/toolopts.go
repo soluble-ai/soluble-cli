@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/banner"
@@ -58,10 +59,22 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 		p.Put("print_path", jnode.FromSlice(result.PrintPath))
 		p.Put("print_columns", jnode.FromSlice(result.PrintColumns))
 	}
+
+	var assessmentURL string = ""
+
 	if o.UploadEnabled {
-		err = o.reportResult(tool, result)
+		response, err := o.reportResult(tool, result)
 		if err != nil {
 			return err
+		}
+
+		respBody, err := jnode.FromJSON(response.Body())
+		if err != nil {
+			return err
+		}
+
+		if !respBody.Path("assessment").IsMissing() && !respBody.Path("assessment").Path("appUrl").IsMissing() {
+			assessmentURL = respBody.Path("assessment").Path("appUrl").AsText()
 		}
 	}
 	o.Path = result.PrintPath
@@ -69,19 +82,24 @@ func (o *ToolOpts) RunTool(tool Interface) error {
 
 	o.PrintResult(result.Data)
 
+	if len(assessmentURL) != 0 {
+		log.Infof("See assessment report {primary:%s} for more information", assessmentURL)
+	}
+
+	if !o.UploadEnabled {
+		banner.SignupBlurb(o, "Want to manage results centrally with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
+	}
+
 	if o.ExitCode != 0 {
 		output := print.Nav(result.Data, o.Path)
 		if len(output.Elements()) > 0 {
 			os.Exit(o.ExitCode)
 		}
 	}
-	if !o.UploadEnabled {
-		banner.SignupBlurb(o, "Want to manage results centrally with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
-	}
 	return nil
 }
 
-func (o *ToolOpts) reportResult(tool Interface, result *Result) error {
+func (o *ToolOpts) reportResult(tool Interface, result *Result) (*resty.Response, error) {
 	rr := bytes.NewReader([]byte(result.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", tool.Name())
 	options := []client.Option{
@@ -90,7 +108,7 @@ func (o *ToolOpts) reportResult(tool Interface, result *Result) error {
 	if !o.OmitContext && result.Files != nil {
 		tarball, err := o.createTarball(result)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer tarball.Close()
 		defer os.Remove(tarball.Name())
