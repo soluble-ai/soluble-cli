@@ -14,7 +14,7 @@ func Command() *cobra.Command {
 		values  map[string]string
 		withEnv bool
 	)
-	opts := options.ClientOpts{}
+	opts := options.PrintClientOpts{}
 	c := &cobra.Command{
 		Use:   "post",
 		Short: "Send data to soluble",
@@ -24,8 +24,12 @@ func Command() *cobra.Command {
 			if withEnv {
 				options = []client.Option{xcp.WithCIEnv}
 			}
-			_, err := opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
-			return err
+			result, err := opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
+			if err != nil {
+				return err
+			}
+			opts.PrintResult(result)
+			return nil
 		},
 	}
 	opts.Register(c)
