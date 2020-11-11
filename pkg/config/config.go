@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/mitchellh/go-homedir"
@@ -211,11 +212,13 @@ func Load() {
 		}
 	}
 	if info, err := os.Stat(ConfigFile); err == nil && (info.Mode()&0077) != 0 {
-		if err := os.Chmod(ConfigFile, 0600); err == nil {
-			log.Infof("Removed world & group permissions on config file {info:%s}", ConfigFile)
-		} else {
-			log.Warnf("Config file {info:%s} is world readable could not change permissions: {warning:%s}",
-				ConfigFile, err.Error())
+		if runtime.GOOS != "windows" {
+			if err := os.Chmod(ConfigFile, 0600); err == nil {
+				log.Infof("Removed world & group permissions on config file {info:%s}", ConfigFile)
+			} else {
+				log.Warnf("Config file {info:%s} is world readable could not change permissions: {warning:%s}",
+					ConfigFile, err.Error())
+			}
 		}
 	}
 	if configFileRead == "" {
