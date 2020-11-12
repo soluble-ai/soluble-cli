@@ -43,6 +43,36 @@ func createCommand(tool tools.Interface) *cobra.Command {
 	return c
 }
 
+func meta(cmds []*cobra.Command) *cobra.Command {
+	c := &cobra.Command{
+		Use:   "all",
+		Short: "run all IaC scanning tools",
+		Args:  cobra.NoArgs,
+	}
+	for i := range cmds {
+		c.Flags().AddFlagSet(cmds[i].NonInheritedFlags())
+	}
+	// TODO: for now, we run all tools unconditionally.
+	c.Flags().Bool("no-fail", true, "Ignore failures in individual tools, continuing with the remaining tools")
+
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		cmds := cmds
+		for i := range cmds {
+			// prevent recursion
+			if cmds[i].Use == c.Use {
+				continue
+			}
+			if err := cmds[i].RunE(cmd, args); err != nil {
+				if nofail, _ := cmd.Flags().GetBool("no-fail"); !nofail {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	return c
+}
+
 func cloudformationGuard() *cobra.Command {
 	t := &cloudformationguard.Tool{}
 	c := createCommand(t)
@@ -64,7 +94,11 @@ func Command() *cobra.Command {
 	c.AddCommand(t)
 	c.AddCommand(createCommand(&checkov.Tool{}))
 	c.AddCommand(createCommand(&tfsec.Tool{}))
-	c.AddCommand(cloudformationGuard())
 	c.AddCommand(createCommand(&cfnpythonlint.Tool{}))
+	c.AddCommand(meta(c.Commands()))
+
+	// cloudformationguard is not supported by the meta/all scanner, at least for now.
+	// it is the only weird tool that requires explicit file input.
+	c.AddCommand(cloudformationGuard())
 	return c
 }
