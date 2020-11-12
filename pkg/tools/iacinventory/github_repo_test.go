@@ -10,7 +10,7 @@ import (
 
 func TestScanTarball(t *testing.T) {
 	assert := assert.New(t)
-	dir, err := ioutil.TempDir("", "soluble-cli-iacwalktests*")
+	dir, err := ioutil.TempDir("", githubTmpDirPrefix+"*")
 	assert.Nil(err)
 	defer os.RemoveAll(dir)
 	g := &GithubRepo{FullName: "testdata/tesdata"}
@@ -29,5 +29,7 @@ func TestScanTarball(t *testing.T) {
 	assert.ElementsMatch(g.TerraformDirs, []string{
 		"terraform/dir_with_tf",
 	})
-	assert.ElementsMatch(g.CISystems, []CI{CIGithub})
+	assert.ElementsMatch(g.CISystems, []string{
+		"github",
+	})
 }

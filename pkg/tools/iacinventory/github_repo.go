@@ -28,7 +28,7 @@ type GithubRepo struct {
 	GitRepo string `json:"git_repo"`
 
 	// CI is the repo's configured CI system, if present.
-	CISystems []CI `json:"ci_systems,omitempty"`
+	CISystems []string `json:"ci_systems,omitempty"`
 
 	// TerraformDirs are directories that contain '.tf' files
 	TerraformDirs []string `json:"terraform_dirs,omitempty"`
@@ -126,8 +126,12 @@ func (g *GithubRepo) downloadTarball(oauthToken string, repo *github.Repository,
 	return f.Name(), nil
 }
 
+// we need to differentiate github vs local scans, and tmpdir
+// consistency is the easiest way to fix it.
+const githubTmpDirPrefix string = "github-iac-inventory-tmpdir"
+
 func (g *GithubRepo) downloadAndScan(token string, repo *github.Repository) error {
-	dir, err := ioutil.TempDir("", "iacinventory*")
+	dir, err := ioutil.TempDir("", githubTmpDirPrefix+"*")
 	if err != nil {
 		return err
 	}
@@ -152,61 +156,122 @@ func (g *GithubRepo) scanTarball(dir, tarball string) error {
 		return fmt.Errorf("could not unpack tarball: %w", err)
 	}
 
+	// Github packages files into a sub-directory with a repo-relative prefix
+	// ex: ./soluble-ai-fizzbuzz-999999999999999999999/
+	unarchivedDirPath := dir
+	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && path != unarchivedDirPath {
+			unarchivedDirPath = path
+			return os.ErrExist
+		}
+		return nil
+	}); err != nil && err != os.ErrExist {
+		return fmt.Errorf("error determining GitHub tarball root")
+	}
+	if unarchivedDirPath == "" {
+		return fmt.Errorf("could not find unarchived repository")
+	}
+	res, err := Directory(unarchivedDirPath)
+	if err != nil {
+		return fmt.Errorf("error scanning directory: %w", err)
+	}
+
+	g.CISystems = res.CISystems
+	g.TerraformDirs = res.TerraformDirs
+	g.CloudformationDirs = res.CloudformationDirs
+	g.DockerfileDirs = res.DockerfileDirs
+	g.K8sManifestDirs = res.K8sManifestDirs
+
+	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories, {info:%d} dockerfiles, {info:%d} k8s manifest directories",
+		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs), len(g.DockerfileDirs), len(g.K8sManifestDirs))
+
+	return nil
+}
+
+type Results struct {
+	CISystems []string `json:"ci_systems"`
+	// CIFiles             []string `json:"ci_files"` // TBD
+	TerraformFiles      []string `json:"terraform_files"`
+	TerraformDirs       []string `json:"terraform_dirs"`
+	CloudformationFiles []string `json:"cloudformation_files"`
+	CloudformationDirs  []string `json:"cloudformation_dirs"`
+	DockerfileFiles     []string `json:"dockerfile_files"`
+	DockerfileDirs      []string `json:"dockerfile_dirs"`
+	K8sManifestFiles    []string `json:"k_8_s_manifest_files"`
+	K8sManifestDirs     []string `json:"k_8_s_manifest_dirs"`
+}
+
+func Directory(dir string) (*Results, error) {
+	ciSystems := util.NewStringSet()
+	terraformFiles := util.NewStringSet()
 	terraformDirs := util.NewStringSet()
-	cfnDirs := util.NewStringSet()
-	dockerFileDirs := util.NewStringSet()
+	cloudformationFiles := util.NewStringSet()
+	cloudformationDirs := util.NewStringSet()
+	dockerfileFiles := util.NewStringSet()
+	dockerfileDirs := util.NewStringSet()
+	k8sManifestFiles := util.NewStringSet()
 	k8sManifestDirs := util.NewStringSet()
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		ci, err := walkCI(path, info, err)
-		if ci != "" {
-			contains := false
-			for _, cisys := range g.CISystems {
-				if cisys == ci {
-					contains = true
-				}
-			}
-			if !contains {
-				g.CISystems = append(g.CISystems, ci)
-			}
-		}
 		if err != nil {
 			return err
 		}
+		if ci != "" {
+			ciSystems.Add(string(ci))
+		}
 		if info.Mode().IsRegular() {
-			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
-			splitPath := strings.SplitN(dirName, string(filepath.Separator), 2)
-			pathRelativeToRepoRoot := "."
+			fileName, _ := filepath.Rel(dir, path)
+			// handle GitHub tmpdir
+			splitPath := strings.SplitN(fileName, string(filepath.Separator), 2)
+			pathRelativeToRepoRoot := "." // include the root directory
 			if len(splitPath) > 1 {
 				// if we're not in the root, set the directory
 				// relative to the git repository root
 				pathRelativeToRepoRoot = splitPath[1]
 			}
+			// handle local paths
+			if !strings.Contains(path, githubTmpDirPrefix) {
+				pathRelativeToRepoRoot = fileName // there is no "repo root" here.
+			}
 			if isTerraformFile(path, info) {
-				terraformDirs.Add(pathRelativeToRepoRoot)
+				terraformFiles.Add(pathRelativeToRepoRoot)
+				terraformDirs.Add(filepath.Dir(pathRelativeToRepoRoot))
 			}
 			if isCloudFormationFile(path, info) {
-				cfnDirs.Add(pathRelativeToRepoRoot)
+				cloudformationFiles.Add(pathRelativeToRepoRoot)
+				cloudformationDirs.Add(filepath.Dir(pathRelativeToRepoRoot))
 			}
 			if isDockerFile(path, info) {
-				dockerFileDirs.Add(pathRelativeToRepoRoot)
+				dockerfileFiles.Add(pathRelativeToRepoRoot)
+				dockerfileDirs.Add(filepath.Dir(pathRelativeToRepoRoot))
 			}
 			if isKubernetesManifest(path, info) {
-				k8sManifestDirs.Add(pathRelativeToRepoRoot)
+				k8sManifestFiles.Add(pathRelativeToRepoRoot)
+				k8sManifestDirs.Add(filepath.Dir(pathRelativeToRepoRoot))
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	g.TerraformDirs = terraformDirs.Values()
-	g.CloudformationDirs = cfnDirs.Values()
-	g.DockerfileDirs = dockerFileDirs.Values()
-	g.K8sManifestDirs = k8sManifestDirs.Values()
-	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories, {info:%d} dockerfiles, {info:%d} k8s manifest directories",
-		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs), len(g.DockerfileDirs), len(g.K8sManifestDirs))
-	return nil
+
+	return &Results{
+		CISystems:           ciSystems.Values(),
+		TerraformFiles:      terraformFiles.Values(),
+		TerraformDirs:       terraformDirs.Values(),
+		CloudformationFiles: cloudformationFiles.Values(),
+		CloudformationDirs:  cloudformationDirs.Values(),
+		DockerfileFiles:     dockerfileFiles.Values(),
+		DockerfileDirs:      dockerfileDirs.Values(),
+		K8sManifestFiles:    k8sManifestFiles.Values(),
+		K8sManifestDirs:     k8sManifestDirs.Values(),
+	}, nil
 }
