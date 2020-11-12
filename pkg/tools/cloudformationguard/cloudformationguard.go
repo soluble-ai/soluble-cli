@@ -35,6 +35,10 @@ func (t *Tool) Name() string {
 	return "cloudformationguard"
 }
 
+func (t *Tool) IaCTypes() []string {
+	return []string{"cloudformation"}
+}
+
 func (t *Tool) SetAPIClient(apiClient client.Interface) {
 	t.APIClient = apiClient
 }
@@ -101,7 +105,7 @@ func (t *Tool) installProgram() error {
 	// look for the first executable cfn-guard-*
 	_ = filepath.Walk(d.Dir, func(path string, info os.FileInfo, err error) error {
 		if t.program == "" && info != nil && strings.HasPrefix(info.Name(), "cfn-guard") &&
-			info.Mode().IsRegular() && (info.Mode()&0500) != 0 {
+			info.Mode().IsRegular() && (info.Mode()&0o500) != 0 {
 			t.program = path
 		}
 		return err

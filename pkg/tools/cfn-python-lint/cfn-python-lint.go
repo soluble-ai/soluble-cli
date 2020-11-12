@@ -21,6 +21,10 @@ func (t *Tool) Name() string {
 	return "cfn-python-lint"
 }
 
+func (t *Tool) IaCTypes() []string {
+	return []string{"cloudformation"}
+}
+
 func (t *Tool) SetDirectory(dir string) {
 	t.Directory = dir
 }

@@ -25,6 +25,10 @@ func (t *Tool) Name() string {
 	return "trivy"
 }
 
+func (t *Tool) IaCType() []string {
+	return []string{"docker-image", "filesystem"} // not sure how else to enumerate local scanner support
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
 	m := download.NewManager()
 	d, err := m.Install(&download.Spec{

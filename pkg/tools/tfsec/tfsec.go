@@ -23,6 +23,10 @@ func (t *Tool) Name() string {
 	return "tfsec"
 }
 
+func (t *Tool) IaCTypes() []string {
+	return []string{"terraform"}
+}
+
 func (t *Tool) SetDirectory(dir string) {
 	t.Directory = dir
 }

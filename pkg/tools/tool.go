@@ -12,11 +12,19 @@ type Interface interface {
 	Name() string
 }
 
+type ScansIaC interface {
+	IaCTypes() []string // "cloudformation", "terraform", "kubernetes"
+}
+
 type RunsInDirectory interface {
+	Interface
+	ScansIaC
 	SetDirectory(dir string)
 }
 
 type RunsWithAPIClient interface {
+	Interface
+	ScansIaC
 	SetAPIClient(apiClient client.Interface)
 }
 
