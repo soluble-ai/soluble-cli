@@ -13,8 +13,10 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
-var _ tools.RunsInDirectory = &Tool{}
-var _ tools.RunsWithAPIClient = &Tool{}
+var (
+	_ tools.RunsInDirectory   = &Tool{}
+	_ tools.RunsWithAPIClient = &Tool{}
+)
 
 const (
 	policyZip = "rego-policies.zip"
@@ -30,6 +32,10 @@ type Tool struct {
 
 func (t *Tool) Name() string {
 	return "terrascan"
+}
+
+func (t *Tool) IaCTypes() []string {
+	return []string{"terraform", "kubernetes"}
 }
 
 func (t *Tool) SetDirectory(dir string) {
