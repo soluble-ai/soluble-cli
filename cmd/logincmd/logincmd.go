@@ -40,7 +40,7 @@ func Command() *cobra.Command {
 			config.Config.APIToken = resp.Token
 			config.Config.Organization = resp.OrgID
 			config.Save()
-			log.Infof("Authentication succesfull")
+			log.Infof("Authentication successful")
 			return nil
 		},
 	}
