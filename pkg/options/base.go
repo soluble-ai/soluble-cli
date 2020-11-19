@@ -15,45 +15,10 @@
 package options
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
 type Interface interface {
 	Register(cmd *cobra.Command)
 	SetContextValues(context map[string]string)
-}
-
-type HiddenOptionsGroup struct {
-	Use         string
-	Description string
-	OptionNames []string
-}
-
-func AddHiddenOptionsGroup(cmd *cobra.Command, group *HiddenOptionsGroup) {
-	for _, name := range group.OptionNames {
-		_ = cmd.Flags().MarkHidden(name)
-	}
-	help := &cobra.Command{
-		Use:   group.Use,
-		Short: fmt.Sprintf("Show help for flags that %s", group.Description),
-		Long:  fmt.Sprintf("These flags %s", group.Description),
-	}
-	for _, name := range group.OptionNames {
-		flag := cmd.Flags().Lookup(name)
-		if flag != nil {
-			copy := *flag
-			copy.Hidden = false
-			help.Flags().AddFlag(&copy)
-		}
-	}
-	// suppress the default help flag
-	help.Flags().BoolP("help", "h", false, "Display help")
-	_ = help.Flags().MarkHidden("help")
-	help.SetHelpTemplate(`{{.Long}}
-
-{{.LocalFlags.FlagUsages}}
-`)
-	cmd.AddCommand(help)
 }

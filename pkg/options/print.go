@@ -26,6 +26,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type PrintOpts struct {
@@ -51,43 +52,65 @@ type PrintOpts struct {
 
 var _ Interface = &PrintOpts{}
 
-func (p *PrintOpts) Register(cmd *cobra.Command) {
-	flags := cmd.Flags()
-	if p.Path == nil {
-		flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat, "Use this output format, where format is one of: yaml, json, value or none")
-	} else {
-		flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
-			`Use this output format, where format is one of: table,
-yaml, json, none, csv, or value(name).  The value(name) form prints
-the value of the attribute 'name'.`)
-		flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
-		flags.StringVar(&p.Filter, "filter", "",
-			`Restrict results to those that match a filter.  The filter
-string can be in the form 'attribute=glob-pattern' or
-'attribute!=glob-pattern' to search on attributes, or 'attribute=' to
-search for rows that contain an attribute, or just 'glob-pattern' to
-search all attributes`)
-		if p.WideColumns != nil {
-			flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
-		}
-		flags.StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
-			`Sort by these columns (table, csv).  Use -col to indicate
-reverse order, 0col to indicate numeric sort, and -0col to indicate
-reverse numeric sort.`)
-		flags.IntVar(&p.Limit, "print-limit", 0, "Print no more than this number of rows")
-		flags.IntVar(&p.DiffContextSize, "diff-context", 3,
-			`When printing diffs, the number of lines to print before and
-after a a diff.`)
-		flags.BoolVar(&p.ExitErrorNotEmtpy, "error-not-empty", false, "Exit with exit code 2 if the results (after filtering) are not empty")
-	}
-	AddHiddenOptionsGroup(cmd, &HiddenOptionsGroup{
-		Use:         "show-print-options",
-		Description: "control how results are printed",
-		OptionNames: []string{
-			"format", "no-headers", "wide", "sort-by", "filter", "print-limit", "diff-context",
-			"exit-not-empty",
+func GetPrintOptionsGroupHelpCommand() *cobra.Command {
+	opts := &PrintOpts{}
+	return opts.GetPrintOptionsGroup(true).GetHelpCommand()
+}
+
+func (p *PrintOpts) GetPrintOptionsGroup(full bool) *HiddenOptionsGroup {
+	return &HiddenOptionsGroup{
+		Name: "print-options",
+		Long: "These options control how results are printed",
+		CreateFlagsFunc: func(flags *pflag.FlagSet) {
+			if !full {
+				flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
+					"Use this output `format`, where format is one of: yaml, json, value or none")
+			} else {
+				flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
+					"Use this output `format`, where format is one of: table, yaml, json, none, csv, or value(name).  See below.")
+				flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
+				flags.StringVar(&p.Filter, "filter", "", "Print results that match a `filter`.  See below.")
+				if full || p.WideColumns != nil {
+					flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
+				}
+				flags.StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
+					"Sort by these `columns`.  See below.")
+				flags.IntVar(&p.Limit, "print-limit", 0, "Print no more than this `number` of rows")
+				flags.IntVar(&p.DiffContextSize, "diff-context", 3,
+					"When printing diffs, the number of `lines` to print before and after a a diff.")
+				flags.BoolVar(&p.ExitErrorNotEmtpy, "error-not-empty", false,
+					"Exit with exit code 2 if the results (after filtering) are not empty")
+			}
 		},
-	})
+		Example: `
+Output formats:
+
+The output format can be select with the --format flag.  For commands that support
+tabular data the default output format is "table"; otherwise the default is "yaml".
+
+The "value(name)" format prints only the "name" attribute from the results (from each row
+if printing tabular data.)
+
+Sorting:
+
+The tabular output can be sorted by one or more columns.  Examples:
+
+ ... --sort-by col1,-col2    ;# ascending col1, descending col2, lexigraphical
+ ... --sort-by 0col1         ;# ascending, numerical
+ ... --sort-by -0col1        ;# descending numerical
+
+Filtering:
+
+Tabular output can be filtered with glob-style patterns.  Examples:
+
+ ... --filter col1=pattern   ;# print rows that match on col1
+ ... --filter col1!=pattern  ;# print rows that don't match
+ ... --filter pattern        ;# print rows that match on any column`,
+	}
+}
+
+func (p *PrintOpts) Register(cmd *cobra.Command) {
+	p.GetPrintOptionsGroup(p.Path != nil).Register(cmd)
 }
 
 func (p *PrintOpts) GetPrinter() (print.Interface, error) {

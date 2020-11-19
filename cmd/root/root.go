@@ -105,12 +105,12 @@ func Command() *cobra.Command {
 	for _, model := range model.Models {
 		mergeCommands(rootCmd, model.Command.GetCommand().GetCobraCommand(), model)
 	}
-
+	setupHelp(rootCmd)
 	return rootCmd
 }
 
 func addBuiltinCommands(rootCmd *cobra.Command) {
-	commands := []*cobra.Command{
+	rootCmd.AddCommand(
 		auth.Command(),
 		agent.Command(),
 		aws.Command(),
@@ -124,10 +124,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		imagescan.Command(),
 		iacinventorycmd.Command(),
 		logincmd.Command(),
-	}
-	for _, c := range commands {
-		rootCmd.AddCommand(c)
-	}
+	)
 }
 
 func loadModels() {
