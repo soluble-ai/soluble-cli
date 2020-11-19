@@ -18,6 +18,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type ClientOpts struct {
@@ -28,29 +29,35 @@ type ClientOpts struct {
 
 var _ Interface = &ClientOpts{}
 
+func GetClientOptionsGroupHelpCommand() *cobra.Command {
+	opts := &ClientOpts{}
+	return opts.GetClientOptionsGroup().GetHelpCommand()
+}
+
 func (opts *ClientOpts) SetContextValues(context map[string]string) {
 	context["organizationID"] = opts.GetOrganization()
 }
 
-func (opts *ClientOpts) Register(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&opts.APIServer, "api-server", "", "Soluble API server endpoint (e.g. https://api.soluble.cloud)")
-	cmd.Flags().BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
-	cmd.Flags().IntVar(&opts.TimeoutSeconds, "timeout", opts.DefaultTimeout, "The timeout (in seconds) for requests (0 means no timeout)")
-	cmd.Flags().IntVar(&opts.RetryCount, "retry", 0, "The number of times to retry the request")
-	cmd.Flags().Float64Var(&opts.RetryWaitSeconds, "retry-wait", 0,
-		`The initial time in seconds to wait between retry attempts, e.g.
-0.5 to wait 500 millis`)
-	cmd.Flags().StringSliceVar(&opts.Headers, "header", nil, "Set custom headers on request")
-	cmd.Flags().StringVar(&opts.Organization, "organization", "", "The organization to use.")
-	cmd.Flags().StringVar(&opts.APIToken, "api-token", "", "The authentication token (read from profile by default)")
-	AddHiddenOptionsGroup(cmd, &HiddenOptionsGroup{
-		Use:         "show-client-options",
-		Description: "control how the CLI connects to Soluble",
-		OptionNames: []string{
-			"api-server", "disable-tls-verify", "timeout", "retry", "header", "organization",
-			"api-token", "retry-wait",
+func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
+	return &HiddenOptionsGroup{
+		Name: "client-options",
+		Long: "These flags control how the CLI connects to Soluble",
+		CreateFlagsFunc: func(flags *pflag.FlagSet) {
+			flags.StringVar(&opts.APIServer, "api-server", "", "Soluble API server `url` (e.g. https://api.soluble.cloud)")
+			flags.BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
+			flags.IntVar(&opts.TimeoutSeconds, "timeout", opts.DefaultTimeout, "The timeout (in `seconds`) for requests (0 means no timeout)")
+			flags.IntVar(&opts.RetryCount, "retry", 0, "The `number` of times to retry the request")
+			flags.Float64Var(&opts.RetryWaitSeconds, "retry-wait", 0,
+				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
+			flags.StringSliceVar(&opts.Headers, "header", nil, "Set custom headers in the form `name:value` on requests")
+			flags.StringVar(&opts.Organization, "organization", "", "The organization `id` to use.")
+			flags.StringVar(&opts.APIToken, "api-token", "", "The authentication `token` (read from profile by default)")
 		},
-	})
+	}
+}
+
+func (opts *ClientOpts) Register(cmd *cobra.Command) {
+	opts.GetClientOptionsGroup().Register(cmd)
 }
 
 func (opts *ClientOpts) GetAPIClientConfig() *client.Config {
