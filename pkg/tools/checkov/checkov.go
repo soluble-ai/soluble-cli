@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -35,14 +34,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 
-	// use absolute path for docker volume mapping
-	absPath, err := filepath.Abs(t.Directory)
-	if err != nil {
-		return nil, err
-	}
-
 	// #nosec G204
-	c := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:%s", absPath, "/tf"),
+	c := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:%s", t.Directory, "/tf"),
 		"gcr.io/soluble-repo/checkov:latest", "-d", "/tf", "-o", "json", "-s")
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
 	c.Stderr = os.Stderr

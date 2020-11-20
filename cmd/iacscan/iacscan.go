@@ -9,6 +9,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -21,8 +22,9 @@ func createCommand(tool tools.Interface) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if u, ok := tool.(tools.RunsInDirectory); ok {
 				d, _ := cmd.Flags().GetString("directory")
-				if d == "" {
-					return fmt.Errorf("%s requires --directory", tool.Name())
+				d, err := util.NormalizePath(d)
+				if err != nil {
+					return err
 				}
 				u.SetDirectory(d)
 			}
@@ -86,8 +88,9 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "iac-scan",
 		Short: "Run an Infrastructure-as-code scanner",
-		Example: `  # run the default scanner in the current directory
-  iac-scan default -d .`,
+		Example: `  # run the Infrastructure as Code scanner tool in the current directory if directory is not specified
+  iac-scan <tool-name>
+  iac-scan <tool-name> -d my-directory`,
 	}
 	t := createCommand(&terrascan.Tool{})
 	t.Aliases = []string{"default"}
