@@ -13,10 +13,11 @@ import (
 )
 
 func createCommand(tool tools.Interface) *cobra.Command {
-	c := tools.CreateCommand(tool)
-	c.Use = tool.Name()
-	c.Short = fmt.Sprintf("Scan infrastructure-as-code with %s", tool.Name())
-	return c
+	return tools.CreateCommand(tool,
+		&cobra.Command{
+			Use:   tool.Name(),
+			Short: fmt.Sprintf("Scan infrastructure-as-code with %s", tool.Name()),
+		})
 }
 
 func Command() *cobra.Command {

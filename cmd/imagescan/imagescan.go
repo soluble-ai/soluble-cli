@@ -7,8 +7,9 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := tools.CreateCommand(&trivy.Tool{})
-	c.Use = "image-scan"
-	c.Short = "Scan a container image"
-	return c
+	return tools.CreateCommand(&trivy.Tool{},
+		&cobra.Command{
+			Use:   "image-scan",
+			Short: "Scan a container image",
+		})
 }
