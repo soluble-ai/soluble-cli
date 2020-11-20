@@ -2,8 +2,6 @@ package iacscan
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
@@ -11,6 +9,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -23,20 +22,11 @@ func createCommand(tool tools.Interface) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if u, ok := tool.(tools.RunsInDirectory); ok {
 				d, _ := cmd.Flags().GetString("directory")
-				if d == "" {
-					cDir, err := os.Getwd()
-					if err != nil {
-						return err
-					}
-					u.SetDirectory(cDir)
-				} else {
-					// use absolute path always to make it consistent across tools
-					absPath, err := filepath.Abs(d)
-					if err != nil {
-						return err
-					}
-					u.SetDirectory(absPath)
+				d, err := util.NormalizePath(d)
+				if err != nil {
+					return err
 				}
+				u.SetDirectory(d)
 			}
 			if u, ok := tool.(tools.RunsWithAPIClient); ok {
 				u.SetAPIClient(opts.GetAPIClient())
