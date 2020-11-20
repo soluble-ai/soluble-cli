@@ -2,6 +2,8 @@ package iacscan
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
@@ -22,9 +24,19 @@ func createCommand(tool tools.Interface) *cobra.Command {
 			if u, ok := tool.(tools.RunsInDirectory); ok {
 				d, _ := cmd.Flags().GetString("directory")
 				if d == "" {
-					return fmt.Errorf("%s requires --directory", tool.Name())
+					cDir, err := os.Getwd()
+					if err != nil {
+						return err
+					}
+					u.SetDirectory(cDir)
+				} else {
+					// use absolute path always to make it consistent across tools
+					absPath, err := filepath.Abs(d)
+					if err != nil {
+						return err
+					}
+					u.SetDirectory(absPath)
 				}
-				u.SetDirectory(d)
 			}
 			if u, ok := tool.(tools.RunsWithAPIClient); ok {
 				u.SetAPIClient(opts.GetAPIClient())
@@ -86,8 +98,9 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "iac-scan",
 		Short: "Run an Infrastructure-as-code scanner",
-		Example: `  # run the default scanner in the current directory
-  iac-scan default -d .`,
+		Example: `  # run the Infrastructure as Code scanner tool in the current directory if directory is not specified
+  iac-scan <tool-name>
+  iac-scan <tool-name> -d my-directory`,
 	}
 	t := createCommand(&terrascan.Tool{})
 	t.Aliases = []string{"default"}
