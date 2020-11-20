@@ -22,7 +22,7 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) IaCTypes() []string {
-	return []string{"terraform"}
+	return []string{"terraform", "cloudformation", "kubernetes"}
 }
 
 func (t *Tool) SetDirectory(dir string) {
