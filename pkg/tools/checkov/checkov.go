@@ -12,17 +12,13 @@ import (
 )
 
 type Tool struct {
-	Directory string
+	tools.DirectoryBasedToolOpts
 }
 
-var _ tools.RunsInDirectory = &Tool{}
+var _ tools.Interface = &Tool{}
 
 func (t *Tool) Name() string {
 	return "checkov"
-}
-
-func (t *Tool) IaCTypes() []string {
-	return []string{"terraform", "cloudformation", "kubernetes"}
 }
 
 func (t *Tool) SetDirectory(dir string) {

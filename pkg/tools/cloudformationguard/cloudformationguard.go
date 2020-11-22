@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -21,26 +21,23 @@ const (
 )
 
 type Tool struct {
-	File      string
-	APIClient client.Interface
+	tools.ToolOpts
+	File string
 
 	rulesInstallDir string
 	program         string
 	version         string
 }
 
-var _ tools.RunsWithAPIClient = &Tool{}
+var _ tools.Interface = &Tool{}
 
 func (t *Tool) Name() string {
 	return "cloudformationguard"
 }
 
-func (t *Tool) IaCTypes() []string {
-	return []string{"cloudformation"}
-}
-
-func (t *Tool) SetAPIClient(apiClient client.Interface) {
-	t.APIClient = apiClient
+func (t *Tool) Register(cmd *cobra.Command) {
+	t.ToolOpts.Register(cmd)
+	cmd.Flags().StringVar(&t.File, "file", "", "The cloudformation file to scan")
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -118,7 +115,7 @@ func (t *Tool) installProgram() error {
 }
 
 func (t *Tool) downloadRules() error {
-	d, err := tools.InstallAPIServerArtifact(t.APIClient, "cfn-guard-policies",
+	d, err := t.InstallAPIServerArtifact("cfn-guard-policies",
 		fmt.Sprintf("/api/v1/org/{org}/cfn-guard/%s", rulesZip))
 	if err != nil {
 		return err

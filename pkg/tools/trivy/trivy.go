@@ -11,9 +11,11 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
+	tools.ToolOpts
 	Image         string
 	IgnoreUnfixed bool
 	ClearCache    bool
@@ -25,8 +27,13 @@ func (t *Tool) Name() string {
 	return "trivy"
 }
 
-func (t *Tool) IaCType() []string {
-	return []string{"docker-image", "filesystem"} // not sure how else to enumerate local scanner support
+func (t *Tool) Register(cmd *cobra.Command) {
+	t.ToolOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.StringVarP(&t.Image, "image", "i", "", "The image to scan")
+	flags.BoolVarP(&t.ClearCache, "clear-cache", "c", false, "clear image caches and then start scanning")
+	flags.BoolVarP(&t.IgnoreUnfixed, "ignore-unfixed", "u", false, "display only fixed vulnerabilities")
+	_ = cmd.MarkFlagRequired("image")
 }
 
 func (t *Tool) Run() (*tools.Result, error) {

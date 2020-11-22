@@ -14,11 +14,6 @@
 
 package util
 
-import (
-	"os"
-	"path/filepath"
-)
-
 func StringSliceContains(s []string, t string) bool {
 	for i := range s {
 		if s[i] == t {
@@ -26,21 +21,4 @@ func StringSliceContains(s []string, t string) bool {
 		}
 	}
 	return false
-}
-
-func NormalizePath(path string) (normalizedPath string, err error) {
-	if path == "" {
-		normalizedPath, err = os.Getwd()
-		if err != nil {
-			return "", err
-		}
-	} else {
-		// use absolute path always to make it consistent across tools
-		normalizedPath, err = filepath.Abs(path)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return normalizedPath, nil
 }

@@ -12,10 +12,12 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 type GithubIacInventoryScanner struct {
+	tools.ToolOpts
 	User                 string
 	OauthToken           string
 	AllRepos             bool
@@ -28,6 +30,17 @@ var _ tools.Interface = &GithubIacInventoryScanner{}
 
 func (g *GithubIacInventoryScanner) Name() string {
 	return "github-iac-inventory"
+}
+
+func (g *GithubIacInventoryScanner) Register(c *cobra.Command) {
+	g.ToolOpts.Register(c)
+	flags := c.Flags()
+	flags.StringVar(&g.User, "gh-username", "", "Github Username")
+	flags.StringVar(&g.OauthToken, "gh-oauthtoken", "", "Github OAuthToken")
+	flags.BoolVar(&g.AllRepos, "all", false, "Inventory all accessible public and private repositories.")
+	flags.BoolVar(&g.PublicRepos, "public", false, "Inventory accessible public repositories.")
+	flags.StringSliceVar(&g.ExplicitRepositories, "repository", nil, "Inventory this repository. May be repeated.")
+	flags.StringSliceVar(&g.Orgs, "org", nil, "Inventory repositories for a specific Organization. May be repeated.")
 }
 
 func (g *GithubIacInventoryScanner) Run() (*tools.Result, error) {

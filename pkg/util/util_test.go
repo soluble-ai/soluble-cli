@@ -34,21 +34,3 @@ func TestContains(t *testing.T) {
 		}
 	}
 }
-
-func TestNormalizedPath(t *testing.T) {
-	d := "."
-	np, err := NormalizePath(d)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if np == "." {
-		t.Error("path should be absolute")
-	}
-
-	d = ""
-	np, _ = NormalizePath(d)
-	if len(np) == 0 {
-		t.Error("should be resolved to current directory")
-	}
-}

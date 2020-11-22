@@ -21,8 +21,7 @@ func TestFilesTarball(t *testing.T) {
 	}
 	result.AddFile("zero.txt")
 	result.AddFile(filepath.Join(dir, "one/one.txt"))
-	opts := &ToolOpts{}
-	f, err := opts.createTarball(result)
+	f, err := result.createTarball()
 	util.Must(err)
 	mfs := afero.NewMemMapFs()
 	util.Must(archive.UntarReader(f, true, mfs, nil))
