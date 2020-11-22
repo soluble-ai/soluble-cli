@@ -12,21 +12,11 @@ import (
 )
 
 type Tool struct {
-	Directory string
+	tools.DirectoryBasedToolOpts
 }
-
-var _ tools.RunsInDirectory = &Tool{}
 
 func (t *Tool) Name() string {
 	return "cfn-python-lint"
-}
-
-func (t *Tool) IaCTypes() []string {
-	return []string{"cloudformation"}
-}
-
-func (t *Tool) SetDirectory(dir string) {
-	t.Directory = dir
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -34,7 +24,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	// #nosec G204
-	c := exec.Command("docker", "run", "--volume", fmt.Sprintf("%s:%s:ro", t.Directory, "/data"),
+	c := exec.Command("docker", "run", "--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/data"),
 		"gcr.io/soluble-repo/soluble-cfn-lint:latest",
 		"/data/**/*.yaml", "/data/**/*.yml", "/data/**/*.json", "/data/**/*.template")
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))

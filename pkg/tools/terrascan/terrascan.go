@@ -7,15 +7,13 @@ import (
 	"path/filepath"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
 var (
-	_ tools.RunsInDirectory   = &Tool{}
-	_ tools.RunsWithAPIClient = &Tool{}
+	_ tools.Interface = &Tool{}
 )
 
 const (
@@ -24,26 +22,13 @@ const (
 )
 
 type Tool struct {
-	Directory string
-	APIClient client.Interface
+	tools.DirectoryBasedToolOpts
 
 	policyPath string
 }
 
 func (t *Tool) Name() string {
 	return "terrascan"
-}
-
-func (t *Tool) IaCTypes() []string {
-	return []string{"terraform", "kubernetes"}
-}
-
-func (t *Tool) SetDirectory(dir string) {
-	t.Directory = dir
-}
-
-func (t *Tool) SetAPIClient(apiClient client.Interface) {
-	t.APIClient = apiClient
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -57,12 +42,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err = t.downloadPolicies(); err != nil {
 		return nil, err
 	}
-	log.Infof("Running {info:terrascan} -d %s", t.Directory)
+	log.Infof("Running {info:terrascan} -d %s", t.GetDirectory())
 	program := filepath.Join(d.Dir, "terrascan")
 	// the -t argument is required but it only selects what policies are
 	// selected if the -p option isn't used.  Since we're using -p,
 	// we can pass any valid value.
-	scan := exec.Command(program, "scan", "-t", "aws", "-d", t.Directory, "-p", t.policyPath, "-o", "json")
+	scan := exec.Command(program, "scan", "-t", "aws", "-d", t.GetDirectory(), "-p", t.policyPath, "-o", "json")
 	scan.Stderr = os.Stderr
 	output, err := scan.Output()
 	if err != nil {
@@ -78,7 +63,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	result := &tools.Result{
 		Data:      n,
-		Directory: t.Directory,
+		Directory: t.GetDirectory(),
 		Values: map[string]string{
 			"TERRASCAN_VERSION": d.Version,
 		},
@@ -95,7 +80,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func (t *Tool) downloadPolicies() error {
-	d, err := tools.InstallAPIServerArtifact(t.APIClient, "terrascan-policies",
+	d, err := t.InstallAPIServerArtifact("terrascan-policies",
 		fmt.Sprintf("/api/v1/org/{org}/opa/%s", policyZip))
 	if err != nil {
 		return err

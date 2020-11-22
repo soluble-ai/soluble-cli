@@ -14,21 +14,13 @@ import (
 )
 
 type Tool struct {
-	Directory string
+	tools.DirectoryBasedToolOpts
 }
 
-var _ tools.RunsInDirectory = &Tool{}
+var _ tools.Interface = &Tool{}
 
 func (t *Tool) Name() string {
 	return "tfsec"
-}
-
-func (t *Tool) IaCTypes() []string {
-	return []string{"terraform"}
-}
-
-func (t *Tool) SetDirectory(dir string) {
-	t.Directory = dir
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -45,7 +37,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Values: map[string]string{
 			"TFSEC_VERSION": d.Version,
 		},
-		Directory: t.Directory,
+		Directory: t.GetDirectory(),
 		PrintPath: []string{"results"},
 		PrintColumns: []string{
 			"rule_id",
@@ -57,7 +49,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	// #nosec G204
 	c := exec.Command(filepath.Join(d.Dir, "tfsec-tfsec"), "-f", "json", ".")
-	c.Dir = t.Directory
+	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
 	output, err := c.Output()
@@ -71,7 +63,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	dir := t.Directory
+	dir := t.GetDirectory()
 	if !filepath.IsAbs(dir) {
 		// tfsec reports absolute paths which we have to convert to
 		// relative paths

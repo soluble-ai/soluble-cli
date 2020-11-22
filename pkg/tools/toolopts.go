@@ -1,21 +1,9 @@
 package tools
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"os"
-
-	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/archive"
-	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
-	"github.com/soluble-ai/soluble-cli/pkg/version"
-	"github.com/soluble-ai/soluble-cli/pkg/xcp"
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +14,10 @@ type ToolOpts struct {
 }
 
 var _ options.Interface = &ToolOpts{}
+
+func (o *ToolOpts) GetToolOptions() *ToolOpts {
+	return o
+}
 
 func (o *ToolOpts) Register(c *cobra.Command) {
 	// set this now so help shows up, it will be corrected before we print anything
@@ -39,88 +31,12 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 
 func (o *ToolOpts) SetContextValues(m map[string]string) {}
 
-func (o *ToolOpts) RunTool(tool Interface) error {
-	if o.UploadEnabled && o.GetAPIClientConfig().APIToken == "" {
-		blurb.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble}.", "")
-		return fmt.Errorf("not authenticated with Soluble")
-	}
-	result, err := tool.Run()
-	if err != nil {
-		return err
-	}
-	result.AddValue("TOOL_NAME", tool.Name()).
-		AddValue("CLI_VERSION", version.Version)
-	if result.Data != nil && result.PrintPath != nil {
-		// include the print config in the results
-		p := result.Data.PutObject("soluble_print_config")
-		p.Put("print_path", jnode.FromSlice(result.PrintPath))
-		p.Put("print_columns", jnode.FromSlice(result.PrintColumns))
-	}
-
-	assessmentURL := ""
-	if o.UploadEnabled {
-		response, err := o.reportResult(tool, result)
-		if err != nil {
-			return err
-		}
-		assessmentURL = response.Path("assessment").Path("appUrl").AsText()
-	}
-
-	o.Path = result.PrintPath
-	o.Columns = result.PrintColumns
-	o.PrintResult(result.Data)
-
-	if !o.UploadEnabled {
-		blurb.SignupBlurb(o, "Want to manage results centrally with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
-	}
-	if assessmentURL != "" {
-		log.Infof("Results uploaded, see {primary:%s} for more information", assessmentURL)
-	}
-
-	return nil
-}
-
-func (o *ToolOpts) reportResult(tool Interface, result *Result) (*jnode.Node, error) {
-	rr := bytes.NewReader([]byte(result.Data.String()))
-	log.Infof("Uploading results of {primary:%s}", tool.Name())
-	options := []client.Option{
-		xcp.WithCIEnv, xcp.WithFileFromReader("results_json", "results.json", rr),
-	}
-	if !o.OmitContext && result.Files != nil {
-		tarball, err := o.createTarball(result)
-		if err != nil {
-			return nil, err
-		}
-		defer tarball.Close()
-		defer os.Remove(tarball.Name())
-		options = append(options, xcp.WithFileFromReader("tarball", "context.tar.gz", tarball))
-	}
-	return o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, result.Values, options...)
-}
-
-func (o *ToolOpts) createTarball(result *Result) (afero.File, error) {
-	fs := afero.NewOsFs()
-	f, err := afero.TempFile(fs, "", "soluble-cli*")
-	if err != nil {
-		return nil, err
-	}
-	tar := archive.NewTarballWriter(f)
-	err = util.PropagateCloseError(tar, func() error {
-		if result.Files != nil {
-			for _, file := range result.Files.Values() {
-				if err := tar.WriteFile(fs, result.Directory, file); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
+func (o *ToolOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Download, error) {
+	apiClient := o.GetAPIClient()
+	m := download.NewManager()
+	return m.Install(&download.Spec{
+		Name:              name,
+		APIServerArtifact: urlPath,
+		APIServer:         apiClient.(*client.Client),
 	})
-	if err != nil {
-		_ = f.Close()
-		_ = os.Remove(f.Name())
-		return nil, err
-	}
-	// leave the tarball open, but rewind it to the start
-	_, err = f.Seek(0, io.SeekStart)
-	return f, err
 }
