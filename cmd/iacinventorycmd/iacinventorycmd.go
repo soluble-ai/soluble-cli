@@ -7,8 +7,9 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := tools.CreateCommand(&iacinventory.GithubIacInventoryScanner{})
-	c.Use = "iac-inventory"
-	c.Short = "Look for infrastructure-as-code and optionally send the inventory to Soluble"
-	return c
+	return tools.CreateCommand(&iacinventory.GithubIacInventoryScanner{},
+		&cobra.Command{
+			Use:   "iac-inventory",
+			Short: "Look for infrastructure-as-code and optionally send the inventory to Soluble",
+		})
 }

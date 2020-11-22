@@ -31,6 +31,7 @@ import (
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
+	secretscanner "github.com/soluble-ai/soluble-cli/cmd/secretscannercmd"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
 	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
@@ -124,6 +125,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		imagescan.Command(),
 		iacinventorycmd.Command(),
 		logincmd.Command(),
+		secretscanner.Command(),
 	)
 }
 

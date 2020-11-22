@@ -10,13 +10,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CreateCommand(tool Interface) *cobra.Command {
-	c := &cobra.Command{
-		Use:  tool.Name(),
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runTool(tool)
-		},
+func CreateCommand(tool Interface, c *cobra.Command) *cobra.Command {
+	if c == nil {
+		c = &cobra.Command{
+			Use:  tool.Name(),
+			Args: cobra.NoArgs,
+		}
+	}
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		return runTool(tool)
 	}
 	tool.Register(c)
 	return c
