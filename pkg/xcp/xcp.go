@@ -52,9 +52,13 @@ var (
 
 var _ client.Option = WithCIEnv
 
-// For XCPPost, Include CI-related environment variables in the request.
+// Include CI-related environment variables in the request.
 func WithCIEnv(req *resty.Request) {
-	req.SetMultipartFormData(getCIEnv())
+	if req.Method == "GET" {
+		req.SetQueryParams(getCIEnv())
+	} else {
+		req.SetMultipartFormData(getCIEnv())
+	}
 }
 
 // For XCPPost, include a file from a reader.
