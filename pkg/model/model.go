@@ -28,6 +28,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +50,7 @@ type CommandModel struct {
 	Aliases           *[]string         `hcl:"aliases"`
 	Path              *string           `hcl:"path"`
 	Method            *string           `hcl:"method"`
+	Options           *[]string         `hcl:"options"`
 	Parameters        []*ParameterModel `hcl:"parameter,block"`
 	ParameterNames    *[]string         `hcl:"parameters"`
 	ClusterIDOptional *bool             `hcl:"cluster_id_optional"`
@@ -161,6 +163,14 @@ func (cm *CommandModel) validate(m *Model, parent *CommandModel) error {
 		if cm.Method == nil || !util.StringSliceContains(validMethods, *cm.Method) {
 			return fmt.Errorf("command %s: invalid method %v must be one of %s", cm.Name, cm.Method, strings.Join(validMethods, " "))
 		}
+
+		if cm.Options != nil {
+			for _, opt := range *cm.Options {
+				if !util.StringSliceContains(validOptions, opt) {
+					return fmt.Errorf("command %s: invalid option %s must be one of %s", cm.Name, opt, strings.Join(validOptions, " "))
+				}
+			}
+		}
 		if cm.Path == nil {
 			return fmt.Errorf("command %s: path is required", cm.Name)
 		}
@@ -255,21 +265,22 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 	} else {
 		apiClient = command.GetAPIClient()
 	}
+	options := cm.getOptions()
 	switch *cm.Method {
 	case GetMethod:
-		result, err = apiClient.GetWithParams(path, parameters)
+		result, err = apiClient.GetWithParams(path, parameters, options...)
 	case DeleteMethod:
-		result, err = apiClient.Delete(path)
+		result, err = apiClient.Delete(path, options...)
 	case PostMethod:
 		if body == nil {
 			body = toBody(parameters)
 		}
-		result, err = apiClient.Post(path, body)
+		result, err = apiClient.Post(path, body, options...)
 	case PatchMethod:
 		if body == nil {
 			body = toBody(parameters)
 		}
-		result, err = apiClient.Patch(path, body)
+		result, err = apiClient.Patch(path, body, options...)
 	default:
 		panic(fmt.Errorf("unknown method %s", *cm.Method))
 	}
@@ -348,6 +359,23 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 		}
 	}
 	return values, body, nil
+}
+
+func (cm *CommandModel) getOptions() []client.Option {
+	var result []client.Option
+	if cm.Options != nil {
+		for _, name := range *cm.Options {
+			var opt client.Option
+			switch name {
+			case XCPCI:
+				opt = xcp.WithCIEnv
+			default:
+				panic("unknown option " + name)
+			}
+			result = append(result, opt)
+		}
+	}
+	return result
 }
 
 func (d *ParameterDefs) validate() error {

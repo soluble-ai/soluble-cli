@@ -132,16 +132,20 @@ func NewClient(config *Config) Interface {
 	return c
 }
 
-func applyOptions(r *resty.Request, options []Option) *resty.Request {
+func execute(r *resty.Request, method, path string, options []Option) error {
+	// set r.Method here so that options can do different things
+	// depending on the method
+	r.Method = method
 	for _, opt := range options {
 		opt(r)
 	}
-	return r
+	_, err := r.Execute(method, path)
+	return err
 }
 
 func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if _, err := applyOptions(c.R().SetBody(body).SetResult(result), options).Post(path); err != nil {
+	if err := execute(c.R().SetBody(body).SetResult(result), resty.MethodPost, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -149,7 +153,7 @@ func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.
 
 func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if _, err := applyOptions(c.R().SetResult(result), options).Get(path); err != nil {
+	if err := execute(c.R().SetResult(result), resty.MethodGet, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -157,7 +161,8 @@ func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 
 func (c *Client) GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if _, err := applyOptions(c.R().SetQueryParams(params).SetResult(result), options).Get(path); err != nil {
+
+	if err := execute(c.R().SetQueryParams(params).SetResult(result), resty.MethodGet, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -165,7 +170,7 @@ func (c *Client) GetWithParams(path string, params map[string]string, options ..
 
 func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if _, err := applyOptions(c.R().SetResult(result), options).Delete(path); err != nil {
+	if err := execute(c.R().SetResult(result), resty.MethodDelete, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -173,7 +178,7 @@ func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 
 func (c *Client) Patch(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if _, err := applyOptions(c.R().SetResult(result).SetBody(body), options).Patch(path); err != nil {
+	if err := execute(c.R().SetResult(result).SetBody(body), resty.MethodPatch, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -200,9 +205,10 @@ func (c *Client) XCPPost(orgID string, module string, files []string, values map
 	req.SetMultipartFormData(values)
 	result := jnode.NewObjectNode()
 	req.SetResult(result)
-	req = applyOptions(req, options)
-	_, err := req.Post(fmt.Sprintf("/api/v1/xcp/%s/data", module))
-	return result, err
+	if err := execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (c *Client) GetOrganization() string {
