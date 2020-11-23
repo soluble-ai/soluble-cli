@@ -31,7 +31,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 
 	// #nosec G204
-	c := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:%s", t.Directory, "/tf"),
+	c := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:%s", t.GetDirectory(), "/tf"),
 		"gcr.io/soluble-repo/checkov:latest", "-d", "/tf", "-o", "json", "-s")
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
 	c.Stderr = os.Stderr
