@@ -22,7 +22,9 @@ import (
 )
 
 func TestValue(t *testing.T) {
-	vp := NewValuePrinter("value(x.y)", []string{"data"}, nil)
+	vp := &ValuePrinter{Format: "value(x.y)", PathSupport: PathSupport{
+		Path: []string{"data"},
+	}}
 	n := jnode.NewObjectNode()
 	n.PutObject("a").Put("b", "hello")
 	a := n.PutArray("data")
@@ -32,7 +34,7 @@ func TestValue(t *testing.T) {
 	if s := w.String(); s != "1\n" {
 		t.Error(s)
 	}
-	vp = NewValuePrinter("value(a.b)", nil, nil)
+	vp = &ValuePrinter{Format: "value(a.b)"}
 	w.Reset()
 	vp.PrintResult(w, n)
 	if s := w.String(); s != "hello\n" {

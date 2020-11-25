@@ -2,6 +2,7 @@ package blurb
 
 import (
 	"bytes"
+	"os"
 	"strings"
 
 	"github.com/soluble-ai/soluble-cli/pkg/config"
@@ -23,6 +24,7 @@ func SignupBlurb(opts options.Interface, first, use string) {
 	if Blurbed {
 		return
 	}
+	_ = os.Stdout.Sync()
 	Blurbed = true
 	auth := config.Config.APIToken != ""
 	if c, ok := opts.(authenticatedP); ok {

@@ -153,8 +153,10 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			Formatters:  p.Formatters,
 		}, nil
 	case "value":
-		vp := print.NewValuePrinter(p.OutputFormat, p.Path, p.SortBy)
-		vp.Filter = print.NewFilter(p.Filter)
+		vp := &print.ValuePrinter{
+			Format:      p.OutputFormat,
+			PathSupport: p.getPathSupport(),
+		}
 		return vp, nil
 	case "table":
 		if p.Path == nil {
@@ -198,6 +200,7 @@ func (p *PrintOpts) getPathSupport() print.PathSupport {
 		Path:            p.Path,
 		SortBy:          p.SortBy,
 		ComputedColumns: p.ComputedColumns,
+		Limit:           p.Limit,
 	}
 }
 
