@@ -30,3 +30,26 @@ func TestPrintResult(t *testing.T) {
 		t.Error(s)
 	}
 }
+
+func TestPrintLimit(t *testing.T) {
+	opts := &PrintOpts{
+		Limit:     1,
+		Path:      []string{},
+		Columns:   []string{"x"},
+		NoHeaders: true,
+	}
+	w := &bytes.Buffer{}
+	opts.output = w
+	opts.PrintResult(fromJSON(`[{"x":"one"},{"x":"two"}]`))
+	if s := w.String(); s != "one\n" {
+		t.Error(s)
+	}
+}
+
+func fromJSON(s string) *jnode.Node {
+	n, err := jnode.FromJSON([]byte(s))
+	if err != nil {
+		panic(err)
+	}
+	return n
+}

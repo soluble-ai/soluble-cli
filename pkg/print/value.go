@@ -27,28 +27,22 @@ import (
 
 type ValuePrinter struct {
 	PathSupport
-	Name []string
+	Format string
 }
 
 var _ Interface = &ValuePrinter{}
 
 var valueSpecRe = regexp.MustCompile(`value\((.*)\)`)
 
-func NewValuePrinter(format string, path []string, sortBy []string) *ValuePrinter {
-	m := valueSpecRe.FindStringSubmatch(format)
+func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
+	m := valueSpecRe.FindStringSubmatch(p.Format)
 	if m[1] == "" {
-		log.Warnf("invalid value specifier {warning:%s} - must be in the form 'value(name)'", format)
+		log.Warnf("invalid value specifier {warning:%s} - must be in the form 'value(name)'", p.Format)
 		os.Exit(2)
 	}
-	return &ValuePrinter{
-		PathSupport: PathSupport{Path: path, SortBy: sortBy},
-		Name:        strings.Split(m[1], "."),
-	}
-}
-
-func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
-	if len(p.Path) == 0 {
-		n := Nav(result, p.Name)
+	name := strings.Split(m[1], ".")
+	if p.Path == nil {
+		n := Nav(result, name)
 		if !n.IsMissing() {
 			fmt.Fprintln(w, n.AsText())
 			return 1
@@ -57,7 +51,7 @@ func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	} else {
 		rows := p.getRows(result)
 		for _, row := range rows {
-			n := Nav(row, p.Name)
+			n := Nav(row, name)
 			if !n.IsMissing() {
 				fmt.Fprintln(w, n.AsText())
 			}
