@@ -16,6 +16,7 @@ type ToolOpts struct {
 	options.PrintClientOpts
 	UploadEnabled bool
 	OmitContext   bool
+	ToolVersion   string
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -32,6 +33,7 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 	flags := c.Flags()
 	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload report to Soluble")
 	flags.BoolVar(&o.OmitContext, "omit-context", false, "Don't include the source files with violations in the upload")
+	flags.StringVar(&o.ToolVersion, "tool-version", "", "Override version of the tool to run (the image or github release name.)")
 }
 
 func (o *ToolOpts) SetContextValues(m map[string]string) {}
@@ -67,11 +69,15 @@ func (o *ToolOpts) InstallTool(spec *download.Spec) (*download.Download, error) 
 }
 
 func (o *ToolOpts) getToolVersion(name string) *jnode.Node {
-	temp := log.SetTempLevel(log.Warning)
+	if o.ToolVersion != "" {
+		return jnode.NewObjectNode().
+			Put("image", o.ToolVersion).
+			Put("version", o.ToolVersion)
+	}
+	temp := log.SetTempLevel(log.Error - 1)
 	defer temp.Restore()
 	n, err := o.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
 	if err != nil {
-		log.Warnf("Could not get version of {primary:%s}: {warning:%s}", name, err)
 		return jnode.MissingNode
 	}
 	return n
