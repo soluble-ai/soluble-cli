@@ -83,10 +83,10 @@ func (f *FSIACInventoryScanner) Run() (*tools.Result, error) {
 			switch iacType {
 			case "terraform_dirs":
 				for _, sDir := range sDirs {
-					wg.Add(3)
-					go scan("terrascan", filepath.Join(dir, sDir), &wg)
+					wg.Add(1)
+					// go scan("terrascan", filepath.Join(dir, sDir), &wg)
 					go scan("checkov", filepath.Join(dir, sDir), &wg)
-					go scan("tfsec", filepath.Join(dir, sDir), &wg)
+					// go scan("tfsec", filepath.Join(dir, sDir), &wg)
 					time.Sleep(1 * time.Second)
 				}
 			case "cloudformation_dirs":
@@ -98,76 +98,6 @@ func (f *FSIACInventoryScanner) Run() (*tools.Result, error) {
 			}
 		}
 		wg.Wait()
-		/*
-			fmt.Println()
-			cmd := iacscan.Command()
-			var buf bytes.Buffer
-			cmd.SetOut(&buf)
-			log.Infof("Scanning Terraform Directories...")
-			wg := sync.WaitGroup{}
-			for _, sDir := range iacRes.TerraformDirs {
-				wg.Add(1)
-				go func(relDir string) {
-					c := *cmd
-					c.SetArgs([]string{"terrascan", "--directory", filepath.Join(dir, relDir), "--upload"})
-					if err := c.Execute(); err != nil {
-						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
-					}
-					wg.Done()
-				}(sDir)
-
-				wg.Add(1)
-				go func(relDir string) {
-					c := *cmd
-					c.SetArgs([]string{"checkov", "--directory", filepath.Join(dir, relDir), "--upload"})
-					if err := c.Execute(); err != nil {
-						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
-					}
-					wg.Done()
-				}(sDir)
-
-				wg.Add(1)
-				go func(relDir string) {
-					c := *cmd
-					c.SetArgs([]string{"tfsec", "--directory", filepath.Join(dir, relDir), "--upload"})
-					if err := c.Execute(); err != nil {
-						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
-					}
-					wg.Done()
-				}(sDir)
-
-				buf.Reset()
-			}
-			wg.Wait()
-
-			log.Infof("Scanning Cloudformation Directories...")
-			for _, sDir := range iacRes.CloudformationDirs {
-				wg := sync.WaitGroup{}
-				wg.Add(1)
-				go func(relDir string) {
-					c := *cmd
-					c.SetArgs([]string{"cfn-python-lint", "--directory", filepath.Join(dir, sDir), "--upload"})
-					if err := c.Execute(); err != nil {
-						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
-					}
-					wg.Done()
-				}(sDir)
-
-				buf.Reset()
-			}
-			wg.Wait()
-			// we also have to loop cloudformation files, because #cfnguard
-			/*
-				for _, sFile := range iacRes.CloudformationFiles {
-					cmd.SetArgs([]string{"cloudformationguard", "--file", filepath.Join(dir, sFile)}, "--upload")
-					if err := cmd.Execute(); err != nil {
-						return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
-					}
-					log.Debugf("scanned %s", filepath.Join(dir, sFile))
-					// fmt.Println(buf.Bytes()) // we may want to do something with the output at some point
-					buf.Reset()
-				}
-		*/
 		log.Infof("Scan complete.")
 	}
 	return result, err
