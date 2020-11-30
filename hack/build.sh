@@ -18,6 +18,13 @@ VERSION=$(git describe --tags --dirty --always)
 # run with ./build.sh none to skip building executables
 # or ./build.sh windows to build only windows, etc
 exes="$1"
+if [ -z "$exes" ]; then
+  # if running as a github action then avoid building exes
+  # unless this is a release build
+  if [ -n "$GITHUB_EVENT_NAME" -a "$GITHUB_EVENT_NAME" != "release" ]; then
+    exes="none"
+  fi
+fi
 
 echo "Version ${VERSION}"
 

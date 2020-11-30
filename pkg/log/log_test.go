@@ -30,3 +30,21 @@ func TestLog(t *testing.T) {
 		t.Error(s)
 	}
 }
+
+func TestTemp(t *testing.T) {
+	w := bytes.Buffer{}
+	color.Output = &w
+	color.NoColor = true
+	func() {
+		t := SetTempLevel(Error)
+		defer t.Restore()
+		Infof("hello")
+	}()
+	if s := w.String(); s != "" {
+		t.Error(s)
+	}
+	Infof("There")
+	if s := w.String(); s != "[ Info] There\n" {
+		t.Error(s)
+	}
+}

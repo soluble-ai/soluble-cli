@@ -37,8 +37,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	m := download.NewManager()
-	d, err := m.Install(&download.Spec{
+	d, err := t.InstallTool(&download.Spec{
 		URL: "github.com/aquasecurity/trivy",
 	})
 	if err != nil {

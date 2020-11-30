@@ -69,6 +69,20 @@ func Warnf(template string, args ...interface{}) {
 	Log(Warning, template, args...)
 }
 
+type TempLevel struct {
+	orig int
+}
+
+func SetTempLevel(level int) *TempLevel {
+	t := &TempLevel{orig: Level}
+	Level = level
+	return t
+}
+
+func (l *TempLevel) Restore() {
+	Level = l.orig
+}
+
 func init() {
 	color.Output = colorable.NewColorableStderr()
 }

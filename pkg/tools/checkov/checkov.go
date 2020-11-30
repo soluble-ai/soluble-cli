@@ -3,11 +3,8 @@ package checkov
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
@@ -26,16 +23,16 @@ func (t *Tool) SetDirectory(dir string) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	if err := tools.HasDocker(); err != nil {
-		return nil, err
-	}
-
-	// #nosec G204
-	c := exec.Command("docker", "run", "-v", fmt.Sprintf("%s:%s", t.GetDirectory(), "/tf"),
-		"gcr.io/soluble-repo/checkov:latest", "-d", "/tf", "-o", "json", "-s")
-	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
-	c.Stderr = os.Stderr
-	dat, err := c.Output()
+	dat, err := t.RunDocker(&tools.DockerTool{
+		Name:  "checkov",
+		Image: "gcr.io/soluble-repo/checkov:latest",
+		DockerArgs: []string{
+			"-v", fmt.Sprintf("%s:%s", t.GetDirectory(), "/tf"),
+		},
+		Args: []string{
+			"-d", "/tf", "-o", "json", "-s",
+		},
+	})
 	if err != nil {
 		if dat != nil {
 			_, _ = os.Stderr.Write(dat)

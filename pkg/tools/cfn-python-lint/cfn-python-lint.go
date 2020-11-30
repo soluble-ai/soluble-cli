@@ -3,11 +3,8 @@ package cfnpythonlint
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
@@ -20,16 +17,16 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	if err := tools.HasDocker(); err != nil {
-		return nil, err
-	}
-	// #nosec G204
-	c := exec.Command("docker", "run", "--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/data"),
-		"gcr.io/soluble-repo/soluble-cfn-lint:latest",
-		"/data/**/*.yaml", "/data/**/*.yml", "/data/**/*.json", "/data/**/*.template")
-	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
-	c.Stderr = os.Stderr
-	d, _ := c.Output()
+	d, _ := t.RunDocker(&tools.DockerTool{
+		Name:  "cfn-python-lint",
+		Image: "gcr.io/soluble-repo/soluble-cfn-lint:latest",
+		DockerArgs: []string{
+			"--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/data"),
+		},
+		Args: []string{
+			"/data/**/*.yaml", "/data/**/*.yml", "/data/**/*.json", "/data/**/*.template",
+		},
+	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {

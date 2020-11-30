@@ -24,9 +24,8 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	m := download.NewManager()
 	// versions past v0.30.0 seem broken?
-	d, err := m.Install(&download.Spec{
+	d, err := t.InstallTool(&download.Spec{
 		URL:              "github.com/tfsec/tfsec",
 		RequestedVersion: "v0.30.0",
 	})

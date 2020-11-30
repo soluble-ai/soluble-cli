@@ -3,11 +3,8 @@ package secrets
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
@@ -22,17 +19,13 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	if err := tools.HasDocker(); err != nil {
-		return nil, err
-	}
-
-	// #nosec G204
-	c := exec.Command("docker", "run", "--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/repo"),
-		"gcr.io/soluble-repo/soluble-secrets:latest")
-	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
-
-	c.Stderr = os.Stderr
-	d, _ := c.Output()
+	d, _ := t.RunDocker(&tools.DockerTool{
+		Name:  "soluble-secrets",
+		Image: "gcr.io/oluble-repo/soluble-secrets:latest",
+		DockerArgs: []string{
+			"--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/repo"),
+		},
+	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {
