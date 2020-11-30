@@ -86,8 +86,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func (t *Tool) installProgram() error {
-	m := download.NewManager()
-	d, err := m.Install(&download.Spec{
+	d, err := t.InstallTool(&download.Spec{
 		URL: "github.com/aws-cloudformation/cloudformation-guard",
 		GithubReleaseMatcher: func(release string) download.ReleasePriority {
 			if download.IsMatchingOS(release, runtime.GOOS) {

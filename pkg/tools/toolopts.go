@@ -1,8 +1,13 @@
 package tools
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -39,4 +44,35 @@ func (o *ToolOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Dow
 		APIServerArtifact: urlPath,
 		APIServer:         apiClient.(*client.Client),
 	})
+}
+
+func (o *ToolOpts) RunDocker(d *DockerTool) ([]byte, error) {
+	n := o.getToolVersion(d.Name)
+	if image := n.Path("image"); !image.IsMissing() {
+		d.Image = image.AsText()
+	}
+	return d.run()
+}
+
+func (o *ToolOpts) InstallTool(spec *download.Spec) (*download.Download, error) {
+	if strings.HasPrefix(spec.URL, "github.com/") {
+		slash := strings.LastIndex(spec.URL, "/")
+		n := o.getToolVersion(spec.URL[slash+1:])
+		if v := n.Path("version"); !v.IsMissing() {
+			spec.RequestedVersion = v.AsText()
+		}
+	}
+	m := download.NewManager()
+	return m.Install(spec)
+}
+
+func (o *ToolOpts) getToolVersion(name string) *jnode.Node {
+	temp := log.SetTempLevel(log.Warning)
+	defer temp.Restore()
+	n, err := o.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
+	if err != nil {
+		log.Warnf("Could not get version of {primary:%s}: {warning:%s}", name, err)
+		return jnode.MissingNode
+	}
+	return n
 }

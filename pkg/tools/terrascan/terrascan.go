@@ -32,8 +32,7 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	m := download.NewManager()
-	d, err := m.Install(&download.Spec{
+	d, err := t.InstallTool(&download.Spec{
 		URL: "github.com/accurics/terrascan",
 	})
 	if err != nil {
