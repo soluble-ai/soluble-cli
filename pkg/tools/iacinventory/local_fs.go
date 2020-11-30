@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/cmd/iacscan"
@@ -65,54 +67,122 @@ func (f *FSIACInventoryScanner) Run() (*tools.Result, error) {
 		r.Put("dockerfile_count", r.Path("dockerfile_files").Size())
 		r.Put("k8s_manifest_dir_count", r.Path("k8s_manifest_dirs").Size())
 		a.Append(r)
+
 		if !f.IACScan {
 			continue
 		}
-		fmt.Println()
-		cmd := iacscan.Command()
-		var buf bytes.Buffer
-		cmd.SetOut(&buf)
-		log.Infof("Scanning Terraform Directories...")
-		for _, sDir := range iacRes.TerraformDirs {
-			cmd.SetArgs([]string{"terrascan", "--directory", filepath.Join(dir, sDir), "--upload"})
-			if err := cmd.Execute(); err != nil {
-				return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
-			}
-			cmd.SetArgs([]string{"checkov", "--directory", filepath.Join(dir, sDir), "--upload"})
-			if err := cmd.Execute(); err != nil {
-				return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
-			}
-			cmd.SetArgs([]string{"tfsec", "--directory", filepath.Join(dir, sDir), "--upload"})
-			if err := cmd.Execute(); err != nil {
-				return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
-			}
-			log.Debugf("scanned %s", filepath.Join(dir, sDir))
-			// fmt.Println(buf.Bytes()) // we may want to do something with the output at some point
-			buf.Reset()
-		}
-		log.Infof("Scanning Cloudformation Directories...")
-		for _, sDir := range iacRes.CloudformationDirs {
-			cmd.SetArgs([]string{"cfn-python-lint", "--directory", filepath.Join(dir, sDir), "--upload"})
-			if err := cmd.Execute(); err != nil {
-				return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
-			}
-			log.Debugf("scanned %s", filepath.Join(dir, sDir))
-			// fmt.Println(buf.Bytes()) // we may want to do something with the output at some point
-			buf.Reset()
-		}
-		// we also have to loop cloudformation files, because #cfnguard
-		/*
-			for _, sFile := range iacRes.CloudformationFiles {
-				cmd.SetArgs([]string{"cloudformationguard", "--file", filepath.Join(dir, sFile)}, "--upload")
-				if err := cmd.Execute(); err != nil {
-					return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
+
+		scans := make(map[string][]string)
+		// the toolName_dirs syntax specified here w/ _dirs because we may eventually need _files (cfnguard)
+		scans["terraform_dirs"] = iacRes.TerraformDirs
+		scans["cloudformation_dirs"] = iacRes.CloudformationDirs
+		scans["k8s_dirs"] = iacRes.K8sManifestDirs
+
+		wg := sync.WaitGroup{}
+		for iacType, sDirs := range scans {
+			switch iacType {
+			case "terraform_dirs":
+				for _, sDir := range sDirs {
+					wg.Add(3)
+					go scan("terrascan", filepath.Join(dir, sDir), &wg)
+					go scan("checkov", filepath.Join(dir, sDir), &wg)
+					go scan("tfsec", filepath.Join(dir, sDir), &wg)
+					time.Sleep(1 * time.Second)
 				}
-				log.Debugf("scanned %s", filepath.Join(dir, sFile))
-				// fmt.Println(buf.Bytes()) // we may want to do something with the output at some point
+			case "cloudformation_dirs":
+				for _, sDir := range sDirs {
+					wg.Add(1)
+					go scan("cfn-python-lint", filepath.Join(dir, sDir), &wg)
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+		wg.Wait()
+		/*
+			fmt.Println()
+			cmd := iacscan.Command()
+			var buf bytes.Buffer
+			cmd.SetOut(&buf)
+			log.Infof("Scanning Terraform Directories...")
+			wg := sync.WaitGroup{}
+			for _, sDir := range iacRes.TerraformDirs {
+				wg.Add(1)
+				go func(relDir string) {
+					c := *cmd
+					c.SetArgs([]string{"terrascan", "--directory", filepath.Join(dir, relDir), "--upload"})
+					if err := c.Execute(); err != nil {
+						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
+					}
+					wg.Done()
+				}(sDir)
+
+				wg.Add(1)
+				go func(relDir string) {
+					c := *cmd
+					c.SetArgs([]string{"checkov", "--directory", filepath.Join(dir, relDir), "--upload"})
+					if err := c.Execute(); err != nil {
+						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
+					}
+					wg.Done()
+				}(sDir)
+
+				wg.Add(1)
+				go func(relDir string) {
+					c := *cmd
+					c.SetArgs([]string{"tfsec", "--directory", filepath.Join(dir, relDir), "--upload"})
+					if err := c.Execute(); err != nil {
+						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
+					}
+					wg.Done()
+				}(sDir)
+
 				buf.Reset()
 			}
+			wg.Wait()
+
+			log.Infof("Scanning Cloudformation Directories...")
+			for _, sDir := range iacRes.CloudformationDirs {
+				wg := sync.WaitGroup{}
+				wg.Add(1)
+				go func(relDir string) {
+					c := *cmd
+					c.SetArgs([]string{"cfn-python-lint", "--directory", filepath.Join(dir, sDir), "--upload"})
+					if err := c.Execute(); err != nil {
+						log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
+					}
+					wg.Done()
+				}(sDir)
+
+				buf.Reset()
+			}
+			wg.Wait()
+			// we also have to loop cloudformation files, because #cfnguard
+			/*
+				for _, sFile := range iacRes.CloudformationFiles {
+					cmd.SetArgs([]string{"cloudformationguard", "--file", filepath.Join(dir, sFile)}, "--upload")
+					if err := cmd.Execute(); err != nil {
+						return nil, fmt.Errorf("error running iac-scan from inventory dir %q:\n%w", dir, err)
+					}
+					log.Debugf("scanned %s", filepath.Join(dir, sFile))
+					// fmt.Println(buf.Bytes()) // we may want to do something with the output at some point
+					buf.Reset()
+				}
 		*/
 		log.Infof("Scan complete.")
 	}
 	return result, err
+}
+
+// scan is intended to be run in a goroutine. Errors are ignored, and all results
+// are unconditionally uploaded.
+func scan(toolName, dir string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	cmd := iacscan.Command()
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	cmd.SetErr(&buf)
+	cmd.SetArgs([]string{toolName, "--directory", dir, "--upload"})
+	if err := cmd.Execute(); err != nil {
+		log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
+	}
 }
