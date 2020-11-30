@@ -21,7 +21,7 @@ func (t *Tool) Name() string {
 func (t *Tool) Run() (*tools.Result, error) {
 	d, _ := t.RunDocker(&tools.DockerTool{
 		Name:  "soluble-secrets",
-		Image: "gcr.io/oluble-repo/soluble-secrets:latest",
+		Image: "gcr.io/soluble-repo/soluble-secrets:latest",
 		DockerArgs: []string{
 			"--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/repo"),
 		},

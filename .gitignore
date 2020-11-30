@@ -12,9 +12,7 @@
 *.out
 
 .vscode/
-soluble
-./cli
+soluble-cli
 dist/
 target/
-soluble-agent.*
 *.log
