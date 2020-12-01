@@ -6,7 +6,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudformationguard"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
@@ -34,7 +33,8 @@ func Command() *cobra.Command {
 	c.AddCommand(createCommand(&checkov.Tool{}))
 	c.AddCommand(createCommand(&tfsec.Tool{}))
 	c.AddCommand(createCommand(&cfnpythonlint.Tool{}))
-	c.AddCommand(createCommand(&cloudformationguard.Tool{}))
 
+	// Disabling the cloudformation guard for now as it doesn't fit our strategy
+	// c.AddCommand(createCommand(&cloudformationguard.Tool{}))
 	return c
 }
