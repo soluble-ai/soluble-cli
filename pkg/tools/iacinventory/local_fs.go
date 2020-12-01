@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -115,4 +117,32 @@ func scan(toolName, dir string, wg *sync.WaitGroup) {
 	if err := cmd.Execute(); err != nil {
 		log.Errorf("error running iac-scan from inventory dir: %q:\n%w", dir, err)
 	}
+}
+
+// dedupe removes "duplicates" for tools, meaning sub-directories that have/will be covered
+// by scans performed on parent directories (by recursive tools).
+// For example:
+//   []string{"path/decended/to/subdir", "path"}
+// becomes...
+//   []string{"path"}
+//
+// This is useful for tools that are themselves recursive.
+func dedupe(scans map[string][]string) map[string][]string {
+	deduped := make(map[string][]string)
+	for tool, dirs := range scans {
+		sort.Strings(dirs) // directories must be sorted shortest to longest
+		deduped[tool] = []string{}
+		for _, dir := range dirs {
+			contains := false
+			for _, dedupedDir := range deduped[tool] {
+				if strings.Contains(dir, dedupedDir) {
+					contains = true
+				}
+			}
+			if !contains {
+				deduped[tool] = append(deduped[tool], dir)
+			}
+		}
+	}
+	return deduped
 }
