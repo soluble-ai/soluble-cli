@@ -13,8 +13,8 @@ import (
 
 	"github.com/google/go-github/v32/github"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"golang.org/x/oauth2"
 )
 
@@ -27,20 +27,7 @@ type GithubRepo struct {
 	// "github.com/"+FullName
 	GitRepo string `json:"git_repo"`
 
-	// CI is the repo's configured CI system, if present.
-	CISystems []CI `json:"ci_systems,omitempty"`
-
-	// TerraformDirs are directories that contain '.tf' files
-	TerraformDirs []string `json:"terraform_dirs,omitempty"`
-
-	// CloudformationDirs are directories that contain cloudformation files
-	CloudformationDirs []string `json:"cloudformation_dirs,omitempty"`
-
-	// DockerfileDirs are... Dockerfile files.
-	DockerfileDirs []string `json:"dockerfile_files,omitempty"`
-
-	// K8sManifestDirs are directories that contain Kubernetes manifest files
-	K8sManifestDirs []string `json:"k8s_manifest_dirs,omitempty"`
+	*inventory.Manifest `json:",inline"`
 }
 
 // getRepos fetches the list of all repositories accessiable to a given credential pair.
@@ -151,62 +138,13 @@ func (g *GithubRepo) scanTarball(dir, tarball string) error {
 	if err != nil {
 		return fmt.Errorf("could not unpack tarball: %w", err)
 	}
-
-	terraformDirs := util.NewStringSet()
-	cfnDirs := util.NewStringSet()
-	dockerFileDirs := util.NewStringSet()
-	k8sManifestDirs := util.NewStringSet()
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	files, _ := ioutil.ReadDir(dir)
+	for _, f := range files {
+		if f.IsDir() {
+			dir = filepath.Join(dir, f.Name())
+			break
 		}
-		ci, err := walkCI(path, info, err)
-		if ci != "" {
-			contains := false
-			for _, cisys := range g.CISystems {
-				if cisys == ci {
-					contains = true
-				}
-			}
-			if !contains {
-				g.CISystems = append(g.CISystems, ci)
-			}
-		}
-		if err != nil {
-			return err
-		}
-		if info.Mode().IsRegular() {
-			dirName, _ := filepath.Rel(dir, filepath.Dir(path))
-			splitPath := strings.SplitN(dirName, string(filepath.Separator), 2)
-			pathRelativeToRepoRoot := "."
-			if len(splitPath) > 1 {
-				// if we're not in the root, set the directory
-				// relative to the git repository root
-				pathRelativeToRepoRoot = splitPath[1]
-			}
-			if isTerraformFile(path, info) {
-				terraformDirs.Add(pathRelativeToRepoRoot)
-			}
-			if isCloudFormationFile(path, info) {
-				cfnDirs.Add(pathRelativeToRepoRoot)
-			}
-			if isDockerFile(path, info) {
-				dockerFileDirs.Add(pathRelativeToRepoRoot)
-			}
-			if isKubernetesManifest(path, info) {
-				k8sManifestDirs.Add(pathRelativeToRepoRoot)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return err
 	}
-	g.TerraformDirs = terraformDirs.Values()
-	g.CloudformationDirs = cfnDirs.Values()
-	g.DockerfileDirs = dockerFileDirs.Values()
-	g.K8sManifestDirs = k8sManifestDirs.Values()
-	log.Infof("{primary:%s} has {info:%d} terraform directories, {info:%d} cloudformation directories, {info:%d} dockerfiles, {info:%d} k8s manifest directories",
-		g.FullName, len(g.TerraformDirs), len(g.CloudformationDirs), len(g.DockerfileDirs), len(g.K8sManifestDirs))
+	g.Manifest = inventory.Do(dir)
 	return nil
 }

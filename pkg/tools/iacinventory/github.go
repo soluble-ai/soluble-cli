@@ -1,7 +1,6 @@
 package iacinventory
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,14 +8,14 @@ import (
 
 	"github.com/google/go-github/v32/github"
 	"github.com/mitchellh/go-homedir"
-	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
-type GithubIacInventoryScanner struct {
+type Github struct {
 	tools.ToolOpts
 	User                 string
 	OauthToken           string
@@ -26,13 +25,13 @@ type GithubIacInventoryScanner struct {
 	Orgs                 []string
 }
 
-var _ tools.Interface = &GithubIacInventoryScanner{}
+var _ tools.Interface = &Github{}
 
-func (g *GithubIacInventoryScanner) Name() string {
+func (g *Github) Name() string {
 	return "github-iac-inventory"
 }
 
-func (g *GithubIacInventoryScanner) Register(c *cobra.Command) {
+func (g *Github) Register(c *cobra.Command) {
 	g.ToolOpts.Register(c)
 	flags := c.Flags()
 	flags.StringVar(&g.User, "gh-username", "", "Github Username")
@@ -43,7 +42,7 @@ func (g *GithubIacInventoryScanner) Register(c *cobra.Command) {
 	flags.StringSliceVar(&g.Orgs, "org", nil, "Inventory repositories for a specific Organization. May be repeated.")
 }
 
-func (g *GithubIacInventoryScanner) Run() (*tools.Result, error) {
+func (g *Github) Run() (*tools.Result, error) {
 	if !g.AllRepos && !g.PublicRepos && len(g.ExplicitRepositories) == 0 {
 		return nil, fmt.Errorf("no repositories to scan, use --public, --all, or --repository")
 	}
@@ -66,30 +65,10 @@ func (g *GithubIacInventoryScanner) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error fetching github repositories: %w", err)
 	}
-
+	n, _ := print.ToResult(repos)
 	result := &tools.Result{
-		Data:      jnode.NewObjectNode(),
-		Values:    map[string]string{"USER": g.User},
-		PrintPath: []string{"repositories"},
-		PrintColumns: []string{
-			"full_name", "ci_systems", "terraform_dir_count", "cloudformation_dir_count", "dockerfile_count", "k8s_manifest_dir_count",
-		},
-	}
-	a := result.Data.PutArray("repositories")
-	for _, v := range repos {
-		dat, err := json.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-		r, err := jnode.FromJSON(dat)
-		if err != nil {
-			return nil, err
-		}
-		r.Put("terraform_dir_count", r.Path("terraform_dirs").Size())
-		r.Put("cloudformation_dir_count", r.Path("cloudformation_dirs").Size())
-		r.Put("dockerfile_count", r.Path("dockerfile_files").Size())
-		r.Put("k8s_manifest_dir_count", r.Path("k8s_manifest_dirs").Size())
-		a.Append(r)
+		Data:   n,
+		Values: map[string]string{"USER": g.User},
 	}
 	return result, nil
 }
@@ -155,7 +134,7 @@ func githubCredsFromFS() (username string, oauthToken string, retErr error) {
 }
 
 // getRepos fetches (and expands) the repositories associated with a github account
-func (g *GithubIacInventoryScanner) scanRepos() ([]*GithubRepo, error) {
+func (g *Github) scanRepos() ([]*GithubRepo, error) {
 	if g.User == "" || g.OauthToken == "" {
 		return nil, fmt.Errorf("no credentials provided")
 	}

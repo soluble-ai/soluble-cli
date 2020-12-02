@@ -1,0 +1,3 @@
+FROM empty
+RUN xxx
+
