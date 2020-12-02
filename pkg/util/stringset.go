@@ -14,6 +14,8 @@
 
 package util
 
+import "encoding/json"
+
 type StringSet struct {
 	values []string
 	set    map[string]interface{}
@@ -41,6 +43,9 @@ func (ss *StringSet) Contains(s string) bool {
 // Adds s to the set and returns true if the string wasn't
 // already present
 func (ss *StringSet) Add(s string) bool {
+	if ss.set == nil {
+		ss.set = map[string]interface{}{}
+	}
 	_, ok := ss.set[s]
 	if !ok {
 		ss.set[s] = nil
@@ -59,4 +64,24 @@ func (ss *StringSet) AddAll(values ...string) *StringSet {
 
 func (ss *StringSet) Values() []string {
 	return ss.values
+}
+
+func (ss *StringSet) Len() int {
+	return len(ss.set)
+}
+
+func (ss *StringSet) Reset() {
+	ss.set = nil
+	ss.values = nil
+}
+
+func (ss *StringSet) Get(i int) string {
+	return ss.values[i]
+}
+
+func (ss *StringSet) MarshalJSON() ([]byte, error) {
+	if ss.values != nil {
+		return json.Marshal(ss.values)
+	}
+	return []byte(`[]`), nil
 }

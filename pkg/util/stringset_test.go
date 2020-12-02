@@ -14,7 +14,12 @@
 
 package util
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/soluble-ai/go-jnode"
+)
 
 func TestStringSet(t *testing.T) {
 	s := NewStringSet().AddAll("1", "two", "three")
@@ -25,10 +30,19 @@ func TestStringSet(t *testing.T) {
 		t.Error(s)
 	}
 	v := s.Values()
-	if len(v) != 4 || v[0] != "1" || v[1] != "two" || v[3] != "one" {
+	if len(v) != 4 || s.Len() != 4 || v[0] != "1" || v[1] != "two" || v[3] != "one" {
 		t.Error(v)
 	}
 	if s.Contains("one") != true || s.Contains("four") == true {
 		t.Error(s)
+	}
+	j, err := json.Marshal(s)
+	if err != nil {
+		t.Error(err)
+	} else {
+		n, _ := jnode.FromJSON(j)
+		if n.Size() != 4 {
+			t.Error(n)
+		}
 	}
 }

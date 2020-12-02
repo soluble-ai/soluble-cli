@@ -13,6 +13,7 @@
 
 .vscode/
 soluble-cli
+soluble
 dist/
 target/
 *.log
