@@ -49,7 +49,7 @@ func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 		}
 		return 0
 	} else {
-		rows := p.getRows(result)
+		rows := p.GetRows(result)
 		for _, row := range rows {
 			n := Nav(row, name)
 			if !n.IsMissing() {

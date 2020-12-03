@@ -28,7 +28,7 @@ type PathSupport struct {
 	Limit           int
 }
 
-func (p *PathSupport) getRows(result *jnode.Node) []*jnode.Node {
+func (p *PathSupport) GetRows(result *jnode.Node) []*jnode.Node {
 	r := Nav(result, p.Path)
 	rows := []*jnode.Node{}
 	for _, row := range r.Elements() {

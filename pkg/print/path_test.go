@@ -31,7 +31,7 @@ func TestPathSupport(t *testing.T) {
 	a.Append(jnode.NewObjectNode().Put("x", 1))
 	a.Append(jnode.NewObjectNode().Put("x", 3))
 	a.Append(jnode.NewObjectNode().Put("x", 2))
-	rows := ps.getRows(n)
+	rows := ps.GetRows(n)
 	if len(rows) != 2 {
 		t.Error(rows)
 	}
@@ -55,7 +55,7 @@ func TestComputedColumns(t *testing.T) {
 	data := n.PutArray("data")
 	data.Append(jnode.NewObjectNode().Put("greeting", "hello"))
 	data.Append(jnode.NewObjectNode().Put("greeting", "howdy"))
-	rows := ps.getRows(n)
+	rows := ps.GetRows(n)
 	if len(rows) != 2 {
 		t.Error(rows)
 	}

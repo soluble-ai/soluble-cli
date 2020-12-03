@@ -16,7 +16,7 @@ type VerticalPrinter struct {
 var _ Interface = &VerticalPrinter{}
 
 func (p *VerticalPrinter) PrintResult(w io.Writer, result *jnode.Node) int {
-	rows := p.getRows(result)
+	rows := p.GetRows(result)
 	width := getLabelWidth(p.Columns)
 	for i, row := range rows {
 		if i > 0 {

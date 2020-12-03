@@ -21,7 +21,7 @@ type DiffPrinter struct {
 var _ Interface = &DiffPrinter{}
 
 func (d *DiffPrinter) PrintResult(w io.Writer, result *jnode.Node) int {
-	rows := d.getRows(result)
+	rows := d.GetRows(result)
 	sort.Slice(rows, func(i, j int) bool {
 		// assume version column is a number
 		return rows[i].Path(d.VersionColumn).AsFloat() < rows[j].Path(d.VersionColumn).AsFloat()
