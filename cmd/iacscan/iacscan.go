@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/all"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/secrets"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
@@ -27,12 +29,18 @@ func Command() *cobra.Command {
   iac-scan <tool-name>
   iac-scan <tool-name> -d my-directory`,
 	}
-	t := createCommand(&terrascan.Tool{})
-	t.Aliases = []string{"default"}
-	c.AddCommand(t)
-	c.AddCommand(createCommand(&checkov.Tool{}))
-	c.AddCommand(createCommand(&tfsec.Tool{}))
-	c.AddCommand(createCommand(&cfnpythonlint.Tool{}))
+	terrascanTool := createCommand(&terrascan.Tool{})
+	terrascanTool.Aliases = []string{"default"}
+	secretsTool := createCommand(&secrets.Tool{})
+	secretsTool.Short = "Scan infrastructure-as-code for secrets"
+	c.AddCommand(
+		terrascanTool,
+		createCommand(&checkov.Tool{}),
+		createCommand(&tfsec.Tool{}),
+		createCommand(&cfnpythonlint.Tool{}),
+		all.Command(),
+		secretsTool,
+	)
 
 	// Disabling the cloudformation guard for now as it doesn't fit our strategy
 	// c.AddCommand(createCommand(&cloudformationguard.Tool{}))

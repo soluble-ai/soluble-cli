@@ -3,29 +3,41 @@ package cfnpythonlint
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
+	Templates []string
 }
 
 func (t *Tool) Name() string {
 	return "cfn-python-lint"
 }
 
+func (t *Tool) Register(cmd *cobra.Command) {
+	t.DirectoryBasedToolOpts.Register(cmd)
+	cmd.Flags().StringSliceVar(&t.Templates, "template", nil, "Explicitly specific templates in the form `t1,t2,...`.  May be repeated.  Templates must be relative to --directory.")
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
+	files, err := t.findCloudformationFiles()
+	if err != nil {
+		return nil, err
+	}
 	d, _ := t.RunDocker(&tools.DockerTool{
 		Name:  "cfn-python-lint",
 		Image: "gcr.io/soluble-repo/soluble-cfn-lint:latest",
 		DockerArgs: []string{
 			"--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/data"),
 		},
-		Args: []string{
-			"/data/**/*.yaml", "/data/**/*.yml", "/data/**/*.json", "/data/**/*.template",
-		},
+		Args: files,
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
@@ -43,4 +55,25 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PrintColumns: []string{"Rule.Id", "Level", "Filename", "Message"},
 	}
 	return result, nil
+}
+
+func (t *Tool) findCloudformationFiles() ([]string, error) {
+	files := []string{}
+	if len(t.Templates) > 0 {
+		for _, f := range t.Templates {
+			rf := f
+			if filepath.IsAbs(f) {
+				if !strings.HasPrefix(f, t.GetDirectory()) {
+					return nil, fmt.Errorf("template file %s must be relative to --directory", f)
+				}
+			}
+			files = append(files, fmt.Sprintf("/data/%s", rf))
+		}
+	} else {
+		m := inventory.Do(t.GetDirectory())
+		for _, f := range m.CloudformationFiles.Values() {
+			files = append(files, fmt.Sprintf("/data/%s", f))
+		}
+	}
+	return files, nil
 }

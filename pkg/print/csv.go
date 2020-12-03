@@ -48,7 +48,7 @@ func (p *CSVPrinter) printHeaders(w *csv.Writer) {
 }
 
 func (p *CSVPrinter) printRows(w *csv.Writer, result *jnode.Node) int {
-	rows := p.getRows(result)
+	rows := p.GetRows(result)
 	for _, row := range rows {
 		rec := make([]string, len(p.Columns))
 		for i, c := range p.Columns {

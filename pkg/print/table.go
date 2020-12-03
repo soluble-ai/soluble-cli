@@ -43,7 +43,7 @@ func (p *TablePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 }
 
 func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) int {
-	rows := p.getRows(result)
+	rows := p.GetRows(result)
 	for _, row := range rows {
 		for i, c := range p.Columns {
 			if i > 0 {

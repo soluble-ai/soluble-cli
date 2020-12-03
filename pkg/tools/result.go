@@ -21,6 +21,8 @@ type Result struct {
 	Files        *util.StringSet
 	PrintPath    []string
 	PrintColumns []string
+
+	AssessmentURL string
 }
 
 func (r *Result) AddFile(path string) *Result {
@@ -39,7 +41,7 @@ func (r *Result) AddValue(name, value string) *Result {
 	return r
 }
 
-func (r *Result) report(tool Interface) (*jnode.Node, error) {
+func (r *Result) Report(tool Interface) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", tool.Name())
 	options := []client.Option{
@@ -49,13 +51,18 @@ func (r *Result) report(tool Interface) (*jnode.Node, error) {
 	if !o.OmitContext && r.Files != nil {
 		tarball, err := r.createTarball()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer tarball.Close()
 		defer os.Remove(tarball.Name())
 		options = append(options, xcp.WithFileFromReader("tarball", "context.tar.gz", tarball))
 	}
-	return o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, r.Values, options...)
+	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, r.Values, options...)
+	if err != nil {
+		return err
+	}
+	r.AssessmentURL = n.Path("assessment").Path("appUrl").AsText()
+	return nil
 }
 
 func (r *Result) createTarball() (afero.File, error) {
