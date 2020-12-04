@@ -11,6 +11,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
 type Tool struct {
@@ -52,7 +53,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
 	output, err := c.Output()
-	if ee, ok := err.(*exec.ExitError); ok && ee.ExitCode() == 1 {
+	if util.ExitCode(err) == 1 {
 		err = nil
 	}
 	if err != nil {

@@ -89,7 +89,7 @@ func (o *ToolOpts) getToolVersion(name string) *jnode.Node {
 
 func (o *ToolOpts) RunTool(tool Interface) (*Result, error) {
 	result, err := tool.Run()
-	if err != nil {
+	if err != nil || result == nil {
 		return nil, err
 	}
 	result.AddValue("TOOL_NAME", tool.Name()).
