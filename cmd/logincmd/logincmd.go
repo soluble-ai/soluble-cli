@@ -47,7 +47,7 @@ func Command() *cobra.Command {
 	opts.Register(c)
 	flags := c.Flags()
 	flags.StringVar(&app, "app", "", "The app URL to authenticate with")
-	flags.BoolVar(&reset, "reset", false, "Re-authenticate, even if an auth token is already available")
+	flags.BoolVar(&reset, "reset", false, "Re-authenticate, even if an auth token is already present")
 	_ = flags.MarkHidden("app")
 	return c
 }
