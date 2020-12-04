@@ -8,11 +8,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CreateCommand(tool Interface, c *cobra.Command) *cobra.Command {
-	if c == nil {
+type HasCommandTemplate interface {
+	CommandTemplate() *cobra.Command
+}
+
+func CreateCommand(tool Interface) *cobra.Command {
+	var c *cobra.Command
+	if ct, ok := tool.(HasCommandTemplate); ok {
+		c = ct.CommandTemplate()
+		if c.Args == nil {
+			c.Args = cobra.NoArgs
+		}
+	} else {
 		c = &cobra.Command{
-			Use:  tool.Name(),
-			Args: cobra.NoArgs,
+			Use:   tool.Name(),
+			Short: fmt.Sprintf("Run %s", tool.Name()),
+			Args:  cobra.NoArgs,
 		}
 	}
 	c.RunE = func(cmd *cobra.Command, args []string) error {
@@ -29,7 +40,7 @@ func runTool(tool Interface) error {
 		return fmt.Errorf("not authenticated with Soluble")
 	}
 	result, err := opts.RunTool(tool)
-	if err != nil {
+	if err != nil || result == nil {
 		return err
 	}
 	opts.Path = result.PrintPath

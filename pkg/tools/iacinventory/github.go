@@ -42,6 +42,13 @@ func (g *Github) Register(c *cobra.Command) {
 	flags.StringSliceVar(&g.Orgs, "org", nil, "Inventory repositories for a specific Organization. May be repeated.")
 }
 
+func (g *Github) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "github",
+		Short: "Download and inventory github repositories",
+	}
+}
+
 func (g *Github) Run() (*tools.Result, error) {
 	if !g.AllRepos && !g.PublicRepos && len(g.ExplicitRepositories) == 0 {
 		return nil, fmt.Errorf("no repositories to scan, use --public, --all, or --repository")

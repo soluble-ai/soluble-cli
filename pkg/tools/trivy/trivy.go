@@ -36,6 +36,13 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	_ = cmd.MarkFlagRequired("image")
 }
 
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "image-scan",
+		Short: "Scan a container image",
+	}
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
 	d, err := t.InstallTool(&download.Spec{
 		URL: "github.com/aquasecurity/trivy",

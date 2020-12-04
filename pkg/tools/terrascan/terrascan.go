@@ -10,6 +10,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
 var (
@@ -49,12 +50,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 	scan := exec.Command(program, "scan", "-t", "aws", "-d", t.GetDirectory(), "-p", t.policyPath, "-o", "json")
 	scan.Stderr = os.Stderr
 	output, err := scan.Output()
-	if err != nil {
-		ee, ok := err.(*exec.ExitError)
+	if err != nil && util.ExitCode(err) != 3 {
 		// terrascan exits with exit code 3 if violations were found
-		if !ok || ee.ExitCode() != 3 {
-			return nil, err
-		}
+		return nil, err
 	}
 	n, err := jnode.FromJSON(output)
 	if err != nil {

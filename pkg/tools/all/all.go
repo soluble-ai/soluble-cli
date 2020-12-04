@@ -43,6 +43,20 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	flags.StringSliceVar(&t.Skip, "skip", nil, "Don't run these `tools` (command-separated or repeated.)")
 }
 
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "all",
+		Short: "Find infrastructure-as-code and scan with recommended tools",
+		Long: `Find infrastructure-as-code and scan with the following tools:
+
+Cloudformation templates - cfn-python-lint
+Terraform                - checkov
+Kuberentes manifests     - checkov
+Everything               - secrets			
+`,
+	}
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
 	m := inventory.Do(t.GetDirectory())
 	subTools := []SubordinateTool{
