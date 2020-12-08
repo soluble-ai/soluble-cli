@@ -46,7 +46,8 @@ type CommandModel struct {
 	Type              string            `hcl:"type,label"`
 	Name              string            `hcl:"name,label"`
 	Use               *string           `hcl:"use"`
-	Short             string            `hcl:"short"`
+	Short             *string           `hcl:"short"`
+	Example           *string           `hcl:"example"`
 	Aliases           *[]string         `hcl:"aliases"`
 	Path              *string           `hcl:"path"`
 	Method            *string           `hcl:"method"`
@@ -88,6 +89,8 @@ type ParameterModel struct {
 	Shorthand    *string `hcl:"shorthand"`
 	Usage        *string `hcl:"usage"`
 	Required     *bool   `hcl:"required"`
+	RepeatedFlag *bool   `hcl:"repeated"`
+	MapFlag      *bool   `hcl:"map"`
 	BooleanFlag  *bool   `hcl:"boolean"`
 	LiteralValue *string `hcl:"literal_value"`
 	ContextValue *string `hcl:"context_value"`
@@ -103,15 +106,20 @@ func (m *Model) validate() error {
 
 func (cm *CommandModel) GetCommand() Command {
 	c := &cobra.Command{
-		Use:   cm.Name,
-		Short: cm.Short,
-		Args:  cobra.NoArgs,
+		Use:  cm.Name,
+		Args: cobra.NoArgs,
+	}
+	if cm.Short != nil {
+		c.Short = *cm.Short
 	}
 	if cm.Use != nil {
 		c.Use = *cm.Use
 	}
 	if cm.Aliases != nil {
 		c.Aliases = *cm.Aliases
+	}
+	if cm.Example != nil {
+		c.Example = *cm.Example
 	}
 	command := cm.GetCommandType().makeCommand(c, cm)
 	if !cm.GetCommandType().IsGroup() {
@@ -138,6 +146,19 @@ func (cm *CommandModel) createFlags(c *cobra.Command) {
 				} else {
 					c.Flags().Bool(name, defaultValue == "true", *p.Usage)
 				}
+			case p.RepeatedFlag != nil && *p.RepeatedFlag:
+				defaultValues := strings.Split(defaultValue, ",")
+				if p.Shorthand != nil {
+					c.Flags().StringSliceP(name, *p.Shorthand, defaultValues, *p.Usage)
+				} else {
+					c.Flags().StringSlice(name, defaultValues, *p.Usage)
+				}
+			case p.MapFlag != nil && *p.MapFlag:
+				if p.Shorthand != nil {
+					c.Flags().StringToStringP(name, *p.Shorthand, nil, *p.Usage)
+				} else {
+					c.Flags().StringToString(name, nil, *p.Usage)
+				}
 			case p.Shorthand != nil:
 				c.Flags().StringP(name, *p.Shorthand, defaultValue, *p.Usage)
 			default:
@@ -163,7 +184,9 @@ func (cm *CommandModel) validate(m *Model, parent *CommandModel) error {
 		if cm.Method == nil || !util.StringSliceContains(validMethods, *cm.Method) {
 			return fmt.Errorf("command %s: invalid method %v must be one of %s", cm.Name, cm.Method, strings.Join(validMethods, " "))
 		}
-
+		if cm.Short == nil || *cm.Short == "" {
+			return fmt.Errorf("commnad %s: short is required", cm.Name)
+		}
 		if cm.Options != nil {
 			for _, opt := range *cm.Options {
 				if !util.StringSliceContains(validOptions, opt) {
@@ -354,6 +377,8 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 			if err != nil {
 				return nil, nil, fmt.Errorf("could not read %s: %w", value, err)
 			}
+		case NOOPDisposition:
+			// do nothing
 		default:
 			values[p.Name] = value
 		}
@@ -420,6 +445,19 @@ func (p *ParameterModel) validate() error {
 	if p.ContextValue != nil && p.LiteralValue != nil {
 		return fmt.Errorf("parameter '%s' cannot set both context_value and literal_value",
 			p.Name)
+	}
+	var isMap, isRepeated bool
+	if p.MapFlag != nil && *p.MapFlag {
+		isMap = true
+	}
+	if p.RepeatedFlag != nil && *p.RepeatedFlag {
+		isRepeated = true
+	}
+	if isRepeated && isMap {
+		return fmt.Errorf("parameter '%s' cannot be both map and repeated", p.Name)
+	}
+	if isMap && p.getDisposition() != NOOPDisposition {
+		return fmt.Errorf("map parameter '%s' must have noop disposition", p.Name)
 	}
 	if err := p.getDisposition().validate(); err != nil {
 		return err
