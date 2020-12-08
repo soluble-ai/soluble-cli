@@ -1,10 +1,11 @@
 package checkov
 
 import (
-	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
@@ -23,36 +24,35 @@ func (t *Tool) SetDirectory(dir string) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	dat, err := t.RunDocker(&tools.DockerTool{
-		Name:  "checkov",
-		Image: "gcr.io/soluble-repo/checkov:latest",
-		DockerArgs: []string{
-			"-v", fmt.Sprintf("%s:%s", t.GetDirectory(), "/tf"),
-		},
-		Args: []string{
-			"-d", "/tf", "-o", "json", "-s",
-		},
-	})
+	log.Infof("Installing checkov")
+	// #nosec G204
+	c := exec.Command("pip3", "install", "checkov")
+	c.Stderr = os.Stderr
+	_, err := c.Output()
 	if err != nil {
-		if dat != nil {
-			_, _ = os.Stderr.Write(dat)
+		ee, ok := err.(*exec.ExitError)
+		if !ok || ee.ExitCode() != 0 {
+			return nil, err
 		}
-		return nil, err
 	}
-	n, err := jnode.FromJSON(dat)
+	// #nosec G204
+	c = exec.Command("checkov", "-o", "json", "-s", "-d", t.GetDirectory())
+	c.Stderr = os.Stderr
+	o, err := c.Output()
 	if err != nil {
 		return nil, err
 	}
-
+	n, err := jnode.FromJSON(o)
+	if err != nil {
+		return nil, err
+	}
 	// checkov runs various types of check such as kubernetes, terraform etc if the folder has
 	// different types of them in the same folder the result will be an array
 	output := jnode.NewObjectNode()
 	data := output.PutArray("data")
 
 	// checkov has passed_checks and failed_checks so we'll combine them
-	// into a summary that we can print out
 	s := output.PutArray("soluble_summary")
-
 	var checkovVersion string
 	if n.IsArray() {
 		for _, e := range n.Elements() {
