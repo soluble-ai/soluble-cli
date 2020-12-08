@@ -32,12 +32,10 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:  "cfn-python-lint",
-		Image: "gcr.io/soluble-repo/soluble-cfn-lint:latest",
-		DockerArgs: []string{
-			"--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/data"),
-		},
-		Args: files,
+		Name:      "cfn-python-lint",
+		Image:     "gcr.io/soluble-repo/soluble-cfn-lint:latest",
+		Directory: t.GetDirectory(),
+		Args:      append([]string{"-f", "json"}, files...),
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
@@ -67,13 +65,11 @@ func (t *Tool) findCloudformationFiles() ([]string, error) {
 					return nil, fmt.Errorf("template file %s must be relative to --directory", f)
 				}
 			}
-			files = append(files, fmt.Sprintf("/data/%s", rf))
+			files = append(files, rf)
 		}
 	} else {
 		m := inventory.Do(t.GetDirectory())
-		for _, f := range m.CloudformationFiles.Values() {
-			files = append(files, fmt.Sprintf("/data/%s", f))
-		}
+		files = m.CloudformationFiles.Values()
 	}
 	return files, nil
 }

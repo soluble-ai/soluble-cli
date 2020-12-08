@@ -20,6 +20,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 	PrintToolResults bool
 	Skip             []string
+	ToolPaths        map[string]string
 }
 
 var _ tools.Interface = &Tool{}
@@ -36,11 +37,12 @@ func (*Tool) Name() string {
 }
 
 func (t *Tool) Register(cmd *cobra.Command) {
-	t.ToolNotVersioned = true
+	t.Internal = true
 	t.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.BoolVar(&t.PrintToolResults, "print-tool-results", false, "Print individual results from tools")
 	flags.StringSliceVar(&t.Skip, "skip", nil, "Don't run these `tools` (command-separated or repeated.)")
+	flags.StringToStringVar(&t.ToolPaths, "tool-paths", nil, "Explicitly specify the path to each tool in the form `tool=path`.")
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {
@@ -54,6 +56,8 @@ Terraform                - checkov
 Kuberentes manifests     - checkov
 Everything               - secrets			
 `,
+		Example: `# To run a tool locally w/o using docker explicitly specify the tool path
+... all --tool-paths checkov=checkov,cfn-python-lint=cfn-lint`,
 	}
 }
 
@@ -105,6 +109,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		opts := st.GetToolOptions()
 		opts.UploadEnabled = t.UploadEnabled
 		opts.OmitContext = t.OmitContext
+		opts.ToolPath = t.ToolPaths[st.Name()]
 		start := time.Now()
 		st.Result, st.Err = st.GetToolOptions().RunTool(st)
 		rd := time.Since(start).Truncate(time.Millisecond)

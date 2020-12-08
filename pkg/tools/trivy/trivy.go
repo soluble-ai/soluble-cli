@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -54,8 +53,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	program := filepath.Join(d.Dir, "trivy")
-
+	program := d.GetExePath("trivy")
 	if t.ClearCache {
 		err := runCommand(program, "image", "--clear-cache")
 		if err != nil {

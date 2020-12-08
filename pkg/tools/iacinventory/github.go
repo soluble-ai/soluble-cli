@@ -32,6 +32,7 @@ func (g *Github) Name() string {
 }
 
 func (g *Github) Register(c *cobra.Command) {
+	g.Internal = true
 	g.ToolOpts.Register(c)
 	flags := c.Flags()
 	flags.StringVar(&g.User, "gh-username", "", "Github Username")

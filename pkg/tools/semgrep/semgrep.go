@@ -2,7 +2,6 @@ package semgrep
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -62,11 +61,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 		args = append(args, "-f", t.Config)
 	}
 	args = append(args, t.extraArgs...)
-	args = append(args, "/src")
+	args = append(args, ".")
 	d, err := t.RunDocker(&tools.DockerTool{
-		Image:      "returntocorp/semgrep:latest",
-		DockerArgs: []string{"-v", fmt.Sprintf("%s:/src", t.GetDirectory())},
-		Args:       args,
+		Image:     "returntocorp/semgrep:latest",
+		Directory: t.GetDirectory(),
+		Args:      args,
 	})
 	if err != nil && util.ExitCode(err) != 1 {
 		// semgrep exits 1 if it finds issues
@@ -80,7 +79,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 		return nil, fmt.Errorf("could not parse JSON: %w", err)
 	}
-	stripSrcPath(n.Path("results"))
 	result := &tools.Result{
 		Data:      n,
 		PrintPath: []string{"results"},
@@ -89,16 +87,4 @@ func (t *Tool) Run() (*tools.Result, error) {
 		},
 	}
 	return result, nil
-}
-
-func stripSrcPath(results *jnode.Node) {
-	const srcPrefix = "/src/"
-	for _, n := range results.Elements() {
-		if path := n.Path("path"); !path.IsMissing() {
-			s := path.AsText()
-			if strings.HasPrefix(s, srcPrefix) {
-				n.Put("path", s[len(srcPrefix):])
-			}
-		}
-	}
 }

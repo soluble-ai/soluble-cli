@@ -18,6 +18,11 @@ func (t *Local) Name() string {
 	return "local-inventory"
 }
 
+func (t *Local) Register(cmd *cobra.Command) {
+	t.Internal = true
+	t.DirectoryBasedToolOpts.Register(cmd)
+}
+
 func (t *Local) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "local",
