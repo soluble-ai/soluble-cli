@@ -1,7 +1,6 @@
 package secrets
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
@@ -20,11 +19,9 @@ func (t *Tool) Name() string {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:  "soluble-secrets",
-		Image: "gcr.io/soluble-repo/soluble-secrets:latest",
-		DockerArgs: []string{
-			"--volume", fmt.Sprintf("%s:%s:ro", t.GetDirectory(), "/repo"),
-		},
+		Name:      "soluble-secrets",
+		Image:     "gcr.io/soluble-repo/soluble-secrets:latest",
+		Directory: t.GetDirectory(),
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {

@@ -2,6 +2,8 @@ package tools
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -15,10 +17,11 @@ import (
 
 type ToolOpts struct {
 	options.PrintClientOpts
-	UploadEnabled    bool
-	OmitContext      bool
-	ToolVersion      string
-	ToolNotVersioned bool
+	UploadEnabled bool
+	OmitContext   bool
+	ToolVersion   string
+	ToolPath      string
+	Internal      bool
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -35,7 +38,8 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 	flags := c.Flags()
 	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload report to Soluble")
 	flags.BoolVar(&o.OmitContext, "omit-context", false, "When uploading a report, don't include the source files with findings")
-	if !o.ToolNotVersioned {
+	if !o.Internal {
+		flags.StringVar(&o.ToolPath, "tool-path", "", "Run `tool` directly instead of using a CLI-managed version")
 		flags.StringVar(&o.ToolVersion, "tool-version", "", "Override version of the tool to run (the image or github release name.)")
 	}
 }
@@ -53,6 +57,15 @@ func (o *ToolOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Dow
 }
 
 func (o *ToolOpts) RunDocker(d *DockerTool) ([]byte, error) {
+	if o.ToolPath != "" {
+		// don't use docker, just run it directly
+		// #nosec G204
+		c := exec.Command(o.ToolPath, d.Args...)
+		c.Dir = d.Directory
+		c.Stderr = os.Stderr
+		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), c.Dir)
+		return c.Output()
+	}
 	n := o.getToolVersion(d.Name)
 	if image := n.Path("image"); !image.IsMissing() {
 		d.Image = image.AsText()
@@ -61,6 +74,11 @@ func (o *ToolOpts) RunDocker(d *DockerTool) ([]byte, error) {
 }
 
 func (o *ToolOpts) InstallTool(spec *download.Spec) (*download.Download, error) {
+	if o.ToolPath != "" {
+		return &download.Download{
+			OverrideExe: o.ToolPath,
+		}, nil
+	}
 	if strings.HasPrefix(spec.URL, "github.com/") {
 		slash := strings.LastIndex(spec.URL, "/")
 		n := o.getToolVersion(spec.URL[slash+1:])

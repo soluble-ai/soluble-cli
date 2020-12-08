@@ -48,7 +48,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		},
 	}
 	// #nosec G204
-	c := exec.Command(filepath.Join(d.Dir, "tfsec-tfsec"), "-f", "json", ".")
+	c := exec.Command(d.GetExePath("tfsec-tfsec"), "-f", "json", ".")
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))

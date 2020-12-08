@@ -30,6 +30,7 @@ type Download struct {
 	APIServerArtifact string
 	Dir               string
 	InstallTime       time.Time
+	OverrideExe       string
 }
 
 type DownloadMeta struct {
@@ -365,9 +366,19 @@ func (d *Download) Install(file string) error {
 	return archive.Do(unpack, file, d.Dir, nil)
 }
 
+func (d *Download) GetExePath(path string) string {
+	if d.OverrideExe != "" {
+		return d.OverrideExe
+	}
+	return filepath.Join(d.Dir, path)
+}
+
 func (d *Download) installExecutable(src afero.File, fs afero.Fs, options *archive.Options) error {
 	// just copy the file
 	name := d.Name
+	if owner, repo := parseGithubRepo(d.URL); owner != "" {
+		name = repo
+	}
 	if strings.HasSuffix(src.Name(), ".exe") {
 		name = fmt.Sprintf("%s.exe", name)
 	}

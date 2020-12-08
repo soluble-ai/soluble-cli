@@ -12,6 +12,7 @@ import (
 type DockerTool struct {
 	Name       string
 	Image      string
+	Directory  string
 	DockerArgs []string
 	Args       []string
 }
@@ -46,7 +47,12 @@ func (t *DockerTool) run() ([]byte, error) {
 	if err := pull.Run(); err != nil {
 		log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
 	}
-	args := append([]string{"run", "--rm"}, t.DockerArgs...)
+	args := []string{"run", "--rm"}
+	if t.Directory != "" {
+		args = append(args, "-v", fmt.Sprintf("%s:/src", t.Directory),
+			"-w", "/src")
+	}
+	args = append(args, t.DockerArgs...)
 	args = append(args, t.Image)
 	args = append(args, t.Args...)
 	run := exec.Command("docker", args...)

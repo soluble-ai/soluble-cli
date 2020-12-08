@@ -1,7 +1,6 @@
 package checkov
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
@@ -24,13 +23,11 @@ func (t *Tool) SetDirectory(dir string) {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	dat, err := t.RunDocker(&tools.DockerTool{
-		Name:  "checkov",
-		Image: "gcr.io/soluble-repo/checkov:latest",
-		DockerArgs: []string{
-			"-v", fmt.Sprintf("%s:%s", t.GetDirectory(), "/tf"),
-		},
+		Name:      "checkov",
+		Image:     "gcr.io/soluble-repo/checkov:latest",
+		Directory: t.GetDirectory(),
 		Args: []string{
-			"-d", "/tf", "-o", "json", "-s",
+			"-d", ".", "-o", "json", "-s",
 		},
 	})
 	if err != nil {

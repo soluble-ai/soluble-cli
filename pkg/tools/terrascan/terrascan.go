@@ -59,13 +59,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	result := &tools.Result{
-		Data:      n,
-		Directory: t.GetDirectory(),
-		Values: map[string]string{
-			"TERRASCAN_VERSION": d.Version,
-		},
+		Data:         n,
+		Directory:    t.GetDirectory(),
 		PrintPath:    []string{"results", "violations"},
 		PrintColumns: []string{"category", "severity", "file", "line", "rule_id", "description"},
+	}
+	if d.Version != "" {
+		result.AddValue("TERRASCAN_VERSION", d.Version)
 	}
 	for _, v := range n.Path("results").Path("violations").Elements() {
 		file := v.Path("file").AsText()
