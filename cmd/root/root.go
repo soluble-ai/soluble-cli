@@ -37,6 +37,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
+	"github.com/soluble-ai/soluble-cli/pkg/options"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -79,11 +80,13 @@ func Command() *cobra.Command {
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if config.Config.APIToken == "" {
 				if cmd.Use != "version" {
-					blurb.SignupBlurb(nil, "Finding {priary:soluble} useful?", "")
+					blurb.SignupBlurb(nil, "Finding {primary:soluble} useful?", "")
 				}
 			}
 			if exit.Code != 0 {
-				log.Errorf(exit.Message)
+				if exit.Message != "" {
+					log.Errorf(exit.Message)
+				}
 				os.Exit(exit.Code)
 			}
 		},
@@ -106,7 +109,25 @@ func Command() *cobra.Command {
 		mergeCommands(rootCmd, model.Command.GetCommand().GetCobraCommand(), model)
 	}
 	setupHelp(rootCmd)
+	setupCompat(rootCmd)
 	return rootCmd
+}
+
+func setupCompat(rootCmd *cobra.Command) {
+	// temporary compatibility
+	buildReport := getCommandCopy(rootCmd, []string{"iac-scan", "build-report"})
+	buildReport.Hidden = true
+	options.AddPreRunE(buildReport, func(c *cobra.Command, s []string) error {
+		log.Warnf("This command has been moved to {warning:iac-scan build-report} and will be removed at some point")
+		return nil
+	})
+	rootCmd.AddCommand(buildReport)
+}
+
+func getCommandCopy(rootCmd *cobra.Command, args []string) *cobra.Command {
+	c, _, _ := rootCmd.Find(args)
+	copy := *c
+	return &copy
 }
 
 func addBuiltinCommands(rootCmd *cobra.Command) {
@@ -177,4 +198,8 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 		cmd.Short += " (" + m.Source.String() + ")"
 	}
 	root.AddCommand(cmd)
+}
+
+func init() {
+	model.RegisterAction("exit_on_failures", iacscan.ExitOnFailures)
 }

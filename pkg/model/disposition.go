@@ -27,10 +27,12 @@ const (
 	ContextDisposition = ParameterDisposition("context")
 	// Read a file and post its content as the body
 	JSONFileBodyDisposition = ParameterDisposition("json_file_body")
+	// Do nothing with the flag
+	NOOPDisposition = ParameterDisposition("noop")
 )
 
 func (d ParameterDisposition) validate() error {
-	if d == "" || d == ContextDisposition || d == JSONFileBodyDisposition {
+	if d == "" || d == ContextDisposition || d == JSONFileBodyDisposition || d == NOOPDisposition {
 		return nil
 	}
 	return fmt.Errorf("invalid parameter disposition '%s' must be one of %s, %s",
