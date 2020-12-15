@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/cmd/agent"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
@@ -38,6 +39,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -201,5 +203,9 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 }
 
 func init() {
-	model.RegisterAction("exit_on_failures", iacscan.ExitOnFailures)
+	model.RegisterAction("exit_on_failures", func(command model.Command, n *jnode.Node) (*jnode.Node, error) {
+		thresholds, _ := command.GetCobraCommand().Flags().GetStringToString("fail")
+		tools.ExitOnFailures(thresholds, n)
+		return n, nil
+	})
 }

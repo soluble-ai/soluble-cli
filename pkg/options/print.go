@@ -69,12 +69,12 @@ func (p *PrintOpts) GetPrintOptionsGroup(full bool) *HiddenOptionsGroup {
 				flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
 					"Use this output `format`, where format is one of: table, yaml, json, none, csv, or value(name).  See below.")
 				flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
-				flags.StringVar(&p.Filter, "filter", "", "Print results that match a `filter`.  See below.")
+				flags.StringVar(&p.Filter, "filter", "", "Print results that match a `filter`.  See examples.")
 				if full || p.WideColumns != nil {
 					flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
 				}
 				flags.StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
-					"Sort by these `columns`.  See below.")
+					"Sort by these `columns`.  See examples.")
 				flags.IntVar(&p.Limit, "print-limit", 0, "Print no more than this `number` of rows")
 				flags.IntVar(&p.DiffContextSize, "diff-context", 3,
 					"When printing diffs, the number of `lines` to print before and after a a diff.")
@@ -85,7 +85,7 @@ func (p *PrintOpts) GetPrintOptionsGroup(full bool) *HiddenOptionsGroup {
 		Example: `
 Output formats:
 
-The output format can be select with the --format flag.  For commands that support
+The output format can be selected with the --format flag.  For commands that support
 tabular data the default output format is "table"; otherwise the default is "yaml".
 
 The "value(name)" format prints only the "name" attribute from the results (from each row

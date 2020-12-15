@@ -5,10 +5,13 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
+
+	extraArgs []string
 }
 
 var _ tools.Interface = &Tool{}
@@ -17,8 +20,17 @@ func (t *Tool) Name() string {
 	return "checkov"
 }
 
-func (t *Tool) SetDirectory(dir string) {
-	t.Directory = dir
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "checkov",
+		Short: "Run checkov",
+		Example: `# Any additional args after -- are passed through to checkov, eg:
+... checkov -- --help`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			t.extraArgs = args
+			return nil
+		},
+	}
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -26,9 +38,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Name:      "checkov",
 		Image:     "gcr.io/soluble-repo/checkov:latest",
 		Directory: t.GetDirectory(),
-		Args: []string{
+		Args: append([]string{
 			"-d", ".", "-o", "json", "-s",
-		},
+		}, t.extraArgs...),
 	})
 	if err != nil {
 		if dat != nil {
@@ -38,6 +50,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	n, err := jnode.FromJSON(dat)
 	if err != nil {
+		_, _ = os.Stderr.Write(dat)
 		return nil, err
 	}
 

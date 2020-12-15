@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/afero"
@@ -48,20 +51,35 @@ func (r *Result) Report(tool Interface) error {
 		xcp.WithCIEnv, xcp.WithFileFromReader("results_json", "results.json", rr),
 	}
 	o := tool.GetToolOptions()
-	if !o.OmitContext && r.Files != nil {
-		tarball, err := r.createTarball()
-		if err != nil {
-			return err
+	if !o.OmitContext {
+		if r.Files != nil {
+			tarball, err := r.createTarball()
+			if err != nil {
+				return err
+			}
+			defer tarball.Close()
+			defer os.Remove(tarball.Name())
+			options = append(options, xcp.WithFileFromReader("tarball", "context.tar.gz", tarball))
 		}
-		defer tarball.Close()
-		defer os.Remove(tarball.Name())
-		options = append(options, xcp.WithFileFromReader("tarball", "context.tar.gz", tarball))
+		// include .soluble/config.yml if it exists
+		dir, _ := inventory.FindRepoRoot()
+		if dir != "" {
+			if f, err := os.Open(filepath.Join(dir, ".soluble", "config.yml")); err == nil {
+				defer f.Close()
+				options = append(options, xcp.WithFileFromReader("config.yml", "config.yml", f))
+			}
+		}
 	}
 	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, r.Values, options...)
 	if err != nil {
 		return err
 	}
 	r.AssessmentURL = n.Path("assessment").Path("appUrl").AsText()
+	if o.PrintAsessment {
+		p := &print.YAMLPrinter{}
+		p.PrintResult(os.Stderr, n)
+	}
+	ExitOnFailures(o.FailThresholds, n.Path("assessment"))
 	return nil
 }
 
