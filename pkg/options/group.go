@@ -32,7 +32,7 @@ func (group *HiddenOptionsGroup) GetHelpCommand() *cobra.Command {
 	group.CreateFlagsFunc(c.Flags())
 	c.SetHelpTemplate(`{{.Long}}
 
-{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{ if .HasExample }}
+{{.LocalFlags.FlagUsagesWrapped 100 | trimTrailingWhitespaces}}{{ if .HasExample }}
 {{.Example}}
 {{end}}
 `)

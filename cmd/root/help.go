@@ -26,11 +26,11 @@ Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "he
 {{- if (and (or .Runnable .IsAdditionalHelpTopicCommand) .HasAvailableLocalFlags) }}
   
 Flags:
-{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}
+{{.LocalFlags.FlagUsagesWrapped 100 | trimTrailingWhitespaces}}{{end}}
 {{- if (and .HasAvailableInheritedFlags .Annotations.ShowInheritedFlags) }}
 
 Global Flags:
-{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+{{.InheritedFlags.FlagUsagesWrapped 100 | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
   
 Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
   {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
@@ -50,7 +50,7 @@ Some options have been hidden, use "{{ helpPath $ }} -a" to display all options{
 	}
 	globalOptionsHelp.SetHelpTemplate(`{{.Long}}
 
-{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}
+{{.InheritedFlags.FlagUsagesWrapped 100 | trimTrailingWhitespaces}}
 `)
 	rootCmd.AddCommand(options.GetClientOptionsGroupHelpCommand(),
 		options.GetPrintOptionsGroupHelpCommand(),

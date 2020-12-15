@@ -35,9 +35,8 @@ func CreateCommand(tool Interface) *cobra.Command {
 
 func runTool(tool Interface) error {
 	opts := tool.GetToolOptions()
-	if opts.UploadEnabled && opts.GetAPIClientConfig().APIToken == "" {
-		blurb.SignupBlurb(opts, "{info:--upload} requires signing up with {primary:Soluble}.", "")
-		return fmt.Errorf("not authenticated with Soluble")
+	if err := opts.Validate(); err != nil {
+		return err
 	}
 	result, err := opts.RunTool(tool)
 	if err != nil || result == nil {
