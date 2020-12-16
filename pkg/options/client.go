@@ -25,6 +25,9 @@ type ClientOpts struct {
 	client.Config
 	AuthNotRequired bool
 	DefaultTimeout  int
+
+	client       client.Interface
+	unauthClient client.Interface
 }
 
 var _ Interface = &ClientOpts{}
@@ -89,13 +92,19 @@ func (opts *ClientOpts) GetOrganization() string {
 }
 
 func (opts *ClientOpts) GetAPIClient() client.Interface {
-	return client.NewClient(opts.GetAPIClientConfig())
+	if opts.client == nil {
+		opts.client = client.NewClient(opts.GetAPIClientConfig())
+	}
+	return opts.client
 }
 
 func (opts *ClientOpts) GetUnauthenticatedAPIClient() client.Interface {
-	cfg := opts.GetAPIClientConfig()
-	cfg.APIToken = ""
-	return client.NewClient(cfg)
+	if opts.unauthClient == nil {
+		cfg := opts.GetAPIClientConfig()
+		cfg.APIToken = ""
+		opts.unauthClient = client.NewClient(cfg)
+	}
+	return opts.unauthClient
 }
 
 func (opts *ClientOpts) IsAuthenticated() bool {
