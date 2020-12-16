@@ -28,6 +28,13 @@ type Result struct {
 	AssessmentURL string
 }
 
+var repoFiles = []string{
+	".soluble/config.yml",
+	"CODEOWNERS",
+	"docs/CODEOWNERS",
+	".github/CODEOWNERS",
+}
+
 func (r *Result) AddFile(path string) *Result {
 	if r.Files == nil {
 		r.Files = util.NewStringSet()
@@ -45,12 +52,15 @@ func (r *Result) AddValue(name, value string) *Result {
 }
 
 func (r *Result) Report(tool Interface) error {
+	return r.report(tool.GetToolOptions(), tool.Name())
+}
+
+func (r *Result) report(o *ToolOpts, name string) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
-	log.Infof("Uploading results of {primary:%s}", tool.Name())
+	log.Infof("Uploading results of {primary:%s}", name)
 	options := []client.Option{
 		xcp.WithCIEnv, xcp.WithFileFromReader("results_json", "results.json", rr),
 	}
-	o := tool.GetToolOptions()
 	if !o.OmitContext {
 		if r.Files != nil {
 			tarball, err := r.createTarball()
@@ -61,16 +71,23 @@ func (r *Result) Report(tool Interface) error {
 			defer os.Remove(tarball.Name())
 			options = append(options, xcp.WithFileFromReader("tarball", "context.tar.gz", tarball))
 		}
-		// include .soluble/config.yml if it exists
-		dir, _ := inventory.FindRepoRoot()
+		// include various repo files if they exist
+		dir, _ := inventory.FindRepoRoot(r.Directory)
 		if dir != "" {
-			if f, err := os.Open(filepath.Join(dir, ".soluble", "config.yml")); err == nil {
-				defer f.Close()
-				options = append(options, xcp.WithFileFromReader("config.yml", "config.yml", f))
+			names := &util.StringSet{}
+			for _, path := range repoFiles {
+				if f, err := os.Open(filepath.Join(dir, filepath.FromSlash(path))); err == nil {
+					defer f.Close()
+					name := filepath.Base(path)
+					if names.Add(name) {
+						// only include one
+						options = append(options, xcp.WithFileFromReader(name, name, f))
+					}
+				}
 			}
 		}
 	}
-	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), tool.Name(), nil, r.Values, options...)
+	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), name, nil, r.Values, options...)
 	if err != nil {
 		return err
 	}

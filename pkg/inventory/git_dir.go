@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 )
 
-func FindGitDir() (string, error) {
-	dir, err := filepath.Abs(".")
+func FindGitDir(dir string) (string, error) {
+	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return "", err
 	}
@@ -25,10 +25,10 @@ func FindGitDir() (string, error) {
 	}
 }
 
-func FindRepoRoot() (dir string, err error) {
-	dir, err = FindGitDir()
+func FindRepoRoot(dir string) (string, error) {
+	dir, err := FindGitDir(dir)
 	if err == nil {
 		dir = filepath.Dir(dir)
 	}
-	return
+	return dir, err
 }
