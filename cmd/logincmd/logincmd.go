@@ -13,8 +13,9 @@ import (
 func Command() *cobra.Command {
 	opts := options.PrintOpts{}
 	var (
-		app   string
-		reset bool
+		app      string
+		reset    bool
+		headless bool
 	)
 	c := &cobra.Command{
 		Use:   "login",
@@ -28,8 +29,7 @@ func Command() *cobra.Command {
 			if app == "" {
 				app = config.Config.GetAppURL()
 			}
-			flow := login.NewBrowserFlow(app, login.MakeState())
-			defer flow.Close()
+			flow := login.NewFlow(app, headless)
 			resp, err := flow.Run()
 			if err != nil {
 				log.Errorf("Authentication did not complete: {danger:%s}", err)
@@ -48,6 +48,7 @@ func Command() *cobra.Command {
 	flags := c.Flags()
 	flags.StringVar(&app, "app", "", "The app URL to authenticate with")
 	flags.BoolVar(&reset, "reset", false, "Re-authenticate, even if an auth token is already present")
+	flags.BoolVar(&headless, "headless", false, "Don't try and open a browser to complete the flow")
 	_ = flags.MarkHidden("app")
 	return c
 }
