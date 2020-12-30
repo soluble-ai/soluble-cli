@@ -1,7 +1,7 @@
 package postcmd
 
 import (
-	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
@@ -20,9 +20,9 @@ func Command() *cobra.Command {
 		Short: "Send data to soluble",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var options []client.Option
+			var options []api.Option
 			if withEnv {
-				options = []client.Option{xcp.WithCIEnv}
+				options = []api.Option{xcp.WithCIEnv}
 			}
 			result, err := opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values, options...)
 			if err != nil {

@@ -22,6 +22,7 @@ import (
 
 	"github.com/soluble-ai/go-colorize"
 	"github.com/soluble-ai/soluble-cli/cmd/root"
+	_ "github.com/soluble-ai/soluble-cli/pkg/tools/buildreport/github"
 )
 
 func main() {

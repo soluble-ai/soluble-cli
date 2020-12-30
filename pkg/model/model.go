@@ -24,7 +24,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -79,6 +79,7 @@ type ResultModel struct {
 	Formatters              *map[string]string `hcl:"formatters"`
 	ComputedColumns         *map[string]string `hcl:"computed_columns"`
 	LocalAction             *string            `hcl:"local_action"`
+	LocalActions            *[]string          `hcl:"local_actions"`
 	DiffColumn              *string            `hcl:"diff_column"`
 	VersionColumn           *string            `hcl:"version_column"`
 	DefaultOutputFormat     *string            `hcl:"default_output_format"`
@@ -282,7 +283,7 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 		return err
 	}
 	path := cm.getPath(contextValues)
-	var apiClient client.Interface
+	var apiClient *api.Client
 	if cm.Unauthenticated != nil && *cm.Unauthenticated {
 		apiClient = command.GetUnauthenticatedAPIClient()
 	} else {
@@ -311,11 +312,13 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 	if err != nil {
 		return err
 	}
-	if cm.Result != nil && cm.Result.LocalAction != nil {
-		var err error
-		result, err = LocalActionType(*cm.Result.LocalAction).Run(command, result)
-		if err != nil {
-			return err
+	if cm.Result != nil {
+		for _, la := range cm.Result.GetLocalActions() {
+			var err error
+			result, err = la.Run(command, result)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	command.PrintResult(result)
@@ -386,11 +389,11 @@ func (cm *CommandModel) processParameters(cmd *cobra.Command, contextValues *Con
 	return values, body, nil
 }
 
-func (cm *CommandModel) getOptions() []client.Option {
-	var result []client.Option
+func (cm *CommandModel) getOptions() []api.Option {
+	var result []api.Option
 	if cm.Options != nil {
 		for _, name := range *cm.Options {
-			var opt client.Option
+			var opt api.Option
 			switch name {
 			case XCPCI:
 				opt = xcp.WithCIEnv
@@ -490,9 +493,8 @@ func (r *ResultModel) validate() error {
 			}
 		}
 	}
-	if r.LocalAction != nil {
-		err := LocalActionType(*r.LocalAction).validate()
-		if err != nil {
+	for _, la := range r.GetLocalActions() {
+		if err := la.validate(); err != nil {
 			return err
 		}
 	}
@@ -512,6 +514,18 @@ func (r *ResultModel) GetColumnFunction(column string) print.ColumnFunction {
 		return f
 	}
 	return nil
+}
+
+func (r *ResultModel) GetLocalActions() (result []LocalActionType) {
+	if r.LocalAction != nil {
+		result = append(result, LocalActionType(*r.LocalAction))
+	}
+	if r.LocalActions != nil {
+		for _, la := range *r.LocalActions {
+			result = append(result, LocalActionType(la))
+		}
+	}
+	return
 }
 
 func warnIfTruncated(result *jnode.Node, truncationIndicatorPath []string) error {

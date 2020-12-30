@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package api
 
 import (
 	"crypto/tls"
@@ -47,22 +47,29 @@ type Config struct {
 
 type Option func(*resty.Request)
 
-type Interface interface {
-	Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error)
-	Patch(path string, body *jnode.Node, options ...Option) (*jnode.Node, error)
-	Get(path string, options ...Option) (*jnode.Node, error)
-	GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error)
-	Delete(path string, options ...Option) (*jnode.Node, error)
-	XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) (*jnode.Node, error)
-	GetClient() *resty.Client
-}
+type httpError string
+
+var HTTPError httpError
 
 type Client struct {
 	*resty.Client
 	Config
 }
 
-func NewClient(config *Config) Interface {
+func (h httpError) Error() string {
+	return string(h)
+}
+
+func (h httpError) Is(err error) bool {
+	switch err.(type) {
+	case httpError:
+		return true
+	default:
+		return false
+	}
+}
+
+func NewClient(config *Config) *Client {
 	c := &Client{
 		Client: resty.New(),
 		Config: *config,
@@ -113,7 +120,7 @@ func NewClient(config *Config) Interface {
 			log.Errorf("{info:%s} {primary:%s} returned {danger:%d}\n", r.Request.Method,
 				r.Request.URL, r.StatusCode())
 			log.Errorf("{warning:%s}\n", r.String())
-			return fmt.Errorf("%s returned %d", r.Request.URL, r.StatusCode())
+			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
 		}
 		log.Debugf("%v", r.Result())
 		log.Infof("{info:%s} {primary:%s} returned {success:%d}\n", r.Request.Method,

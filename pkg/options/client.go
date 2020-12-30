@@ -15,19 +15,19 @@
 package options
 
 import (
-	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
 type ClientOpts struct {
-	client.Config
+	api.Config
 	AuthNotRequired bool
 	DefaultTimeout  int
 
-	client       client.Interface
-	unauthClient client.Interface
+	client       *api.Client
+	unauthClient *api.Client
 }
 
 var _ Interface = &ClientOpts{}
@@ -63,17 +63,17 @@ func (opts *ClientOpts) Register(cmd *cobra.Command) {
 	opts.GetClientOptionsGroup().Register(cmd)
 }
 
-func (opts *ClientOpts) GetAPIClientConfig() *client.Config {
+func (opts *ClientOpts) GetAPIClientConfig() *api.Config {
 	cfg := opts.Config
 
 	if cfg.Organization == "" {
 		cfg.Organization = config.Config.Organization
 	}
 	if cfg.APIToken == "" {
-		cfg.APIToken = config.Config.APIToken
+		cfg.APIToken = config.Config.GetAPIToken()
 	}
 	if cfg.APIServer == "" {
-		cfg.APIServer = config.Config.APIServer
+		cfg.APIServer = config.Config.GetAPIServer()
 	}
 	if cfg.APIServer == "" {
 		cfg.APIServer = "https://api.soluble.cloud"
@@ -91,18 +91,18 @@ func (opts *ClientOpts) GetOrganization() string {
 	return config.Config.Organization
 }
 
-func (opts *ClientOpts) GetAPIClient() client.Interface {
+func (opts *ClientOpts) GetAPIClient() *api.Client {
 	if opts.client == nil {
-		opts.client = client.NewClient(opts.GetAPIClientConfig())
+		opts.client = api.NewClient(opts.GetAPIClientConfig())
 	}
 	return opts.client
 }
 
-func (opts *ClientOpts) GetUnauthenticatedAPIClient() client.Interface {
+func (opts *ClientOpts) GetUnauthenticatedAPIClient() *api.Client {
 	if opts.unauthClient == nil {
 		cfg := opts.GetAPIClientConfig()
 		cfg.APIToken = ""
-		opts.unauthClient = client.NewClient(cfg)
+		opts.unauthClient = api.NewClient(cfg)
 	}
 	return opts.unauthClient
 }

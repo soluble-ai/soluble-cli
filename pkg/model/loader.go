@@ -42,7 +42,7 @@ func Load(source Source) error {
 		return err
 	}
 	wr := hcl.NewDiagnosticTextWriter(
-		os.Stdout,        // writer to send messages to
+		os.Stderr,        // writer to send messages to
 		m.parser.Files(), // the parser's file cache, for source snippets
 		78,               // wrapping width
 		true,             // generate colored/highlighted output

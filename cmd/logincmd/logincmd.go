@@ -22,6 +22,11 @@ func Command() *cobra.Command {
 		Short: "Authenticate with soluble",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := config.Config.AssertAPITokenFromConfig(); err != nil {
+				// if SOLUBLE_API_TOKEN is set, then after login the resulting token
+				// will not be used which is probably not what's intended
+				return fmt.Errorf("cannot login: %w", err)
+			}
 			if config.Config.APIToken != "" && !reset {
 				log.Infof("Already logged in to {primary:%s}, use --reset to re-authenticate", config.Config.APIServer)
 				return nil

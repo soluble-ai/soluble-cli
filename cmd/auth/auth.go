@@ -68,10 +68,10 @@ func printTokenCmd() *cobra.Command {
 curl -H “Authorization: Bearer $(soluble print-access-token)” ...`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if config.Config.APIToken == "" {
+			if config.Config.GetAPIToken() == "" {
 				return fmt.Errorf("not authenticated, use login to authenticate")
 			}
-			fmt.Println(config.Config.APIToken)
+			fmt.Println(config.Config.GetAPIToken())
 			return nil
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {

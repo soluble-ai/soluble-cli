@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 )
 
 var metadataCommands = map[string]string{
@@ -50,25 +50,25 @@ var (
 	}
 )
 
-var _ client.Option = WithCIEnv
+var _ api.Option = WithCIEnv
 
 // Include CI-related environment variables in the request.
 func WithCIEnv(req *resty.Request) {
 	if req.Method == "GET" {
-		req.SetQueryParams(getCIEnv())
+		req.SetQueryParams(GetCIEnv())
 	} else {
-		req.SetMultipartFormData(getCIEnv())
+		req.SetMultipartFormData(GetCIEnv())
 	}
 }
 
 // For XCPPost, include a file from a reader.
-func WithFileFromReader(param, filename string, reader io.Reader) client.Option {
+func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 	return func(req *resty.Request) {
 		req.SetFileReader(param, filename, reader)
 	}
 }
 
-func getCIEnv() map[string]string {
+func GetCIEnv() map[string]string {
 	values := map[string]string{}
 	allEnvs := make(map[string]string)
 	for _, e := range os.Environ() {

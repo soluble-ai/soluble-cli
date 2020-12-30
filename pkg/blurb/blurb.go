@@ -26,7 +26,7 @@ func SignupBlurb(opts options.Interface, first, use string) {
 	}
 	_ = os.Stdout.Sync()
 	Blurbed = true
-	auth := config.Config.APIToken != ""
+	auth := config.Config.GetAPIToken() != ""
 	if c, ok := opts.(authenticatedP); ok {
 		auth = c.IsAuthenticated()
 	}

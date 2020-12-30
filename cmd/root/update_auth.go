@@ -21,6 +21,9 @@ import (
 )
 
 func updateAuthAction(command model.Command, result *jnode.Node) (*jnode.Node, error) {
+	if err := config.Config.AssertAPITokenFromConfig(); err != nil {
+		return nil, err
+	}
 	opts := command.(*model.OptionsCommand).ClientOpts
 	cfg := opts.GetAPIClientConfig()
 	config.Config.APIServer = cfg.APIServer

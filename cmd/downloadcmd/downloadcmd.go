@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -70,7 +69,7 @@ func installCommand() *cobra.Command {
 			m := download.NewManager()
 			var d *download.Download
 			var err error
-			spec.APIServer = opts.GetAPIClient().(*client.Client)
+			spec.APIServer = opts.GetAPIClient()
 			if cmd.CalledAs() == "reinstall" || reinstall {
 				d, err = m.Reinstall(&spec)
 			} else {
