@@ -18,7 +18,8 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
+
 	"github.com/spf13/cobra"
 )
 
@@ -28,8 +29,8 @@ type CommandMaker func(c *cobra.Command, cm *CommandModel) Command
 
 type Command interface {
 	SetContextValues(context map[string]string)
-	GetAPIClient() client.Interface
-	GetUnauthenticatedAPIClient() client.Interface
+	GetAPIClient() *api.Client
+	GetUnauthenticatedAPIClient() *api.Client
 	PrintResult(n *jnode.Node)
 	GetCobraCommand() *cobra.Command
 }
@@ -61,10 +62,10 @@ func (t CommandType) makeCommand(c *cobra.Command, cm *CommandModel) Command {
 }
 
 func (g *GroupCommand) SetContextValues(context map[string]string) {}
-func (g *GroupCommand) GetAPIClient() client.Interface {
+func (g *GroupCommand) GetAPIClient() *api.Client {
 	return nil
 }
-func (g *GroupCommand) GetUnauthenticatedAPIClient() client.Interface {
+func (g *GroupCommand) GetUnauthenticatedAPIClient() *api.Client {
 	return nil
 }
 func (g *GroupCommand) PrintResult(n *jnode.Node) {}

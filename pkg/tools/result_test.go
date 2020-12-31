@@ -91,7 +91,7 @@ func TestUpload(t *testing.T) {
 			return resp, err
 		})
 	assert.Nil(result.report(opts, "test"))
-	assert.Equal("http://app.example.com/A1", result.AssessmentURL)
+	assert.Equal("http://app.example.com/A1", result.Assessment.URL)
 }
 
 func checkFile(assert *assert.Assertions, h *http.Request, name string, fn func(*assert.Assertions, multipart.File)) {

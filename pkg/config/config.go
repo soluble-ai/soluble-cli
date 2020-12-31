@@ -136,6 +136,29 @@ func (c *ProfileT) GetAppURL() string {
 	return "https://app.soluble.cloud"
 }
 
+func (c *ProfileT) GetAPIToken() string {
+	token := strings.TrimSpace(os.Getenv("SOLUBLE_API_TOKEN"))
+	if token != "" {
+		return token
+	}
+	return c.APIToken
+}
+
+func (c *ProfileT) AssertAPITokenFromConfig() error {
+	if os.Getenv("SOLUBLE_API_TOKEN") != "" {
+		return fmt.Errorf("the environment variable SOLUBLE_API_TOKEN is set")
+	}
+	return nil
+}
+
+func (c *ProfileT) GetAPIServer() string {
+	server := strings.TrimSpace(os.Getenv(("SOLUBLE_API_SERVER")))
+	if server != "" {
+		return server
+	}
+	return c.APIServer
+}
+
 func Save() {
 	dir := filepath.Dir(ConfigFile)
 	if dir != "" {

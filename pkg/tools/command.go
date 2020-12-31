@@ -45,11 +45,11 @@ func runTool(tool Interface) error {
 	opts.Path = result.PrintPath
 	opts.Columns = result.PrintColumns
 	opts.PrintResult(result.Data)
-	if !opts.UploadEnabled {
+	if !opts.NotUploadable && !opts.UploadEnabled {
 		blurb.SignupBlurb(opts, "Want to manage findings with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
 	}
-	if result.AssessmentURL != "" {
-		log.Infof("Results uploaded, see {primary:%s} for more information", result.AssessmentURL)
+	if result.Assessment != nil && result.Assessment.URL != "" {
+		log.Infof("Results uploaded, see {primary:%s} for more information", result.Assessment.URL)
 	}
 	return nil
 }

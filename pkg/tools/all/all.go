@@ -110,8 +110,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 		opts.UploadEnabled = t.UploadEnabled
 		opts.OmitContext = t.OmitContext
 		opts.ToolPath = t.ToolPaths[st.Name()]
+		opts.ParsedFailThresholds = t.ParsedFailThresholds
 		start := time.Now()
-		st.Result, st.Err = st.GetToolOptions().RunTool(st)
+		st.Result, st.Err = opts.RunTool(st)
 		rd := time.Since(start).Truncate(time.Millisecond)
 		n.Put("run_duration", rd.String())
 		if st.Result != nil {
@@ -125,7 +126,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 					n.Put("findings_count", len(tp.GetRows(st.Result.Data)))
 				}
 			}
-			n.Put("assessment_url", st.Result.AssessmentURL)
+			if st.Result.Assessment != nil {
+				n.Put("assessment_url", st.Result.Assessment.URL)
+			}
 		}
 		if st.Err != nil {
 			n.Put("error", st.Err.Error())

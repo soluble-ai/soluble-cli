@@ -218,7 +218,9 @@ func (p *PrintOpts) PrintResult(result *jnode.Node) {
 	}
 	n := printer.PrintResult(w, result)
 	if p.ExitErrorNotEmtpy && n > 0 {
-		exit.Message = fmt.Sprintf("Exiting with error code because there are {danger:%d} results", n)
+		exit.Func = func() {
+			log.Errorf("Exiting with error code because there are {danger:%d} results", n)
+		}
 		exit.Code = 2
 	}
 }

@@ -19,7 +19,6 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/cmd/agent"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
@@ -39,7 +38,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -80,14 +78,14 @@ func Command() *cobra.Command {
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if config.Config.APIToken == "" {
+			if config.Config.GetAPIToken() == "" {
 				if cmd.Use != "version" {
 					blurb.SignupBlurb(nil, "Finding {primary:soluble} useful?", "")
 				}
 			}
 			if exit.Code != 0 {
-				if exit.Message != "" {
-					log.Errorf(exit.Message)
+				if exit.Func != nil {
+					exit.Func()
 				}
 				os.Exit(exit.Code)
 			}
@@ -200,12 +198,4 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 		cmd.Short += " (" + m.Source.String() + ")"
 	}
 	root.AddCommand(cmd)
-}
-
-func init() {
-	model.RegisterAction("exit_on_failures", func(command model.Command, n *jnode.Node) (*jnode.Node, error) {
-		thresholds, _ := command.GetCobraCommand().Flags().GetStringToString("fail")
-		tools.ExitOnFailures(thresholds, n)
-		return n, nil
-	})
 }

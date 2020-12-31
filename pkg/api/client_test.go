@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package api
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -25,7 +26,7 @@ import (
 func TestClient(t *testing.T) {
 	c := NewClient(&Config{
 		APIServer: "https://api.soluble.cloud",
-	}).(*Client)
+	})
 	c.Organization = "1234"
 	httpmock.ActivateNonDefault(c.Client.GetClient())
 	httpmock.RegisterResponder("GET", "https://api.soluble.cloud/api/v1/org/1234/foo",
@@ -51,5 +52,12 @@ func TestClient(t *testing.T) {
 	}
 	if !n.IsObject() || n.Path("hello").AsText() != "x world" {
 		t.Error(n)
+	}
+}
+
+func TestError(t *testing.T) {
+	e := httpError("blah")
+	if !errors.Is(e, HTTPError) {
+		t.Error(e)
 	}
 }

@@ -16,7 +16,7 @@ package model
 
 import (
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/client"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -85,14 +85,14 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 	return w
 }
 
-func (w *OptionsCommand) GetAPIClient() client.Interface {
+func (w *OptionsCommand) GetAPIClient() *api.Client {
 	if w.ClientOpts != nil {
 		return w.ClientOpts.GetAPIClient()
 	}
 	return nil
 }
 
-func (w *OptionsCommand) GetUnauthenticatedAPIClient() client.Interface {
+func (w *OptionsCommand) GetUnauthenticatedAPIClient() *api.Client {
 	if w.ClientOpts != nil {
 		return w.ClientOpts.GetUnauthenticatedAPIClient()
 	}

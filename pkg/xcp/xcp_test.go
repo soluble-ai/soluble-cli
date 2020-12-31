@@ -14,7 +14,7 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("BUILDKITE_AGENT_ACCESS_TOKEN", "xxx")
 	os.Setenv("BUILDKITE_COMMAND", "xxx")
 	os.Setenv("BUILDKITE_S3_ACCESS_URL", "xxx")
-	env := getCIEnv()
+	env := GetCIEnv()
 	for k, v := range env {
 		if v == "xxx" {
 			t.Error(k, v)
