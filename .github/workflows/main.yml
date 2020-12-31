@@ -42,6 +42,9 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+    - name: Caching docker images
+      uses: satackey/action-docker-layer-caching@v0.0.11
+      continue-on-error: true
     - name: Installing golangci-lint
       run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.31.0
     - name: Build and Unit Test

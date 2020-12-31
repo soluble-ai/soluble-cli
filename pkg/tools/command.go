@@ -45,7 +45,7 @@ func runTool(tool Interface) error {
 	opts.Path = result.PrintPath
 	opts.Columns = result.PrintColumns
 	opts.PrintResult(result.Data)
-	if !opts.NotUploadable && !opts.UploadEnabled {
+	if !opts.UploadEnabled {
 		blurb.SignupBlurb(opts, "Want to manage findings with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
 	}
 	if result.Assessment != nil && result.Assessment.URL != "" {

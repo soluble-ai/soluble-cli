@@ -8,9 +8,8 @@ import (
 
 	"github.com/google/go-github/v32/github"
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/buildreport"
 	"golang.org/x/oauth2"
 )
 
@@ -21,7 +20,7 @@ type Integration struct {
 	gh     *github.Client
 }
 
-func NewIntegration(ctx context.Context, config *jnode.Node) buildreport.CIIntegration {
+func NewIntegration(ctx context.Context, config *jnode.Node) assessments.CIIntegration {
 	gitRepo := config.Path("gitRepo").AsText()
 	if gitRepo == "" {
 		return nil
@@ -41,7 +40,7 @@ func NewIntegration(ctx context.Context, config *jnode.Node) buildreport.CIInteg
 	return nil
 }
 
-func (it *Integration) Update(ctx context.Context, assessments []tools.Assessment) {
+func (it *Integration) Update(ctx context.Context, assessments assessments.Assessments) {
 	if len(assessments) == 0 {
 		return
 	}
@@ -85,5 +84,5 @@ func stringp(s string) *string {
 }
 
 func init() {
-	buildreport.RegisterIntegration(NewIntegration)
+	assessments.RegisterCIIntegration(NewIntegration)
 }

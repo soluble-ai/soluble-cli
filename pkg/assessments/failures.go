@@ -1,22 +1,17 @@
-package tools
+package assessments
 
 import (
 	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
-var serverityNames = util.NewStringSetWithValues([]string{
-	"info", "low", "medium", "high", "critical",
-})
-
-func parseFailThresholds(thresholds map[string]string) (map[string]int, error) {
+func ParseFailThresholds(thresholds map[string]string) (map[string]int, error) {
 	last := -1
 	result := map[string]int{}
 	var err error
-	for _, name := range serverityNames.Values() {
+	for _, name := range SeverityNames.Values() {
 		if s, ok := thresholds[name]; ok {
 			value, convErr := strconv.Atoi(s)
 			if convErr != nil {
@@ -30,7 +25,7 @@ func parseFailThresholds(thresholds map[string]string) (map[string]int, error) {
 		result[name] = last
 	}
 	for key := range thresholds {
-		if !serverityNames.Contains(key) {
+		if !SeverityNames.Contains(key) {
 			err = multierror.Append(err, fmt.Errorf("unrecognized level: %s", key))
 		}
 	}

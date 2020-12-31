@@ -10,6 +10,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -27,7 +28,7 @@ type Result struct {
 	PrintPath    []string
 	PrintColumns []string
 
-	Assessment *Assessment
+	Assessment *assessments.Assessment
 }
 
 var repoFiles = []string{
@@ -98,7 +99,7 @@ func (r *Result) report(o *ToolOpts, name string) error {
 		p.PrintResult(os.Stderr, n)
 	}
 	if n.Path("assessment").IsObject() {
-		r.Assessment = &Assessment{}
+		r.Assessment = &assessments.Assessment{}
 		if err := json.Unmarshal([]byte(n.Path("assessment").String()), r.Assessment); err != nil {
 			log.Warnf("The server returned a garbled assessment: {warning:%s}", err)
 			r.Assessment = nil
