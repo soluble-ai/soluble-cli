@@ -1,4 +1,4 @@
-package tools
+package assessments
 
 import (
 	"testing"
@@ -22,11 +22,11 @@ func TestAssessmentHasFailures(t *testing.T) {
 		assessment := &Assessment{
 			Findings: tc.findings,
 		}
-		thresholds, err := parseFailThresholds(tc.thresholds)
+		thresholds, err := ParseFailThresholds(tc.thresholds)
 		assert.Nil(err)
-		f, count, level := assessment.HasFailures(thresholds)
-		assert.Equal(tc.fail, f)
-		assert.Equal(tc.level, level)
-		assert.Equal(tc.count, count)
+		f, level, count := assessment.HasFailures(thresholds)
+		assert.Equal(tc.fail, f, tc)
+		assert.Equal(tc.level, level, tc)
+		assert.Equal(tc.count, count, tc)
 	}
 }

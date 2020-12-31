@@ -12,6 +12,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/iacinventory"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/secrets"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/trivy"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +22,7 @@ type Tool struct {
 	PrintToolResults bool
 	Skip             []string
 	ToolPaths        map[string]string
+	Images           []string
 }
 
 var _ tools.Interface = &Tool{}
@@ -43,6 +45,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	flags.BoolVar(&t.PrintToolResults, "print-tool-results", false, "Print individual results from tools")
 	flags.StringSliceVar(&t.Skip, "skip", nil, "Don't run these `tools` (command-separated or repeated.)")
 	flags.StringToStringVar(&t.ToolPaths, "tool-paths", nil, "Explicitly specify the path to each tool in the form `tool=path`.")
+	flags.StringSliceVar(&t.Images, "image", nil, "Scan these docker images, as in the image-scan command.")
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {
@@ -54,7 +57,9 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 Cloudformation templates - cfn-python-lint
 Terraform                - checkov
 Kuberentes manifests     - checkov
-Everything               - secrets			
+Everything               - secrets		
+
+In addition, images can be scanned with trivy.
 `,
 		Example: `# To run a tool locally w/o using docker explicitly specify the tool path
 ... all --tool-paths checkov=checkov,cfn-python-lint=cfn-lint`,
@@ -87,6 +92,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
 			},
 		},
+	}
+	for _, image := range t.Images {
+		subTools = append(subTools, SubordinateTool{
+			Interface: &trivy.Tool{
+				Image: image,
+			},
+		})
 	}
 	result := &tools.Result{
 		Data:      jnode.NewObjectNode(),

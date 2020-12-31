@@ -15,7 +15,6 @@ run version
 run auth profile --format none
 
 if [ -n "${SOLUBLE_API_TOKEN:-}" -a -n "${GITHUB_ACTIONS:-}" ]; then
-    run iac-scan all --upload
-    run image-scan --image nginx:1.19 --upload
-    run iac-scan build-report
+    run iac-scan all --upload --image nginx:1.19
+    run iac-scan update-ci
 fi
