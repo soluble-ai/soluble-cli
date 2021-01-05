@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 )
 
@@ -59,6 +60,15 @@ func WithCIEnv(req *resty.Request) {
 	} else {
 		req.SetMultipartFormData(GetCIEnv())
 	}
+}
+
+// Include CI-related information in the body of a request
+func WithCIEnvBody(req *resty.Request) {
+	body := jnode.NewObjectNode()
+	for k, v := range GetCIEnv() {
+		body.Put(k, v)
+	}
+	req.SetBody(body)
 }
 
 // For XCPPost, include a file from a reader.
