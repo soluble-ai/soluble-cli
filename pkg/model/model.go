@@ -397,6 +397,8 @@ func (cm *CommandModel) getOptions() []api.Option {
 			switch name {
 			case XCPCI:
 				opt = xcp.WithCIEnv
+			case CIENVBODY:
+				opt = xcp.WithCIEnvBody
 			default:
 				panic("unknown option " + name)
 			}

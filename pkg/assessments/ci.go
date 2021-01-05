@@ -24,11 +24,7 @@ func RegisterCIIntegration(integ func(context.Context, *jnode.Node) CIIntegratio
 }
 
 func getCIIntegrationToken(client *api.Client) *jnode.Node {
-	body := jnode.NewObjectNode()
-	for k, v := range xcp.GetCIEnv() {
-		body.Put(k, v)
-	}
-	res, err := client.Post("/api/v1/org/{org}/git/ci-token", body)
+	res, err := client.Post("/api/v1/org/{org}/git/ci-token", nil, xcp.WithCIEnvBody)
 	if err != nil {
 		if !errors.Is(err, api.HTTPError) {
 			log.Warnf("Could not get CI integration config: {danger:%s}", err)
