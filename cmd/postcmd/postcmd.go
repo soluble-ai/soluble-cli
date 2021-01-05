@@ -14,7 +14,11 @@ func Command() *cobra.Command {
 		values  map[string]string
 		withEnv bool
 	)
-	opts := options.PrintClientOpts{}
+	opts := options.PrintClientOpts{
+		PrintOpts: options.PrintOpts{
+			DefaultOutputFormat: "value(assessment.appUrl)",
+		},
+	}
 	c := &cobra.Command{
 		Use:   "post",
 		Short: "Send data to soluble",
