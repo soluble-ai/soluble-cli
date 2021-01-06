@@ -106,9 +106,13 @@ func (r *Result) report(o *ToolOpts, name string) error {
 		}
 	}
 	if r.Assessment != nil {
-		if f, count, level := r.Assessment.HasFailures(o.ParsedFailThresholds); f {
+		r.Assessment.EvaluateFailures(o.ParsedFailThresholds)
+		if r.Assessment.Failed {
 			exit.Code = 2
-			exit.AddFunc(func() { log.Errorf("Found {danger:%d failed %s} findings", count, level) })
+			exit.AddFunc(func() {
+				log.Errorf("Found {danger:%d failed %s} findings",
+					r.Assessment.FailedCount, r.Assessment.FailedSeverity)
+			})
 		}
 	}
 	return nil

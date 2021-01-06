@@ -73,6 +73,40 @@ func (it *Integration) Update(ctx context.Context, assessments assessments.Asses
 		} else {
 			log.Infof("Updated github check run {primary:%s} id %d HeadSHA %s", a.Title, checkRun.GetID(), it.commit)
 		}
+		var annotations []*github.CheckRunAnnotation
+		for _, f := range a.Findings {
+			if f.FilePath != "" && f.Line > 0 && !f.Pass {
+				annotations = append(annotations, &github.CheckRunAnnotation{
+					Path:            toPath(f.FilePath),
+					StartLine:       intp(f.Line),
+					EndLine:         intp(f.Line),
+					AnnotationLevel: toAnnotationLevel(f.Severity),
+					Title:           stringp(f.GetTitle()),
+					Message:         stringp(truncate(f.Description, 100)),
+				})
+				if len(annotations) == 50 {
+					it.updateCheckRun(ctx, checkRun, annotations)
+					annotations = nil
+				}
+			}
+		}
+		if len(annotations) > 0 {
+			it.updateCheckRun(ctx, checkRun, annotations)
+		}
+	}
+}
+
+func (it *Integration) updateCheckRun(ctx context.Context, checkRun *github.CheckRun, annotations []*github.CheckRunAnnotation) {
+	_, _, err := it.gh.Checks.UpdateCheckRun(ctx, it.owner, it.repo, checkRun.GetID(), github.UpdateCheckRunOptions{
+		Name: checkRun.GetName(),
+		Output: &github.CheckRunOutput{
+			Summary:     checkRun.Output.Summary,
+			Title:       checkRun.Output.Title,
+			Annotations: annotations,
+		},
+	})
+	if err != nil {
+		log.Warnf("Could not add annotations to github check run: {danger:%s}", err)
 	}
 }
 
@@ -81,6 +115,30 @@ func stringp(s string) *string {
 		return &s
 	}
 	return nil
+}
+
+func intp(i int) *int {
+	return &i
+}
+
+func toPath(p string) *string {
+	return stringp(strings.TrimLeft(p, "/"))
+}
+
+func toAnnotationLevel(s string) *string {
+	switch strings.ToLower(s) {
+	case "info":
+		return stringp("notice")
+	default:
+		return stringp("failure")
+	}
+}
+
+func truncate(s string, m int) string {
+	if len(s) > m {
+		return s[0:m-3] + "..."
+	}
+	return s
 }
 
 func init() {
