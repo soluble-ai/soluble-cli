@@ -24,9 +24,9 @@ func TestAssessmentHasFailures(t *testing.T) {
 		}
 		thresholds, err := ParseFailThresholds(tc.thresholds)
 		assert.Nil(err)
-		f, level, count := assessment.HasFailures(thresholds)
-		assert.Equal(tc.fail, f, tc)
-		assert.Equal(tc.level, level, tc)
-		assert.Equal(tc.count, count, tc)
+		assessment.EvaluateFailures(thresholds)
+		assert.Equal(tc.fail, assessment.Failed, tc)
+		assert.Equal(tc.level, assessment.FailedSeverity, tc)
+		assert.Equal(tc.count, assessment.FailedCount, tc)
 	}
 }

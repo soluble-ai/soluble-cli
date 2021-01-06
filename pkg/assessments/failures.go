@@ -14,9 +14,12 @@ func ParseFailThresholds(thresholds map[string]string) (map[string]int, error) {
 	for _, name := range SeverityNames.Values() {
 		if s, ok := thresholds[name]; ok {
 			value, convErr := strconv.Atoi(s)
-			if convErr != nil {
+			switch {
+			case convErr != nil:
 				err = multierror.Append(err, fmt.Errorf("invalid threshold %s for %s", s, name))
-			} else {
+			case value == 0:
+				err = multierror.Append(err, fmt.Errorf("threshold count for %s must be > 0", name))
+			default:
 				result[name] = value
 				last = value
 				continue

@@ -18,7 +18,10 @@ type Assessment struct {
 	Category string
 	Markdown string
 	Findings []Finding
-	Failed   bool `json:"-"`
+
+	Failed         bool
+	FailedCount    int
+	FailedSeverity string
 }
 
 type Assessments []Assessment
@@ -38,7 +41,7 @@ var SeverityNames = util.NewStringSetWithValues([]string{
 	"info", "low", "medium", "high", "critical",
 })
 
-func (a *Assessment) HasFailures(thresholds map[string]int) (bool, string, int) {
+func (a *Assessment) EvaluateFailures(thresholds map[string]int) {
 	counts := map[string]int{}
 	for _, f := range a.Findings {
 		counts[strings.ToLower(f.Severity)] += 1
@@ -47,10 +50,12 @@ func (a *Assessment) HasFailures(thresholds map[string]int) (bool, string, int) 
 		value := thresholds[level]
 		count := counts[level]
 		if value > 0 && count >= value {
-			return true, level, count
+			a.Failed = true
+			a.FailedSeverity = level
+			a.FailedCount = count
+			return
 		}
 	}
-	return false, "", 0
 }
 
 func (f *Finding) GetTitle() string {

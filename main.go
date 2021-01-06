@@ -34,7 +34,7 @@ func main() {
 	}
 	cmd := root.Command()
 	if err := cmd.Execute(); err != nil {
-		colorize.Colorize("{danger:Error:} {warning:%s}\n", err)
+		colorize.Colorize("{danger:Error:} {warning:%s}\n", strings.TrimRight(err.Error(), "\n"))
 		os.Exit(1)
 	}
 }

@@ -24,13 +24,24 @@ func (opts *BuildReportOpts) Register(c *cobra.Command) {
 	flags.StringToStringVar(&opts.FailThresholds, "fail", nil, "")
 }
 
-func (opts *BuildReportOpts) getAssessments() (assessments.Assessments, error) {
+func (opts *BuildReportOpts) validate() error {
 	parsedFailThresholds, err := assessments.ParseFailThresholds(opts.FailThresholds)
+	if err != nil {
+		return err
+	}
+	opts.parsedFailThresholds = parsedFailThresholds
+	return nil
+}
+
+func (opts *BuildReportOpts) getAssessments() (assessments.Assessments, error) {
+	as, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
 	if err != nil {
 		return nil, err
 	}
-	opts.parsedFailThresholds = parsedFailThresholds
-	return assessments.FindCIEnvAssessments(opts.GetAPIClient())
+	for _, a := range as {
+		a.EvaluateFailures(opts.parsedFailThresholds)
+	}
+	return as, nil
 }
 
 func Commands() []*cobra.Command {
@@ -54,16 +65,21 @@ func buildReportCommand() *cobra.Command {
 		Short: "List any assessments generated during this build",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := opts.validate(); err != nil {
+				return err
+			}
 			assessments, err := opts.getAssessments()
 			if err != nil {
 				return err
 			}
 			findings := jnode.NewArrayNode()
 			for _, assessment := range assessments {
-				failed, count, level := assessment.HasFailures(opts.parsedFailThresholds)
-				if failed {
+				if assessment.Failed {
 					exit.Code = 2
-					exit.AddFunc(func() { log.Errorf("{warning:%s} has {danger:%d %s findings}", assessment.Title, count, level) })
+					exit.AddFunc(func() {
+						log.Errorf("{warning:%s} has {danger:%d %s findings}",
+							assessment.Title, assessment.FailedCount, assessment.FailedSeverity)
+					})
 				}
 				for _, finding := range assessment.Findings {
 					findings.AppendObject().Put("sid", finding.SID).
@@ -93,6 +109,9 @@ func updateCICommand() *cobra.Command {
 		Short: "Update the CI system with the results of any assessments generated during the build",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := opts.validate(); err != nil {
+				return err
+			}
 			assessments, err := opts.getAssessments()
 			if err != nil {
 				return err
