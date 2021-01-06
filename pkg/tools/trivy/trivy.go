@@ -93,6 +93,152 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}, nil
 }
 
+// DirTool implements dependency scanning for trivy.
+// However the output from the filesystem scanner is distinctly
+// different from the image scanning, and is also invoked from
+// a different command.
+type DirTool struct {
+	Tool
+	Dir string
+}
+
+func (t *DirTool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "trivy",
+		Short: "Scan a local directory",
+	}
+}
+
+func (t *DirTool) Register(cmd *cobra.Command) {
+	t.ToolOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.BoolVarP(&t.IgnoreUnfixed, "ignore-unfixed", "u", false, "display only fixed vulnerabilities")
+	flags.StringVarP(&t.Dir, "directory", "d", ".", "The directory to scan")
+}
+
+func (t *DirTool) Run() (*tools.Result, error) {
+	d, err := t.InstallTool(&download.Spec{
+		URL: "github.com/aquasecurity/trivy",
+	})
+	if err != nil {
+		return nil, err
+	}
+	outfile, err := tempfile()
+	if err != nil {
+		return nil, err
+	}
+	program := d.GetExePath("trivy")
+	args := []string{"fs", "--format", "json", "--output", outfile}
+	if t.IgnoreUnfixed {
+		args = append(args, "--ignore-unfixed")
+	}
+	args = append(args, ".") // scan the current directory
+	err = runCommand(program, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	dat, err := ioutil.ReadFile(outfile)
+	if err != nil {
+		return nil, err
+	}
+	n, err := jnode.FromJSON(dat)
+	if err != nil {
+		return nil, err
+	}
+
+	// If trivy turned up nothing...
+	if n.Size() == 0 {
+		log.Infof("No vulnerabilities identified by trivy scan")
+		return nil, nil
+	}
+
+	/*
+		// we must merge elements in the array from...
+
+			 [
+			  {
+			    "Target": ".github/action/package-lock.json",
+			    "Type": "npm",
+			    "Vulnerabilities": [
+			      {
+			        "VulnerabilityID": "CVE-2020-15228",
+			        "PkgName": "@actions/core",
+			        "InstalledVersion": "1.2.4",
+				...omitted for brevity...
+			        "LastModifiedDate": "2020-12-23T18:32:00Z"
+			      }
+			    ]
+			  },
+			  {
+			    "Target": "package-lock.json",
+			    "Type": "npm",
+			    "Vulnerabilities": [
+			      {
+			        "VulnerabilityID": "CVE-2020-8244",
+			        "PkgName": "bl",
+			        "InstalledVersion": "4.0.2",
+				...omitted for brevity...
+			      }
+			    ]
+			  },
+			  ...omitted for brevity...
+			 ]
+
+
+			 to:
+
+			 [
+			  {
+			    "Vulnerabilities": [
+			      {
+			        "Target": ".github/action/package-lock.json",
+			        "Type": "npm",
+			        "VulnerabilityID": "CVE-2020-15228",
+			        "PkgName": "@actions/core",
+			        "InstalledVersion": "1.2.4",
+				...omitted for brevity...
+			        "LastModifiedDate": "2020-12-23T18:32:00Z"
+			      },
+			      {
+			        "Target": "package-lock.json",
+			        "Type": "npm",
+			        "VulnerabilityID": "CVE-2020-8244",
+			        "PkgName": "bl",
+			        "InstalledVersion": "4.0.2",
+				...omitted for brevity...
+			      }
+
+			    ]
+			  }
+			 ]
+	*/
+
+	merged := jnode.NewObjectNode()
+	merged.PutArray("Vulnerabilities")
+	for i := 0; i < n.Size(); i++ {
+		vulns := n.Get(i).Path("Vulnerabilities").Elements()
+		for x := range vulns {
+			vulns[x].Put("Target", n.Get(i).Path("Target"))
+			vulns[x].Put("Type", n.Get(i).Path("Type"))
+		}
+
+		err := merged.Path("Vulnerabilities").AppendE(vulns)
+		if err != nil {
+			log.Errorf("error merging trivy vulns: %w", err)
+			break
+		}
+	}
+	return &tools.Result{
+		Data: merged,
+		Values: map[string]string{
+			"TRIVY_VERSION": d.Version,
+		},
+		PrintPath:    []string{"Vulnerabilities"},
+		PrintColumns: []string{"Target", "PkgName", "VulnerabilityID", "Severity", "InstalledVersion", "FixedVersion", "Title"},
+	}, nil
+}
+
 func runCommand(program string, args ...string) error {
 	scan := exec.Command(program, args...)
 	log.Infof("Running {info:%s}", strings.Join(scan.Args, " "))
