@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
@@ -109,6 +110,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	resultData := result.Data.PutArray("data")
 	count := 0
+	as := assessments.Assessments{}
 	for _, st := range subTools {
 		n := resultData.AppendObject()
 		n.Put("skipped", st.Skip)
@@ -123,23 +125,28 @@ func (t *Tool) Run() (*tools.Result, error) {
 		opts.OmitContext = t.OmitContext
 		opts.ToolPath = t.ToolPaths[st.Name()]
 		opts.ParsedFailThresholds = t.ParsedFailThresholds
+		if dopts := st.GetDirectoryBasedToolOptions(); dopts != nil {
+			dopts.Exclude = t.Exclude
+		}
 		start := time.Now()
 		st.Result, st.Err = opts.RunTool(st)
 		rd := time.Since(start).Truncate(time.Millisecond)
 		n.Put("run_duration", rd.String())
 		if st.Result != nil {
+			printData := st.Result.GetPrintData()
 			opts.Path = st.Result.PrintPath
 			opts.Columns = st.Result.PrintColumns
 			if t.PrintToolResults {
-				opts.PrintResult(st.Result.Data)
+				opts.PrintResult(printData)
 			}
 			if pr, err := st.GetToolOptions().GetPrinter(); err == nil {
 				if tp, ok := pr.(*print.TablePrinter); ok {
-					n.Put("findings_count", len(tp.GetRows(st.Result.Data)))
+					n.Put("findings_count", len(tp.GetRows(printData)))
 				}
 			}
 			if st.Result.Assessment != nil {
 				n.Put("assessment_url", st.Result.Assessment.URL)
+				as = append(as, *st.Result.Assessment)
 			}
 		}
 		if st.Err != nil {
@@ -147,6 +154,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 	}
 	log.Infof("Finished running {primary:%d} tools", count)
+	if t.UpdatePR {
+		if err := as.UpdatePR(t.GetAPIClient()); err != nil {
+			return nil, err
+		}
+	}
 	return result, nil
 }
 

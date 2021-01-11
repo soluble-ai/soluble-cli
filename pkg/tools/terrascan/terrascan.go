@@ -58,6 +58,14 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, result := range n.Path("results").Elements() {
+		violations := result.Path("violations")
+		if violations.Size() > 0 {
+			result.Put("violations", util.RemoveJNodeElementsIf(violations, func(e *jnode.Node) bool {
+				return t.IsExcluded(e.Path("file").AsText())
+			}))
+		}
+	}
 	result := &tools.Result{
 		Data:         n,
 		Directory:    t.GetDirectory(),

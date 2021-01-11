@@ -20,7 +20,7 @@ type Integration struct {
 	gh     *github.Client
 }
 
-func NewIntegration(ctx context.Context, config *jnode.Node) assessments.CIIntegration {
+func NewIntegration(ctx context.Context, config *jnode.Node) assessments.PRIntegration {
 	gitRepo := config.Path("gitRepo").AsText()
 	if gitRepo == "" {
 		return nil
@@ -142,5 +142,5 @@ func truncate(s string, m int) string {
 }
 
 func init() {
-	assessments.RegisterCIIntegration(NewIntegration)
+	assessments.RegisterPRIntegration(NewIntegration)
 }

@@ -1,4 +1,4 @@
-package buildreport
+package build
 
 import (
 	"strings"
@@ -11,20 +11,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type BuildReportOpts struct {
+type BuildOpts struct {
 	options.PrintClientOpts
 	FailThresholds map[string]string
 
 	parsedFailThresholds map[string]int
 }
 
-func (opts *BuildReportOpts) Register(c *cobra.Command) {
+func (opts *BuildOpts) Register(c *cobra.Command) {
 	opts.PrintClientOpts.Register(c)
 	flags := c.Flags()
 	flags.StringToStringVar(&opts.FailThresholds, "fail", nil, "")
 }
 
-func (opts *BuildReportOpts) validate() error {
+func (opts *BuildOpts) validate() error {
 	parsedFailThresholds, err := assessments.ParseFailThresholds(opts.FailThresholds)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (opts *BuildReportOpts) validate() error {
 	return nil
 }
 
-func (opts *BuildReportOpts) getAssessments() (assessments.Assessments, error) {
+func (opts *BuildOpts) getAssessments() (assessments.Assessments, error) {
 	as, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
 	if err != nil {
 		return nil, err
@@ -44,15 +44,20 @@ func (opts *BuildReportOpts) getAssessments() (assessments.Assessments, error) {
 	return as, nil
 }
 
-func Commands() []*cobra.Command {
-	return []*cobra.Command{
-		buildReportCommand(),
-		updateCICommand(),
+func Command() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "build",
+		Short: "Commands for CI builds",
 	}
+	c.AddCommand(
+		buildReportCommand(),
+		updatePRCommand(),
+	)
+	return c
 }
 
 func buildReportCommand() *cobra.Command {
-	opts := &BuildReportOpts{
+	opts := &BuildOpts{
 		PrintClientOpts: options.PrintClientOpts{
 			PrintOpts: options.PrintOpts{
 				Path:    []string{"findings"},
@@ -61,7 +66,7 @@ func buildReportCommand() *cobra.Command {
 		},
 	}
 	c := &cobra.Command{
-		Use:   "build-report",
+		Use:   "report",
 		Short: "List any assessments generated during this build",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -102,11 +107,11 @@ specified severity.`)
 	return c
 }
 
-func updateCICommand() *cobra.Command {
-	opts := &BuildReportOpts{}
+func updatePRCommand() *cobra.Command {
+	opts := &BuildOpts{}
 	c := &cobra.Command{
-		Use:   "update-ci",
-		Short: "Update the CI system with the results of any assessments generated during the build",
+		Use:   "update-pr",
+		Short: "Update this build's pull-request with the results of any assessments generated during the build",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.validate(); err != nil {
@@ -116,7 +121,7 @@ func updateCICommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return assessments.UpdateCI(opts.GetAPIClient())
+			return assessments.UpdatePR(opts.GetAPIClient())
 		},
 	}
 	opts.Register(c)

@@ -1,10 +1,10 @@
 package iacscan
 
 import (
-	"github.com/soluble-ai/soluble-cli/cmd/buildreport"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/all"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/cfnnag"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/secrets"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/semgrep"
@@ -29,10 +29,7 @@ func Command() *cobra.Command {
 		tools.CreateCommand(&all.Tool{}),
 		tools.CreateCommand(&secrets.Tool{}),
 		tools.CreateCommand(&semgrep.Tool{}),
+		tools.CreateCommand(&cfnnag.Tool{}),
 	)
-	c.AddCommand(buildreport.Commands()...)
-
-	// Disabling the cloudformation guard for now as it doesn't fit our strategy
-	// c.AddCommand(createCommand(&cloudformationguard.Tool{}))
 	return c
 }

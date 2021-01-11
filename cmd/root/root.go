@@ -22,6 +22,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/agent"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
+	"github.com/soluble-ai/soluble-cli/cmd/build"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
 	"github.com/soluble-ai/soluble-cli/cmd/downloadcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/iacinventorycmd"
@@ -115,10 +116,10 @@ func Command() *cobra.Command {
 
 func setupCompat(rootCmd *cobra.Command) {
 	// temporary compatibility
-	buildReport := getCommandCopy(rootCmd, []string{"iac-scan", "build-report"})
+	buildReport := getCommandCopy(rootCmd, []string{"build", "report"})
 	buildReport.Hidden = true
 	options.AddPreRunE(buildReport, func(c *cobra.Command, s []string) error {
-		log.Warnf("This command has been moved to {warning:iac-scan build-report} and will be removed at some point")
+		log.Warnf("This command has been moved to {warning:build report} and will be removed at some point")
 		return nil
 	})
 	rootCmd.AddCommand(buildReport)
@@ -145,12 +146,16 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		imagescan.Command(),
 		iacinventorycmd.Command(),
 		logincmd.Command(),
+		build.Command(),
 	)
 }
 
 func loadModels() {
 	if err := model.Load(getEmbeddedModelsSource()); err != nil {
 		panic(err)
+	}
+	if os.Getenv("SOLUBLE_DISABLE_CLI_MODELS") != "" {
+		return
 	}
 	sources := make(chan model.Source)
 	for _, loc := range config.GetModelLocations() {

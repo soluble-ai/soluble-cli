@@ -42,8 +42,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PrintColumns: []string{
 			"rule_id",
 			"severity",
-			"file",
-			"line",
+			"location.filename",
+			"location.start_line",
 			"description",
 		},
 	}
@@ -72,12 +72,21 @@ func (t *Tool) Run() (*tools.Result, error) {
 			return nil, fmt.Errorf("could not determine absolute path of %s: %w", dir, err)
 		}
 	}
-	for _, r := range n.Path("results").Elements() {
-		loc := r.Path("location")
-		r.Put("line", loc.Path("start_line").AsInt())
-		file, _ := filepath.Rel(dir, loc.Path("filename").AsText())
-		r.Put("file", file)
+	results := n.Path("results")
+	if results.Size() > 0 {
+		for _, r := range n.Path("results").Elements() {
+			loc := r.Path("location")
+			filename := loc.Path("filename").AsText()
+			if filename != "" && filepath.IsAbs(filename) {
+				if f, err := filepath.Rel(dir, filename); err == nil {
+					loc.Put("filename", f)
+				}
+			}
+		}
+		results = util.RemoveJNodeElementsIf(results, func(e *jnode.Node) bool {
+			return t.IsExcluded(e.Path("location").Path("filename").AsText())
+		})
+		result.Data = jnode.NewObjectNode().Put("results", results)
 	}
-	result.Data = n
 	return result, nil
 }

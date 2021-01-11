@@ -19,6 +19,7 @@ import (
 type ToolOpts struct {
 	options.PrintClientOpts
 	UploadEnabled  bool
+	UpdatePR       bool
 	OmitContext    bool
 	ToolVersion    string
 	ToolPath       string
@@ -35,6 +36,10 @@ func (o *ToolOpts) GetToolOptions() *ToolOpts {
 	return o
 }
 
+func (o *ToolOpts) GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts {
+	return nil
+}
+
 func (o *ToolOpts) Register(c *cobra.Command) {
 	// set this now so help shows up, it will be corrected before we print anything
 	o.Path = []string{}
@@ -42,6 +47,7 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 	o.PrintClientOpts.Register(c)
 	flags := c.Flags()
 	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload report to Soluble")
+	flags.BoolVar(&o.UpdatePR, "update-pr", false, "Update this build's pull-request with the resulting assessment")
 	flags.BoolVar(&o.OmitContext, "omit-context", false, "When uploading a report, don't include the source files with findings")
 	flags.BoolVar(&o.PrintAsessment, "print-assessment", false, "Print the full assessment response on stderr after an upload")
 	flags.StringToStringVar(&o.FailThresholds, "fail", nil,
@@ -61,6 +67,9 @@ func (o *ToolOpts) Validate() error {
 	}
 	if len(o.FailThresholds) > 0 && !o.UploadEnabled {
 		return fmt.Errorf("--fail must be used with --upload")
+	}
+	if o.UpdatePR && !o.UploadEnabled {
+		return fmt.Errorf("--update-pr must be used with --upload")
 	}
 	// parse here to return error upfront
 	var err error
@@ -134,14 +143,13 @@ func (o *ToolOpts) RunTool(tool Interface) (*Result, error) {
 	}
 	result.AddValue("TOOL_NAME", tool.Name()).
 		AddValue("CLI_VERSION", version.Version)
-	if result.Data != nil && result.PrintPath != nil {
-		// include the print config in the results
-		p := result.Data.PutObject("soluble_print_config")
-		p.Put("print_path", jnode.FromSlice(result.PrintPath))
-		p.Put("print_columns", jnode.FromSlice(result.PrintColumns))
-	}
 	if o.UploadEnabled {
 		err = result.Report(tool)
+		if err == nil && o.UpdatePR {
+			if result.Assessment != nil {
+				err = result.Assessment.UpdatePR(o.GetAPIClient())
+			}
+		}
 	}
 	return result, err
 }

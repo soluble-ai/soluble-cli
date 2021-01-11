@@ -79,6 +79,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 		return nil, fmt.Errorf("could not parse JSON: %w", err)
 	}
+	results := n.Path("results")
+	if results.Size() > 0 {
+		n.Put("results", util.RemoveJNodeElementsIf(results, func(e *jnode.Node) bool {
+			return t.IsExcluded(e.Path("path").AsText())
+		}))
+	}
 	result := &tools.Result{
 		Data:      n,
 		PrintPath: []string{"results"},

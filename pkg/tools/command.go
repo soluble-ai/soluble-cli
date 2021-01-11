@@ -44,7 +44,7 @@ func runTool(tool Interface) error {
 	}
 	opts.Path = result.PrintPath
 	opts.Columns = result.PrintColumns
-	opts.PrintResult(result.Data)
+	opts.PrintResult(result.GetPrintData())
 	if !opts.UploadEnabled {
 		blurb.SignupBlurb(opts, "Want to manage findings with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
 	}
