@@ -15,9 +15,8 @@ import (
 
 type Tool struct {
 	tools.ToolOpts
-	Image         string
-	IgnoreUnfixed bool
-	ClearCache    bool
+	Image      string
+	ClearCache bool
 }
 
 var _ tools.Interface = &Tool{}
@@ -31,7 +30,6 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.StringVarP(&t.Image, "image", "i", "", "The image to scan")
 	flags.BoolVarP(&t.ClearCache, "clear-cache", "c", false, "clear image caches and then start scanning")
-	flags.BoolVarP(&t.IgnoreUnfixed, "ignore-unfixed", "u", false, "display only fixed vulnerabilities")
 	_ = cmd.MarkFlagRequired("image")
 }
 
@@ -39,6 +37,7 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "image-scan",
 		Short: "Scan a container image",
+		Args:  cobra.ArbitraryArgs,
 	}
 }
 
@@ -49,10 +48,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	outfile, err := tempfile()
+	outfile, err := tools.TempFile("trivy*")
 	if err != nil {
 		return nil, err
 	}
+	defer os.Remove(outfile)
 	program := d.GetExePath("trivy")
 	if t.ClearCache {
 		err := runCommand(program, "image", "--clear-cache")
@@ -63,9 +63,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 	// Generate params for the scanner
 	args := []string{"image", "--format", "json", "--output", outfile}
-	if t.IgnoreUnfixed {
-		args = append(args, "--ignore-unfixed")
-	}
 	// specify the image to scan at the end of params
 	args = append(args, t.Image)
 
@@ -103,15 +100,4 @@ func runCommand(program string, args ...string) error {
 		return err
 	}
 	return nil
-}
-
-func tempfile() (name string, err error) {
-	var f *os.File
-	f, err = ioutil.TempFile("", "trivy*")
-	if err != nil {
-		return
-	}
-	name = f.Name()
-	f.Close()
-	return
 }

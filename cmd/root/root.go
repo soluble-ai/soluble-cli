@@ -39,6 +39,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/trivyfs"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -147,6 +149,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		iacinventorycmd.Command(),
 		logincmd.Command(),
 		build.Command(),
+		tools.CreateCommand(&trivyfs.Tool{}),
 	)
 }
 
