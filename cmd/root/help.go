@@ -1,8 +1,10 @@
 package root
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/mitchellh/go-wordwrap"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -21,7 +23,8 @@ Examples:
 {{.Example}}{{end}}{{if .HasAvailableSubCommands}}
   
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
+  {{rpad .Name .NamePadding }} {{.Short | wrap (plus .NamePadding 3) 100}}{{if gt (len .Aliases) 0}}
+    aliases: {{.Aliases | joinCommas}}{{end}}{{end}}{{end}}{{end}}
 
 {{- if (and (or .Runnable .IsAdditionalHelpTopicCommand) .HasAvailableLocalFlags) }}
   
@@ -87,6 +90,17 @@ func helpCommand(rootCmd *cobra.Command) *cobra.Command {
 	return c
 }
 
+func wrap(indent, length int, s string) string {
+	p := strings.Repeat(" ", indent)
+	lines := strings.Split(wordwrap.WrapString(s, uint(length-indent)), "\n")
+	for i := range lines {
+		if i > 0 {
+			lines[i] = fmt.Sprintf("%s%s", p, lines[i])
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 func init() {
 	cobra.AddTemplateFunc("helpPath", func(cmd *cobra.Command) string {
 		path := strings.Split(cmd.CommandPath(), " ")
@@ -96,4 +110,9 @@ func init() {
 		}
 		return strings.Join(helpPath, " ")
 	})
+	cobra.AddTemplateFunc("joinCommas", func(vals []string) string {
+		return strings.Join(vals, ",")
+	})
+	cobra.AddTemplateFunc("wrap", wrap)
+	cobra.AddTemplateFunc("plus", func(i, j int) int { return i + j })
 }

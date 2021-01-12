@@ -1,4 +1,4 @@
-package iacinventorycmd
+package inventorycmd
 
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -8,11 +8,12 @@ import (
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "iac-inventory",
+		Use:   "inventory",
 		Short: "Inventory infrastructure-as-code and optionally send the inventory to Soluble",
 	}
 	c.AddCommand(
 		tools.CreateCommand(&iacinventory.Github{}),
-		tools.CreateCommand(&iacinventory.Local{}))
+		tools.CreateCommand(&iacinventory.Local{}),
+	)
 	return c
 }

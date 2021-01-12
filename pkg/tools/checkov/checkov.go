@@ -11,6 +11,7 @@ import (
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
+	Framework string
 
 	extraArgs []string
 }
@@ -24,7 +25,7 @@ func (t *Tool) Name() string {
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "checkov",
-		Short: "Run checkov",
+		Short: "Scan with checkov",
 		Example: `# Any additional args after -- are passed through to checkov, eg:
 ... checkov -- --help`,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -35,13 +36,18 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
+	args := []string{
+		"-d", ".", "-o", "json", "-s",
+	}
+	if t.Framework != "" {
+		args = append(args, "--framework", t.Framework)
+	}
+	args = append(args, t.extraArgs...)
 	dat, err := t.RunDocker(&tools.DockerTool{
 		Name:      "checkov",
 		Image:     "gcr.io/soluble-repo/checkov:latest",
 		Directory: t.GetDirectory(),
-		Args: append([]string{
-			"-d", ".", "-o", "json", "-s",
-		}, t.extraArgs...),
+		Args:      args,
 	})
 	if err != nil {
 		if dat != nil {

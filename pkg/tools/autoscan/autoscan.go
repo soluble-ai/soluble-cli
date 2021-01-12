@@ -1,4 +1,4 @@
-package all
+package autoscan
 
 import (
 	"time"
@@ -36,7 +36,7 @@ type SubordinateTool struct {
 }
 
 func (*Tool) Name() string {
-	return "all"
+	return "autoscan"
 }
 
 func (t *Tool) Register(cmd *cobra.Command) {
@@ -51,7 +51,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
-		Use:   "all",
+		Use:   "auto-scan",
 		Short: "Find infrastructure-as-code and scan with recommended tools",
 		Long: `Find infrastructure-as-code and scan with the following tools:
 
@@ -63,7 +63,7 @@ Everything               - secrets
 In addition, images can be scanned with trivy.
 `,
 		Example: `# To run a tool locally w/o using docker explicitly specify the tool path
-... all --tool-paths checkov=checkov,cfn-python-lint=cfn-lint`,
+... auto-scan --tool-paths checkov=checkov,cfn-python-lint=cfn-lint`,
 	}
 }
 

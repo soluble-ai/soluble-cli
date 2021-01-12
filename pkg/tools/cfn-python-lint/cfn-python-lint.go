@@ -22,6 +22,13 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	cmd.Flags().StringSliceVar(&t.Templates, "template", nil, "Explicitly specific templates in the form `t1,t2,...`.  May be repeated.  Templates must be relative to --directory.")
 }
 
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "cfn-python-lint",
+		Short: "Scan cloudformation templates with cfn-python-lint",
+	}
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
 	files, err := t.findCloudformationFiles()
 	if err != nil {
