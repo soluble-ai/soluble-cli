@@ -33,6 +33,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 	output := jnode.NewArrayNode()
 	for k, v := range results.Path("results").Entries() {
+		if t.IsExcluded(k) {
+			continue
+		}
 		if v.IsArray() {
 			for _, p := range v.Elements() {
 				p.Put("file_name", k)

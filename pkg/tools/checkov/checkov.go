@@ -5,6 +5,7 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -55,14 +56,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 
 	// checkov runs various types of check such as kubernetes, terraform etc if the folder has
-	// different types of them in the same folder the result will be an array
-	output := jnode.NewObjectNode()
-	data := output.PutArray("data")
-
-	// checkov has passed_checks and failed_checks so we'll combine them
-	// into a summary that we can print out
-	s := output.PutArray("soluble_summary")
-
+	// different types of them in the same folder the result will be an array with "check_type"
+	// of each element indicating if it was kubernetes, terraform, etc
+	data := jnode.NewArrayNode()
 	var checkovVersion string
 	if n.IsArray() {
 		for _, e := range n.Elements() {
@@ -76,36 +72,58 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 	result := &tools.Result{
 		Directory: t.Directory,
-		Data:      output,
 		Values: map[string]string{
 			"CHECKOV_VERSION": checkovVersion,
 		},
-		PrintPath: []string{"soluble_summary"},
+		Data:      jnode.NewObjectNode().Put("data", data),
+		PrintData: jnode.NewArrayNode(),
+		PrintPath: []string{},
 		PrintColumns: []string{
 			"check_id", "check_result", "check_type", "file_path", "line", "check_name",
 		},
 	}
-
-	for _, e := range output.Path("data").Elements() {
-		checkType := e.Path("check_type").AsText()
-		processChecks(result, s, e.Path("results").Path("passed_checks"), checkType)
-		processChecks(result, s, e.Path("results").Path("failed_checks"), checkType)
-	}
+	t.processResults(result, data)
 
 	return result, nil
 }
 
-func processChecks(result *tools.Result, s, checks *jnode.Node, checkType string) {
+func (t *Tool) processResults(result *tools.Result, data *jnode.Node) {
+	for _, e := range data.Elements() {
+		checkType := e.Path("check_type").AsText()
+		results := e.Path("results")
+		passedChecks := t.processChecks(result, results.Path("passed_checks"), checkType)
+		failedChecks := t.processChecks(result, results.Path("failed_checks"), checkType)
+		updateChecks(results, "passed_checks", passedChecks)
+		updateChecks(results, "failed_checks", failedChecks)
+	}
+}
+
+func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
+	if checks.Size() == 0 {
+		results.Remove(name)
+	} else {
+		results.Put(name, checks)
+	}
+}
+
+func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string) *jnode.Node {
 	for _, n := range checks.Elements() {
 		filePath := n.Path("file_path").AsText()
 		if len(filePath) > 0 && filePath[0] == '/' {
 			filePath = filePath[1:]
+			n.Put("file_path", filePath)
 		}
-		s.AppendObject().Put("check_id", n.Path("check_id").AsText()).
+	}
+	checks = util.RemoveJNodeElementsIf(checks, func(e *jnode.Node) bool {
+		return t.IsExcluded(e.Path("file_path").AsText())
+	})
+	for _, n := range checks.Elements() {
+		result.PrintData.AppendObject().Put("check_id", n.Path("check_id").AsText()).
 			Put("check_result", n.Path("check_result").Path("result").AsText()).
-			Put("file_path", filePath).
+			Put("file_path", n.Path("file_path")).
 			Put("line", n.Path("file_line_range").Get(0).AsInt()).
 			Put("check_name", n.Path("check_name").AsText()).
 			Put("check_type", checkType)
 	}
+	return checks
 }

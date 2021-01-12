@@ -11,16 +11,16 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
-type CIIntegration interface {
+type PRIntegration interface {
 	Update(ctx context.Context, assessments Assessments)
 }
 
-type CIIntegrations []func(context.Context, *jnode.Node) CIIntegration
+type PRIntegrations []func(context.Context, *jnode.Node) PRIntegration
 
-var ciIntegrations = CIIntegrations{}
+var prIntegrations = PRIntegrations{}
 
-func RegisterCIIntegration(integ func(context.Context, *jnode.Node) CIIntegration) {
-	ciIntegrations = append(ciIntegrations, integ)
+func RegisterPRIntegration(integ func(context.Context, *jnode.Node) PRIntegration) {
+	prIntegrations = append(prIntegrations, integ)
 }
 
 func getCIIntegrationToken(client *api.Client) *jnode.Node {
@@ -34,18 +34,24 @@ func getCIIntegrationToken(client *api.Client) *jnode.Node {
 	return res
 }
 
-func (a Assessments) UpdateCI(client *api.Client) error {
+func (a *Assessment) UpdatePR(client *api.Client) error {
+	as := Assessments{*a}
+	return as.UpdatePR(client)
+}
+
+func (a Assessments) UpdatePR(client *api.Client) error {
 	token := getCIIntegrationToken(client)
 	if token == nil {
-		return fmt.Errorf("CI integration has not been setup for this repository")
+		return fmt.Errorf("pull request integration has not been setup for this repository")
 	}
+	log.Infof("Updating pull request for %d assessments", len(a))
 	ctx := context.Background()
-	for _, integ := range ciIntegrations {
+	for _, integ := range prIntegrations {
 		ci := integ(ctx, token)
 		if ci != nil {
 			ci.Update(ctx, a)
 			return nil
 		}
 	}
-	return fmt.Errorf("CI integration not supported")
+	return fmt.Errorf("pull request integration not supported")
 }

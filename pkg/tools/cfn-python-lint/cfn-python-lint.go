@@ -1,13 +1,9 @@
 package cfnpythonlint
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
 )
@@ -56,20 +52,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func (t *Tool) findCloudformationFiles() ([]string, error) {
-	files := []string{}
 	if len(t.Templates) > 0 {
-		for _, f := range t.Templates {
-			rf := f
-			if filepath.IsAbs(f) {
-				if !strings.HasPrefix(f, t.GetDirectory()) {
-					return nil, fmt.Errorf("template file %s must be relative to --directory", f)
-				}
-			}
-			files = append(files, rf)
-		}
-	} else {
-		m := inventory.Do(t.GetDirectory())
-		files = m.CloudformationFiles.Values()
+		return t.GetFilesInDirectory(t.Templates)
 	}
-	return files, nil
+	return t.GetInventory().CloudformationFiles.Values(), nil
 }

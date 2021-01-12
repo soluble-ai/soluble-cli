@@ -22,6 +22,7 @@ import (
 
 type Result struct {
 	Data         *jnode.Node
+	PrintData    *jnode.Node
 	Values       map[string]string
 	Directory    string
 	Files        *util.StringSet
@@ -36,6 +37,13 @@ var repoFiles = []string{
 	"CODEOWNERS",
 	"docs/CODEOWNERS",
 	".github/CODEOWNERS",
+}
+
+func (r *Result) GetPrintData() *jnode.Node {
+	if r.PrintData != nil {
+		return r.PrintData
+	}
+	return r.Data
 }
 
 func (r *Result) AddFile(path string) *Result {
