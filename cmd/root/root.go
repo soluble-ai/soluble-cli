@@ -24,7 +24,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
-	"github.com/soluble-ai/soluble-cli/cmd/depscan"
 	"github.com/soluble-ai/soluble-cli/cmd/downloadcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/iacinventorycmd"
 	"github.com/soluble-ai/soluble-cli/cmd/iacscan"
@@ -40,6 +39,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/trivyfs"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -148,7 +149,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		iacinventorycmd.Command(),
 		logincmd.Command(),
 		build.Command(),
-		depscan.Command(),
+		tools.CreateCommand(&trivyfs.Tool{}),
 	)
 }
 
