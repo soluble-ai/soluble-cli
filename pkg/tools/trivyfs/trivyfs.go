@@ -30,8 +30,8 @@ func (t *Tool) Register(c *cobra.Command) {
 
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
-		Use:   "dep-scan",
-		Short: "Scan dependencies of an app with trivy",
+		Use:   "trivy",
+		Short: "Run trivy in filesystem mode to scan app dependencies",
 		Long: `Scan dependencies of an app with trivy.
 		
 Trivy will look for vulnerabilities based on lock files such as Gemfile.lock and package-lock.json.`,

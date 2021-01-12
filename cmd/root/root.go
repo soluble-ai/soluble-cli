@@ -23,15 +23,19 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
+	"github.com/soluble-ai/soluble-cli/cmd/cfnscan"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
+	"github.com/soluble-ai/soluble-cli/cmd/depscan"
 	"github.com/soluble-ai/soluble-cli/cmd/downloadcmd"
-	"github.com/soluble-ai/soluble-cli/cmd/iacinventorycmd"
-	"github.com/soluble-ai/soluble-cli/cmd/iacscan"
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
+	"github.com/soluble-ai/soluble-cli/cmd/inventorycmd"
+	"github.com/soluble-ai/soluble-cli/cmd/k8sscan"
 	"github.com/soluble-ai/soluble-cli/cmd/logincmd"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
+	"github.com/soluble-ai/soluble-cli/cmd/secretsscan"
+	"github.com/soluble-ai/soluble-cli/cmd/tfscan"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
 	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
@@ -40,7 +44,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/trivyfs"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -144,12 +149,17 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		query.Command(),
 		downloadcmd.Command(),
 		postcmd.Command(),
-		iacscan.Command(),
 		imagescan.Command(),
-		iacinventorycmd.Command(),
+		inventorycmd.Command(),
 		logincmd.Command(),
 		build.Command(),
-		tools.CreateCommand(&trivyfs.Tool{}),
+		depscan.Command(),
+		k8sscan.Command(),
+		tfscan.Command(),
+		secretsscan.Command(),
+		cfnscan.Command(),
+		tools.CreateCommand(&autoscan.Tool{}),
+		tools.CreateCommand(&checkov.Tool{}),
 	)
 }
 
