@@ -92,23 +92,6 @@ func NewClient(config *Config) *Client {
 	}
 	c.SetHeader("User-Agent", "soluble-cli/"+version.Version)
 	c.EnableTrace()
-	c.OnBeforeRequest(func(rc *resty.Client, r *resty.Request) error {
-		if strings.Contains(r.URL, orgToken) {
-			if c.Organization == "" {
-				log.Errorf("An organization must be specified with --organization or configuring one with `cli-config set organization <org-id>`")
-				return fmt.Errorf("organization is required")
-			}
-			r.URL = strings.ReplaceAll(r.URL, orgToken, c.Organization)
-		}
-		if len(r.URL) > 0 && r.URL[0] != '/' {
-			r.URL = fmt.Sprintf("%s/%s", c.APIPrefix, r.URL)
-		}
-		log.Debugf("{primary:%s %s}", r.Method, r.URL)
-		var b strings.Builder
-		_ = r.Header.Write(&b)
-		return nil
-	})
-
 	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
 		info := r.Request.TraceInfo()
 		log.Debugf("{warning:%+v}\n", info)
@@ -139,12 +122,22 @@ func NewClient(config *Config) *Client {
 	return c
 }
 
-func execute(r *resty.Request, method, path string, options []Option) error {
+func (c *Client) execute(r *resty.Request, method, path string, options []Option) error {
 	// set r.Method here so that options can do different things
 	// depending on the method
 	r.Method = method
 	for _, opt := range options {
 		opt(r)
+	}
+	if strings.Contains(path, orgToken) {
+		if c.Organization == "" {
+			log.Errorf("An organization must be specified with --organization or configuring one with `cli-config set organization <org-id>`")
+			return fmt.Errorf("organization is required")
+		}
+		path = strings.ReplaceAll(path, orgToken, c.Organization)
+	}
+	if len(path) > 0 && path[0] != '/' {
+		path = fmt.Sprintf("%s/%s", c.APIPrefix, path)
 	}
 	_, err := r.Execute(method, path)
 	return err
@@ -152,7 +145,7 @@ func execute(r *resty.Request, method, path string, options []Option) error {
 
 func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := execute(c.R().SetBody(body).SetResult(result), resty.MethodPost, path, options); err != nil {
+	if err := c.execute(c.R().SetBody(body).SetResult(result), resty.MethodPost, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -160,7 +153,7 @@ func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.
 
 func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := execute(c.R().SetResult(result), resty.MethodGet, path, options); err != nil {
+	if err := c.execute(c.R().SetResult(result), resty.MethodGet, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -169,7 +162,7 @@ func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 func (c *Client) GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 
-	if err := execute(c.R().SetQueryParams(params).SetResult(result), resty.MethodGet, path, options); err != nil {
+	if err := c.execute(c.R().SetQueryParams(params).SetResult(result), resty.MethodGet, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -177,7 +170,7 @@ func (c *Client) GetWithParams(path string, params map[string]string, options ..
 
 func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := execute(c.R().SetResult(result), resty.MethodDelete, path, options); err != nil {
+	if err := c.execute(c.R().SetResult(result), resty.MethodDelete, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -185,7 +178,7 @@ func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 
 func (c *Client) Patch(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := execute(c.R().SetResult(result).SetBody(body), resty.MethodPatch, path, options); err != nil {
+	if err := c.execute(c.R().SetResult(result).SetBody(body), resty.MethodPatch, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -212,7 +205,7 @@ func (c *Client) XCPPost(orgID string, module string, files []string, values map
 	req.SetMultipartFormData(values)
 	result := jnode.NewObjectNode()
 	req.SetResult(result)
-	if err := execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
+	if err := c.execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
 		return nil, err
 	}
 	return result, nil
