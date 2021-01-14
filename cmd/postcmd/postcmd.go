@@ -23,7 +23,7 @@ func Command() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			result, err := opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values,
-				xcp.WithCIEnv)
+				xcp.WithCIEnv(""))
 			if err != nil {
 				return err
 			}

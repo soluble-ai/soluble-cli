@@ -35,17 +35,19 @@ func hasDocker() error {
 	}
 }
 
-func (t *DockerTool) run() ([]byte, error) {
+func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 	if err := hasDocker(); err != nil {
 		return nil, err
 	}
-	log.Infof("Pulling {primary:%s}", t.Image)
-	// #nosec G204
-	pull := exec.Command("docker", "pull", t.Image)
-	pull.Stderr = os.Stderr
-	pull.Stdout = os.Stdout
-	if err := pull.Run(); err != nil {
-		log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
+	if !skipPull {
+		log.Infof("Pulling {primary:%s}", t.Image)
+		// #nosec G204
+		pull := exec.Command("docker", "pull", t.Image)
+		pull.Stderr = os.Stderr
+		pull.Stdout = os.Stdout
+		if err := pull.Run(); err != nil {
+			log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
+		}
 	}
 	args := []string{"run", "--rm"}
 	if t.Directory != "" {

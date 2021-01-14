@@ -38,13 +38,10 @@ func runTool(tool Interface) error {
 	if err := opts.Validate(); err != nil {
 		return err
 	}
-	result, err := opts.RunTool(tool)
+	result, err := opts.RunTool(tool, true)
 	if err != nil || result == nil {
 		return err
 	}
-	opts.Path = result.PrintPath
-	opts.Columns = result.PrintColumns
-	opts.PrintResult(result.GetPrintData())
 	if !opts.UploadEnabled {
 		blurb.SignupBlurb(opts, "Want to manage findings with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
 	}

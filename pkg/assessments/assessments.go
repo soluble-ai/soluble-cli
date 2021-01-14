@@ -76,7 +76,7 @@ func FindCIEnvAssessments(client *api.Client) (Assessments, error) {
 			r.SetQueryParam("detail", "true")
 			r.SetQueryParam("searchType", "ci")
 		},
-		xcp.WithCIEnv)
+		xcp.WithCIEnv(""))
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-resty/resty/v2"
@@ -51,24 +52,26 @@ var (
 	}
 )
 
-var _ api.Option = WithCIEnv
-
 // Include CI-related environment variables in the request.
-func WithCIEnv(req *resty.Request) {
-	if req.Method == "GET" {
-		req.SetQueryParams(GetCIEnv())
-	} else {
-		req.SetMultipartFormData(GetCIEnv())
+func WithCIEnv(dir string) api.Option {
+	return func(req *resty.Request) {
+		if req.Method == "GET" {
+			req.SetQueryParams(GetCIEnv(dir))
+		} else {
+			req.SetMultipartFormData(GetCIEnv(dir))
+		}
 	}
 }
 
 // Include CI-related information in the body of a request
-func WithCIEnvBody(req *resty.Request) {
-	body := jnode.NewObjectNode()
-	for k, v := range GetCIEnv() {
-		body.Put(k, v)
+func WithCIEnvBody(dir string) api.Option {
+	return func(r *resty.Request) {
+		body := jnode.NewObjectNode()
+		for k, v := range GetCIEnv(dir) {
+			body.Put(k, v)
+		}
+		r.SetBody(body)
 	}
-	req.SetBody(body)
 }
 
 // For XCPPost, include a file from a reader.
@@ -78,7 +81,8 @@ func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 	}
 }
 
-func GetCIEnv() map[string]string {
+func GetCIEnv(dir string) map[string]string {
+	dir = filepath.Clean(dir)
 	values := map[string]string{}
 	allEnvs := make(map[string]string)
 	for _, e := range os.Environ() {
@@ -124,6 +128,7 @@ envLoop:
 		argv := strings.Split(command, " ")
 		// #nosec G204
 		cmd := exec.Command(argv[0], argv[1:]...)
+		cmd.Dir = dir
 		out, err := cmd.Output()
 		if err == nil {
 			values[k] = strings.TrimSpace(string(out))
