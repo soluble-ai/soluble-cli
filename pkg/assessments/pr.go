@@ -24,7 +24,7 @@ func RegisterPRIntegration(integ func(context.Context, *jnode.Node) PRIntegratio
 }
 
 func getCIIntegrationToken(client *api.Client) *jnode.Node {
-	res, err := client.Post("/api/v1/org/{org}/git/ci-token", nil, xcp.WithCIEnvBody)
+	res, err := client.Post("/api/v1/org/{org}/git/ci-token", nil, xcp.WithCIEnvBody(""))
 	if err != nil {
 		if !errors.Is(err, api.HTTPError) {
 			log.Warnf("Could not get CI integration config: {danger:%s}", err)

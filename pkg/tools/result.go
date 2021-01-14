@@ -70,7 +70,7 @@ func (r *Result) report(o *ToolOpts, name string) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", name)
 	options := []api.Option{
-		xcp.WithCIEnv, xcp.WithFileFromReader("results_json", "results.json", rr),
+		xcp.WithCIEnv(r.Directory), xcp.WithFileFromReader("results_json", "results.json", rr),
 	}
 	if !o.OmitContext {
 		if r.Files != nil {
@@ -113,7 +113,9 @@ func (r *Result) report(o *ToolOpts, name string) error {
 			r.Assessment = nil
 		}
 	}
-	if r.Assessment != nil {
+	if r.Assessment == nil {
+		log.Infof("No assessment was returned")
+	} else {
 		r.Assessment.EvaluateFailures(o.ParsedFailThresholds)
 		if r.Assessment.Failed {
 			exit.Code = 2

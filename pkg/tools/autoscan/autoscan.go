@@ -129,7 +129,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 			dopts.Exclude = t.Exclude
 		}
 		start := time.Now()
-		st.Result, st.Err = opts.RunTool(st)
+		st.Result, st.Err = opts.RunTool(st, false)
 		rd := time.Since(start).Truncate(time.Millisecond)
 		n.Put("run_duration", rd.String())
 		if st.Result != nil {
