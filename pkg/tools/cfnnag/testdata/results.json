@@ -1,0 +1,32 @@
+[
+  {
+    "filename": "cloudformation/EC2/EC2InstanceWithSecurityGroupSample.yaml",
+    "file_results": {
+      "failure_count": 1,
+      "violations": [
+        {
+          "id": "F1000",
+          "type": "FAIL",
+          "message": "Missing egress rule means all traffic is allowed outbound.  Make this explicit if it is desired configuration",
+          "logical_resource_ids": [
+            "InstanceSecurityGroup"
+          ],
+          "line_numbers": [
+            49
+          ]
+        },
+        {
+          "id": "W36",
+          "type": "WARN",
+          "message": "Security group rules without a description obscure their purpose and may lead to bad practices in ensuring they only allow traffic from the ports and sources/destinations required.",
+          "logical_resource_ids": [
+            "InstanceSecurityGroup"
+          ],
+          "line_numbers": [
+            49
+          ]
+        }
+      ]
+    }
+  }
+]

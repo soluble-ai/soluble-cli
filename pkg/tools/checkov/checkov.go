@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -61,47 +62,38 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 
-	// checkov runs various types of check such as kubernetes, terraform etc if the folder has
-	// different types of them in the same folder the result will be an array with "check_type"
-	// of each element indicating if it was kubernetes, terraform, etc
-	data := jnode.NewArrayNode()
-	var checkovVersion string
-	if n.IsArray() {
-		for _, e := range n.Elements() {
-			data = data.Append(e)
-		}
-		checkovVersion = n.Get(0).Path("summary").Path("checkov_version").AsText()
-	} else {
-		checkovVersion = n.Path("summary").Path("checkov_version").AsText()
-		data.Append(n)
-	}
-
-	result := &tools.Result{
-		Directory: t.Directory,
-		Values: map[string]string{
-			"CHECKOV_VERSION": checkovVersion,
-		},
-		Data:      jnode.NewObjectNode().Put("data", data),
-		PrintData: jnode.NewArrayNode(),
-		PrintPath: []string{},
-		PrintColumns: []string{
-			"check_id", "check_result", "check_type", "file_path", "line", "check_name",
-		},
-	}
-	t.processResults(result, data)
-
+	result := t.processResults(n)
 	return result, nil
 }
 
-func (t *Tool) processResults(result *tools.Result, data *jnode.Node) {
-	for _, e := range data.Elements() {
-		checkType := e.Path("check_type").AsText()
-		results := e.Path("results")
-		passedChecks := t.processChecks(result, results.Path("passed_checks"), checkType)
-		failedChecks := t.processChecks(result, results.Path("failed_checks"), checkType)
-		updateChecks(results, "passed_checks", passedChecks)
-		updateChecks(results, "failed_checks", failedChecks)
+func (t *Tool) processResults(data *jnode.Node) *tools.Result {
+	result := &tools.Result{
+		Directory: t.Directory,
+		Data:      jnode.NewObjectNode().Put("data", data),
+		PrintPath: []string{},
+		PrintColumns: []string{
+			"tool.check_id", "pass", "tool.check_type", "filePath", "line", "title",
+		},
 	}
+	if data.IsArray() {
+		// checkov returns an array if it runs more than one check type at a go
+		for _, n := range data.Elements() {
+			t.processCheckResults(result, n)
+		}
+	} else {
+		t.processCheckResults(result, data)
+	}
+	return result
+}
+
+func (t *Tool) processCheckResults(result *tools.Result, e *jnode.Node) {
+	checkType := e.Path("check_type").AsText()
+	results := e.Path("results")
+	passedChecks := t.processChecks(result, results.Path("passed_checks"), checkType, true)
+	failedChecks := t.processChecks(result, results.Path("failed_checks"), checkType, false)
+	updateChecks(results, "passed_checks", passedChecks)
+	updateChecks(results, "failed_checks", failedChecks)
+	result.AddValue("CHECKOV_VERSION", e.Path("summary").Path("checkov_version").AsText())
 }
 
 func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
@@ -112,7 +104,7 @@ func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
 	}
 }
 
-func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string) *jnode.Node {
+func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string, pass bool) *jnode.Node {
 	for _, n := range checks.Elements() {
 		filePath := n.Path("file_path").AsText()
 		if len(filePath) > 0 && filePath[0] == '/' {
@@ -124,12 +116,16 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 		return t.IsExcluded(e.Path("file_path").AsText())
 	})
 	for _, n := range checks.Elements() {
-		result.PrintData.AppendObject().Put("check_id", n.Path("check_id").AsText()).
-			Put("check_result", n.Path("check_result").Path("result").AsText()).
-			Put("file_path", n.Path("file_path")).
-			Put("line", n.Path("file_line_range").Get(0).AsInt()).
-			Put("check_name", n.Path("check_name").AsText()).
-			Put("check_type", checkType)
+		result.Findings = append(result.Findings, &assessments.Finding{
+			Tool: map[string]string{
+				"check_id":   n.Path("check_id").AsText(),
+				"check_type": checkType,
+			},
+			FilePath: n.Path("file_path").AsText(),
+			Line:     n.Path("file_line_range").Get(0).AsInt(),
+			Pass:     pass,
+			Title:    n.Path("check_name").AsText(),
+		})
 	}
 	return checks
 }

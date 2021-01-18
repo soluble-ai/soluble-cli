@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
@@ -31,7 +32,14 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 
+	result := t.parseResults(results)
+
+	return result, nil
+}
+
+func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	output := jnode.NewArrayNode()
+	findings := []*assessments.Finding{}
 	for k, v := range results.Path("results").Entries() {
 		if t.IsExcluded(k) {
 			continue
@@ -40,6 +48,14 @@ func (t *Tool) Run() (*tools.Result, error) {
 			for _, p := range v.Elements() {
 				p.Put("file_name", k)
 				output.Append(p)
+				findings = append(findings, &assessments.Finding{
+					FilePath: k,
+					Line:     p.Path("line_number").AsInt(),
+					Title:    p.Path("type").AsText(),
+					Tool: map[string]string{
+						"is_verified": p.Path("is_verified").AsText(),
+					},
+				})
 			}
 		}
 	}
@@ -50,8 +66,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 	result := &tools.Result{
 		Directory:    t.Directory,
 		Data:         n,
-		PrintPath:    []string{"results"},
-		PrintColumns: []string{"file_name", "type", "line_number", "is_verified"},
+		Findings:     findings,
+		PrintColumns: []string{"filePath", "line", "title", "tool.is_verified"},
 	}
-	return result, nil
+	return result
 }

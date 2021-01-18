@@ -122,7 +122,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		count++
 		opts := st.GetToolOptions()
 		opts.UploadEnabled = t.UploadEnabled
-		opts.OmitContext = t.OmitContext
 		opts.ToolPath = t.ToolPaths[st.Name()]
 		opts.ParsedFailThresholds = t.ParsedFailThresholds
 		if dopts := st.GetDirectoryBasedToolOptions(); dopts != nil {
@@ -133,20 +132,21 @@ func (t *Tool) Run() (*tools.Result, error) {
 		rd := time.Since(start).Truncate(time.Millisecond)
 		n.Put("run_duration", rd.String())
 		if st.Result != nil {
-			printData := st.Result.GetPrintData()
 			opts.Path = st.Result.PrintPath
 			opts.Columns = st.Result.PrintColumns
 			if t.PrintToolResults {
-				opts.PrintResult(printData)
+				opts.PrintToolResult(st.Result)
 			}
 			if pr, err := st.GetToolOptions().GetPrinter(); err == nil {
-				if tp, ok := pr.(*print.TablePrinter); ok {
-					n.Put("findings_count", len(tp.GetRows(printData)))
+				if st.Result.Findings != nil {
+					n.Put("findings_count", len(st.Result.Findings))
+				} else if tp, ok := pr.(*print.TablePrinter); ok {
+					n.Put("findings_count", len(tp.GetRows(st.Result.Data)))
 				}
 			}
 			if st.Result.Assessment != nil {
 				n.Put("assessment_url", st.Result.Assessment.URL)
-				as = append(as, *st.Result.Assessment)
+				as = append(as, st.Result.Assessment)
 			}
 		}
 		if st.Err != nil {
