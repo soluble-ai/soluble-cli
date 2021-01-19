@@ -35,7 +35,7 @@ func getCIIntegrationToken(client *api.Client) *jnode.Node {
 }
 
 func (a *Assessment) UpdatePR(client *api.Client) error {
-	as := Assessments{*a}
+	as := Assessments{a}
 	return as.UpdatePR(client)
 }
 

@@ -9,14 +9,14 @@ import (
 func TestAssessmentHasFailures(t *testing.T) {
 	assert := assert.New(t)
 	var testCases = []struct {
-		findings   []Finding
+		findings   []*Finding
 		thresholds map[string]string
 		fail       bool
 		level      string
 		count      int
 	}{
-		{[]Finding{}, map[string]string{}, false, "", 0},
-		{[]Finding{{Severity: "high", Pass: false}}, map[string]string{"low": "1"}, true, "high", 1},
+		{[]*Finding{}, map[string]string{}, false, "", 0},
+		{[]*Finding{{Severity: "high", Pass: false}}, map[string]string{"low": "1"}, true, "high", 1},
 	}
 	for _, tc := range testCases {
 		assessment := &Assessment{

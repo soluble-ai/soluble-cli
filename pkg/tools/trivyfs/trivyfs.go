@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -77,29 +78,31 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Values: map[string]string{
 			"TRIVY_VERSION": d.Version,
 		},
-		PrintData:    createPrintData(n),
-		PrintPath:    []string{},
-		PrintColumns: []string{"Target", "PkgName", "VulnerabilityID", "Severity", "InstalledVersion", "FixedVersion", "Title"},
+		Findings:     parseResults(n),
+		PrintColumns: []string{"filePath", "tool.PkgName", "tool.VulnerabilityID", "tool.Severity", "tool.InstalledVersion", "tool.FixedVersion", "title"},
 	}
 
 	return result, nil
 }
 
-func createPrintData(n *jnode.Node) *jnode.Node {
-	result := jnode.NewArrayNode()
+func parseResults(n *jnode.Node) []*assessments.Finding {
+	findings := []*assessments.Finding{}
 	for _, e := range n.Elements() {
 		target := e.Path("Target").AsText()
 		for _, v := range e.Path("Vulnerabilities").Elements() {
-			vc := result.AppendObject().Put("Target", target)
-			copyAttrs(vc, v, "VulnerabilityID", "PkgName", "InstalledVersion", "FixedVersion", "Severity",
-				"Title")
+			f := &assessments.Finding{
+				FilePath: target,
+				Title:    v.Path("Title").AsText(),
+			}
+			copyAttrs(f, v, "VulnerabilityID", "PkgName", "InstalledVersion", "FixedVersion", "Severity")
+			findings = append(findings, f)
 		}
 	}
-	return result
+	return findings
 }
 
-func copyAttrs(n *jnode.Node, v *jnode.Node, names ...string) {
+func copyAttrs(finding *assessments.Finding, v *jnode.Node, names ...string) {
 	for _, name := range names {
-		n.Put(name, v.Path(name).AsText())
+		finding.SetAttribute(name, v.Path(name).AsText())
 	}
 }

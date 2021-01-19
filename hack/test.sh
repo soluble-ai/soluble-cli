@@ -20,6 +20,6 @@ if [ -n "${SOLUBLE_API_TOKEN:-}" -a -n "${GITHUB_ACTIONS:-}" ]; then
     run auto-scan --upload --image nginx:1.19 --skip secrets --exclude 'pkg/inventory/testdata/k/t/*.yaml'
     # we don't have any secrets here, so the --error-not-empty will
     # fail right away
-    run secrets-scan --exclude go.sum --error-not-empty --upload
+    run secrets-scan --exclude go.sum --exclude 'pkg/tools/secrets/testdata/results.json' --error-not-empty --upload
     run build update-pr
 fi

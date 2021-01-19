@@ -1,0 +1,143 @@
+{
+    "check_type": "terraform",
+    "results": {
+        "passed_checks": [
+            {
+                "check_id": "CKV_AWS_24",
+                "check_name": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+                "check_result": {
+                    "result": "PASSED"
+                },
+                "code_block": [
+                ],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    1,
+                    20
+                ],
+                "resource": "aws_security_group.allow_all",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupUnrestrictedIngress22",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_1-port-security"
+            },
+            {
+                "check_id": "CKV_AWS_23",
+                "check_name": "Ensure every security groups rule has a description",
+                "check_result": {
+                    "result": "PASSED"
+                },
+                "code_block": [
+                ],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    1,
+                    20
+                ],
+                "resource": "aws_security_group.allow_all",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupRuleDescription",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_31"
+            },
+            {
+                "check_id": "CKV_AWS_25",
+                "check_name": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 3389",
+                "check_result": {
+                    "result": "PASSED"
+                },
+                "code_block": [
+                ],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    1,
+                    20
+                ],
+                "resource": "aws_security_group.allow_all",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupUnrestrictedIngress3389",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_2"
+            },
+            {
+                "check_id": "CKV_AWS_23",
+                "check_name": "Ensure every security groups rule has a description",
+                "check_result": {
+                    "result": "PASSED"
+                },
+                "code_block": [
+                ],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    23,
+                    54
+                ],
+                "resource": "aws_security_group.nat",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupRuleDescription",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_31"
+            },
+            {
+                "check_id": "CKV_AWS_25",
+                "check_name": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 3389",
+                "check_result": {
+                    "result": "PASSED"
+                },
+                "code_block": [
+                ],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    23,
+                    54
+                ],
+                "resource": "aws_security_group.nat",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupUnrestrictedIngress3389",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_2"
+            },
+            {
+                "check_id": "CKV_AWS_24",
+                "check_name": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+                "check_result": {
+                    "result": "PASSED"
+                },
+                "code_block": [
+                ],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    57,
+                    77
+                ],
+                "resource": "aws_security_group.web",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupUnrestrictedIngress22",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_1-port-security"
+            }
+        ],
+        "failed_checks": [
+            {
+                "check_id": "CKV_AWS_24",
+                "check_name": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+                "check_result": {
+                    "result": "FAILED"
+                },
+                "code_block": [],
+                "file_path": "/security.tf",
+                "file_line_range": [
+                    23,
+                    54
+                ],
+                "resource": "aws_security_group.nat",
+                "evaluations": null,
+                "check_class": "checkov.terraform.checks.resource.aws.SecurityGroupUnrestrictedIngress22",
+                "guideline": "https://docs.bridgecrew.io/docs/networking_1-port-security"
+            }
+        ],
+        "skipped_checks": [],
+        "parsing_errors": []
+    },
+    "summary": {
+        "passed": 12,
+        "failed": 3,
+        "skipped": 0,
+        "parsing_errors": 0,
+        "checkov_version": "1.0.645"
+    }
+}
