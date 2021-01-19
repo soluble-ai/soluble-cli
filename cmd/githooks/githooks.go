@@ -1,9 +1,12 @@
 package githook
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -15,8 +18,9 @@ import (
 
 func installCommand() *cobra.Command {
 	var (
-		force    bool
-		noEditor bool
+		force      bool
+		editor     bool
+		appendFile bool
 	)
 	opts := options.PrintOpts{}
 	c := &cobra.Command{
@@ -54,6 +58,7 @@ For repos with IaC files:
 			if !hookDirInfo.IsDir() {
 				return fmt.Errorf("githook directory was file, not directory: %q", hookDir)
 			}
+			var installedHooks []string
 			err = filepath.Walk(hookDir, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
@@ -67,16 +72,55 @@ For repos with IaC files:
 				}
 				hookFile := filepath.Join(".git/hooks", info.Name())
 				_, err = os.Stat(hookFile)
-				if os.IsNotExist(err) || force {
+				switch {
+				case os.IsNotExist(err) || force:
 					if err := ioutil.WriteFile(hookFile, hookDat, 0o755); err != nil { //nolint: gosec // executable permissions are expected here
 						return fmt.Errorf("error writing hook file: %q: %w", hookFile, err)
 					}
 					log.Infof("wrote hook file: %q", hookFile)
-				} else {
+					installedHooks = append(installedHooks, hookFile)
+				case appendFile:
+					log.Infof("appending to hook file: %q", hookFile)
+					f, err := os.OpenFile(hookFile,
+						os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+					if err != nil {
+						return fmt.Errorf("error opening file for append %q: %w", hookFile, err)
+					}
+					defer f.Close()
+					scanner := bufio.NewScanner(bytes.NewBuffer(hookDat))
+					scanner.Split(bufio.ScanLines)
+					var hookDatNoShebang []byte
+					for scanner.Scan() {
+						if bytes.HasPrefix(scanner.Bytes(), []byte("#!")) {
+							continue
+						}
+						hookDatNoShebang = append(hookDatNoShebang, scanner.Bytes()...)
+						hookDatNoShebang = append(hookDatNoShebang, '\n')
+					}
+					_, _ = f.WriteString("\n")
+					_, err = f.Write(hookDatNoShebang)
+					if err != nil {
+						return fmt.Errorf("error appending to hook file %q: %w", hookFile, err)
+					}
+					installedHooks = append(installedHooks, hookFile)
+					// we may be opening the files in an editor next
+					_ = f.Sync()
+				default:
 					if err != nil {
 						return fmt.Errorf("error stating hook file: %q: %w", path, err)
 					}
-					return fmt.Errorf("hook files already exist. To force update, re-run with --force")
+					return fmt.Errorf("hook files already exist. To append, re-run with --append. To overwrite, re-run with --force")
+				}
+				if editor {
+					v, exists := os.LookupEnv("EDITOR")
+					if !exists {
+						return fmt.Errorf("the $EDITOR environment variable isn't set")
+					}
+					cmd := exec.Command(v, installedHooks...)
+					cmd.Stdin = os.Stdin
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+					return cmd.Run()
 				}
 				return nil
 			})
@@ -85,7 +129,8 @@ For repos with IaC files:
 	}
 	opts.Register(c)
 	c.Flags().BoolVar(&force, "force", false, "Force installation of hooks, overwriting existing hooks")
-	c.Flags().BoolVar(&noEditor, "no-editor", false, "Do not automatically open $EDITOR for installed hooks")
+	c.Flags().BoolVar(&editor, "editor", false, "Automatically open $EDITOR for installed hooks")
+	c.Flags().BoolVar(&appendFile, "append", false, "Append to file if it exists")
 	return c
 }
 
