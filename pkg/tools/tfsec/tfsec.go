@@ -1,13 +1,13 @@
 package tfsec
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -33,20 +33,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := &tools.Result{
-		Values: map[string]string{
-			"TFSEC_VERSION": d.Version,
-		},
-		Directory: t.GetDirectory(),
-		PrintPath: []string{"results"},
-		PrintColumns: []string{
-			"rule_id",
-			"severity",
-			"location.filename",
-			"location.start_line",
-			"description",
-		},
-	}
 	// #nosec G204
 	c := exec.Command(d.GetExePath("tfsec-tfsec"), "-f", "json", ".")
 	c.Dir = t.GetDirectory()
@@ -63,30 +49,52 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	result := t.parseResults(n)
+	result.AddValue("TFSEC_VERSION", d.Version)
+	return result, nil
+}
+
+func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 	dir := t.GetDirectory()
-	if !filepath.IsAbs(dir) {
-		// tfsec reports absolute paths which we have to convert to
-		// relative paths
-		dir, err = filepath.Abs(dir)
-		if err != nil {
-			return nil, fmt.Errorf("could not determine absolute path of %s: %w", dir, err)
-		}
-	}
 	results := n.Path("results")
+	var findings []*assessments.Finding
 	if results.Size() > 0 {
 		for _, r := range n.Path("results").Elements() {
 			loc := r.Path("location")
 			filename := loc.Path("filename").AsText()
 			if filename != "" && filepath.IsAbs(filename) {
-				if f, err := filepath.Rel(dir, filename); err == nil {
+				f, err := filepath.Rel(dir, filename)
+				if err == nil {
 					loc.Put("filename", f)
+					filename = f
 				}
 			}
+			findings = append(findings, &assessments.Finding{
+				FilePath:    filename,
+				Line:        r.Path("location").Path("start_line").AsInt(),
+				Description: r.Path("description").AsText(),
+				Tool: map[string]string{
+					"severity": r.Path("severity").AsText(),
+					"rule_id":  r.Path("rule_id").AsText(),
+				},
+			})
 		}
 		results = util.RemoveJNodeElementsIf(results, func(e *jnode.Node) bool {
 			return t.IsExcluded(e.Path("location").Path("filename").AsText())
 		})
-		result.Data = jnode.NewObjectNode().Put("results", results)
+		n.Put("results", results)
 	}
-	return result, nil
+	return &tools.Result{
+		Directory: t.GetDirectory(),
+		Data:      n,
+		Findings:  findings,
+		PrintColumns: []string{
+			"tool.rule_id",
+			"tool.severity",
+			"filePath",
+			"line",
+			"description",
+		},
+	}
 }

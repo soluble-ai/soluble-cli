@@ -3,6 +3,8 @@ package tools
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -19,7 +21,7 @@ import (
 
 type Result struct {
 	Data         *jnode.Node
-	Findings     []*assessments.Finding
+	Findings     assessments.Findings
 	Values       map[string]string
 	Directory    string
 	Files        *util.StringSet
@@ -53,10 +55,10 @@ func (r *Result) AddValue(name, value string) *Result {
 }
 
 func (r *Result) Report(tool Interface) error {
-	return r.report(tool.GetToolOptions(), tool.Name())
+	return r.report(tool.GetToolOptions(), tool.GetDirectoryBasedToolOptions(), tool.Name())
 }
 
-func (r *Result) report(o *ToolOpts, name string) error {
+func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name string) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", name)
 	options := []api.Option{
@@ -76,14 +78,13 @@ func (r *Result) report(o *ToolOpts, name string) error {
 				}
 			}
 		}
-		if r.Findings != nil {
-			fd, err := json.Marshal(r.Findings)
-			if err != nil {
-				log.Warnf("Could not marshal findings: {warning:%s}", err)
-			} else {
-				rf := bytes.NewReader(fd)
-				options = append(options, xcp.WithFileFromReader("findings_json", "findings.json", rf))
-			}
+	}
+	if r.Findings != nil {
+		if rf := attachFindings(r.Findings); rf != nil {
+			options = append(options, xcp.WithFileFromReader("findings_json", "findings.json", rf))
+		}
+		if rf := attachFingerprints(diropts, r.Findings); rf != nil {
+			options = append(options, xcp.WithFileFromReader("fingerprints_json", "fingerprints.json", rf))
 		}
 	}
 	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), name, nil, r.Values, options...)
@@ -114,4 +115,44 @@ func (r *Result) report(o *ToolOpts, name string) error {
 		}
 	}
 	return nil
+}
+
+func attachFindings(findings assessments.Findings) io.Reader {
+	fd, err := json.Marshal(findings)
+	if err != nil {
+		log.Warnf("Could not marshal findings: {warning:%s}", err)
+		return nil
+	}
+	return bytes.NewReader(fd)
+}
+
+func attachFingerprints(diropts *DirectoryBasedToolOpts, findings assessments.Findings) io.Reader {
+	m := map[string]*assessments.Finding{}
+	for _, f := range findings {
+		if f.PartialFingerprint == "" {
+			continue
+		}
+		key := fmt.Sprintf("%s:%d", f.FilePath, f.Line)
+		ff := m[key]
+		if ff == nil {
+			m[key] = f
+		}
+	}
+	n := jnode.NewArrayNode()
+	for _, f := range m {
+		n.AppendObject().
+			Put("filePath", f.FilePath).
+			Put("repoPath", f.RepoPath).
+			Put("partialFingerprint", f.PartialFingerprint).
+			Put("line", f.Line)
+	}
+	if diropts != nil && diropts.PrintFingerprints {
+		p := &print.JSONPrinter{}
+		p.PrintResult(os.Stderr, n)
+	}
+	d, err := json.Marshal(n)
+	if err != nil {
+		log.Warnf("Could not marshal fingerprints: {warning:%s}", err)
+	}
+	return bytes.NewReader(d)
 }

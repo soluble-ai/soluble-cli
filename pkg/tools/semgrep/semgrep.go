@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -38,10 +39,10 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 		Short: "Run semgrep",
 		Long:  "Run semgrep in a docker container against a directory.  Any additional arguments will be passed onwards.",
 		Example: `# get help
-... semgrep -- --help
+... code-scan -- --help
 
 # look for append literal string to a string buffer (silly example)
-... semgrep -e '$SB.append("...")' -l java`,
+... code-scan -e '$SB.append("...")' -l java`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			t.extraArgs = args
 			return nil
@@ -79,18 +80,35 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 		return nil, fmt.Errorf("could not parse JSON: %w", err)
 	}
+	result := t.parseResults(n)
+	return result, nil
+}
+
+func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 	results := n.Path("results")
 	if results.Size() > 0 {
 		n.Put("results", util.RemoveJNodeElementsIf(results, func(e *jnode.Node) bool {
 			return t.IsExcluded(e.Path("path").AsText())
 		}))
 	}
+	findings := assessments.Findings{}
+	for _, r := range n.Path("results").Elements() {
+		findings = append(findings, &assessments.Finding{
+			FilePath: r.Path("path").AsText(),
+			Line:     r.Path("start").Path("line").AsInt(),
+			Tool: map[string]string{
+				"check_id": r.Path("check_id").AsText(),
+				"message":  r.Path("extra").Path("message").AsText(),
+				"severity": r.Path("extra").Path("severity").AsText(),
+			},
+		})
+	}
 	result := &tools.Result{
-		Data:      n,
-		PrintPath: []string{"results"},
+		Data:     n,
+		Findings: findings,
 		PrintColumns: []string{
-			"check_id", "extra.severity", "extra.message", "path",
+			"tool.check_id", "tool.severity", "filePath", "line", "tool.message",
 		},
 	}
-	return result, nil
+	return result
 }

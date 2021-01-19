@@ -10,6 +10,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments/fingerprint"
+	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
@@ -22,7 +23,7 @@ type Assessment struct {
 	Module   string
 	Category string
 	Markdown string
-	Findings []*Finding
+	Findings Findings
 
 	Failed         bool
 	FailedCount    int
@@ -32,17 +33,22 @@ type Assessment struct {
 type Assessments []*Assessment
 
 type Finding struct {
-	SID                string            `json:"sid,omitempty"`
-	Severity           string            `json:"severity,omitempty"`
-	Title              string            `json:"title,omitempty"`
-	Description        string            `json:"description,omitempty"`
-	Markdown           string            `json:"markdown,omitempty"`
-	FilePath           string            `json:"filePath,omitempty"`
-	Line               int               `json:"line,omitempty"`
-	Pass               bool              `json:"pass,omitempty"`
+	SID         string `json:"sid,omitempty"`
+	Severity    string `json:"severity,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	Markdown    string `json:"markdown,omitempty"`
+	FilePath    string `json:"filePath,omitempty"`
+	Line        int    `json:"line,omitempty"`
+	Pass        bool   `json:"pass,omitempty"`
+
+	// These fields are filled in by the CLI and sent to
+	RepoPath           string            `json:"repoPath,omitempty"`
 	PartialFingerprint string            `json:"partialFingerprint,omitempty"`
 	Tool               map[string]string `json:"tool,omitempty"`
 }
+
+type Findings []*Finding
 
 var SeverityNames = util.NewStringSetWithValues([]string{
 	"info", "low", "medium", "high", "critical",
@@ -65,11 +71,19 @@ func (a *Assessment) EvaluateFailures(thresholds map[string]int) {
 	}
 }
 
-func ComputePartialFingerprints(dir string, findings []*Finding) {
+func (findings Findings) ComputePartialFingerprints(dir string) {
 	findingsForFiles := map[string][]*Finding{}
+	repoRoot, _ := inventory.FindRepoRoot(dir)
+	var relDir string
+	if repoRoot != "" {
+		relDir, _ = filepath.Rel(repoRoot, dir)
+	}
 	for _, f := range findings {
 		if f.FilePath != "" && f.Line > 0 {
 			findingsForFiles[f.FilePath] = append(findingsForFiles[f.FilePath], f)
+		}
+		if f.FilePath != "" && relDir != "" {
+			f.RepoPath = filepath.Join(relDir, f.FilePath)
 		}
 	}
 	for filePath, fs := range findingsForFiles {

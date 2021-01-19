@@ -18,7 +18,7 @@ type Tool struct {
 var _ tools.Interface = &Tool{}
 
 func (t *Tool) Name() string {
-	return "cfn_nag"
+	return "cfn-nag"
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {

@@ -1,0 +1,103 @@
+{
+	"results": [
+		{
+			"rule_id": "AWS044",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS044",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/provider.tf",
+				"start_line": 9,
+				"end_line": 9
+			},
+			"description": "Provider 'provider.aws' has an access key specified.",
+			"severity": "ERROR"
+		},
+		{
+			"rule_id": "GEN003",
+			"link": "https://github.com/tfsec/tfsec/wiki/GEN003",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/provider.tf",
+				"start_line": 10,
+				"end_line": 10
+			},
+			"description": "Block 'provider.aws' includes a potentially sensitive attribute which is defined within the project.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "AWS008",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"start_line": 31,
+				"end_line": 31
+			},
+			"description": "Resource 'aws_security_group.nat' defines a fully open ingress security group.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "AWS008",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"start_line": 37,
+				"end_line": 37
+			},
+			"description": "Resource 'aws_security_group.nat' defines a fully open ingress security group.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "AWS009",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS009",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"start_line": 43,
+				"end_line": 43
+			},
+			"description": "Resource 'aws_security_group.nat' defines a fully open egress security group.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "AWS009",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS009",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"start_line": 49,
+				"end_line": 49
+			},
+			"description": "Resource 'aws_security_group.nat' defines a fully open egress security group.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "AWS008",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"start_line": 65,
+				"end_line": 65
+			},
+			"description": "Resource 'aws_security_group.web' defines a fully open ingress security group.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "AWS008",
+			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"start_line": 71,
+				"end_line": 71
+			},
+			"description": "Resource 'aws_security_group.web' defines a fully open ingress security group.",
+			"severity": "WARNING"
+		},
+		{
+			"rule_id": "GEN001",
+			"link": "https://github.com/tfsec/tfsec/wiki/GEN001",
+			"location": {
+				"filename": "/Users/samshen/work/solublegoat/terraform/aws/variables.tf",
+				"start_line": 16,
+				"end_line": 16
+			},
+			"description": "Variable 'variable.aws_secret_key' includes a potentially sensitive default value.",
+			"severity": "WARNING"
+		}
+	]
+}
