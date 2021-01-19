@@ -56,7 +56,7 @@ func TestUpload(t *testing.T) {
 			assert.Equal(h.FormValue("FOO"), "hello")
 			return resp, err
 		})
-	assert.Nil(result.report(opts, "test"))
+	assert.Nil(result.report(opts, nil, "test"))
 	assert.Equal("http://app.example.com/A1", result.Assessment.URL)
 }
 

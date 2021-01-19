@@ -14,8 +14,9 @@ import (
 
 type DirectoryBasedToolOpts struct {
 	ToolOpts
-	Directory string
-	Exclude   []string
+	Directory         string
+	Exclude           []string
+	PrintFingerprints bool
 
 	absDirectory string
 }
@@ -102,6 +103,8 @@ func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.StringVarP(&o.Directory, "directory", "d", "", "The directory to run in.")
 	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob pattern (path/**/foo.txt syntax supported.)  May be repeated.")
+	flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
+	_ = flags.MarkHidden("print-fingerprints")
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {
