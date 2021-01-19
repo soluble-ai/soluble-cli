@@ -10,6 +10,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"golang.org/x/oauth2"
 )
 
@@ -77,12 +78,12 @@ func (it *Integration) Update(ctx context.Context, assessments assessments.Asses
 		for _, f := range a.Findings {
 			if f.FilePath != "" && f.Line > 0 && !f.Pass {
 				annotations = append(annotations, &github.CheckRunAnnotation{
-					Path:            toPath(f.FilePath),
+					Path:            toPath(f.RepoPath, f.FilePath),
 					StartLine:       intp(f.Line),
 					EndLine:         intp(f.Line),
 					AnnotationLevel: toAnnotationLevel(f.Severity),
 					Title:           stringp(f.GetTitle()),
-					Message:         stringp(truncate(f.Description, 100)),
+					Message:         stringp(util.TruncateRight(f.Description, 100)),
 				})
 				if len(annotations) == 50 {
 					it.updateCheckRun(ctx, checkRun, annotations)
@@ -121,7 +122,15 @@ func intp(i int) *int {
 	return &i
 }
 
-func toPath(p string) *string {
+func toPath(repoPath string, filePath string) *string {
+	p := repoPath
+	if p == "" {
+		// the finding should include repoPath but temporarily accept
+		// filePath instead ... filePath will not be correct if the
+		// tool was run from somewhere other than the repository
+		// root
+		p = filePath
+	}
 	return stringp(strings.TrimLeft(p, "/"))
 }
 
@@ -132,13 +141,6 @@ func toAnnotationLevel(s string) *string {
 	default:
 		return stringp("failure")
 	}
-}
-
-func truncate(s string, m int) string {
-	if len(s) > m {
-		return s[0:m-3] + "..."
-	}
-	return s
 }
 
 func init() {
