@@ -120,12 +120,7 @@ func (f *Finding) GetTitle() string {
 	if f.Title != "" {
 		return f.Title
 	}
-	t := f.Description
-	const lim = 57
-	if len(t) > lim+3 {
-		t = t[0:lim] + "..."
-	}
-	return t
+	return util.TruncateRight(f.Description, 57)
 }
 
 func FindCIEnvAssessments(client *api.Client) (Assessments, error) {

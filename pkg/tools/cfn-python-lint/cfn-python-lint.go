@@ -4,7 +4,9 @@ import (
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -47,15 +49,32 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 		return nil, err
 	}
+	result := parseResults(results)
+	result.Directory = t.GetDirectory()
+	return result, nil
+}
+
+func parseResults(results *jnode.Node) *tools.Result {
 	n := jnode.NewObjectNode()
 	n.Put("results", results)
-	result := &tools.Result{
-		Directory:    t.Directory,
-		Data:         n,
-		PrintPath:    []string{"results"},
-		PrintColumns: []string{"Rule.Id", "Level", "Filename", "Message"},
+	findings := assessments.Findings{}
+	for _, r := range results.Elements() {
+		findings = append(findings, &assessments.Finding{
+			FilePath: r.Path("Filename").AsText(),
+			Line:     r.Path("Location").Path("Start").Path("LineNumber").AsInt(),
+			Tool: map[string]string{
+				"Level":   r.Path("Level").AsText(),
+				"Message": util.TruncateRight(r.Path("Message").AsText(), 100),
+				"Rule_Id": r.Path("Rule").Path("Id").AsText(),
+			},
+		})
 	}
-	return result, nil
+	result := &tools.Result{
+		Data:         n,
+		Findings:     findings,
+		PrintColumns: []string{"tool.Rule_Id", "tool.Level", "filePath", "line", "tool.Message"},
+	}
+	return result
 }
 
 func (t *Tool) findCloudformationFiles() ([]string, error) {
