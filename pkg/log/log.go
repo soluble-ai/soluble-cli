@@ -19,7 +19,6 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
-	"github.com/mattn/go-colorable"
 	"github.com/soluble-ai/go-colorize"
 )
 
@@ -81,8 +80,4 @@ func SetTempLevel(level int) *TempLevel {
 
 func (l *TempLevel) Restore() {
 	Level = l.orig
-}
-
-func init() {
-	color.Output = colorable.NewColorableStderr()
 }

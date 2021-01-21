@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fatih/color"
 	"github.com/soluble-ai/soluble-cli/cmd/agent"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
@@ -64,18 +63,7 @@ func Command() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if f, _ := cmd.Flags().GetBool("no-color"); f {
-				color.NoColor = true
-			}
-			if f, _ := cmd.Flags().GetBool("force-color"); f {
-				color.NoColor = false
-			}
-			if f, _ := cmd.Flags().GetBool("quiet"); f {
-				log.Level = log.Error
-			}
-			if f, _ := cmd.Flags().GetBool("debug"); f {
-				log.Level = log.Debug
-			}
+			log.Configure()
 			log.Debugf("Loaded configuration from {primary:%s}", config.ConfigFile)
 			if setProfile != "" {
 				config.SelectProfile(setProfile)
@@ -105,10 +93,7 @@ func Command() *cobra.Command {
 	flags := rootCmd.PersistentFlags()
 	flags.StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
 	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
-	flags.Bool("debug", false, "Run with debug logging")
-	flags.Bool("quiet", false, "Run with no logging")
-	flags.Bool("no-color", false, "Disable color output")
-	flags.Bool("force-color", false, "Enable color output")
+	log.AddFlags(flags)
 	flags.BoolVar(&blurb.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
 
 	config.Load()
