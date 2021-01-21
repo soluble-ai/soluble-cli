@@ -3,6 +3,7 @@ package secrets
 import (
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,8 +14,24 @@ func TestParseResults(t *testing.T) {
 	assert.Nil(err)
 	tool := &Tool{}
 	result := tool.parseResults(results)
-	assert.Equal(3, len(result.Findings))
-	assert.Equal("Base64 High Entropy String", result.Findings[0].Title)
-	assert.NotEqual(0, result.Findings[0].Line)
-	assert.Equal("dockerfiles/node-docker-demo/package-lock.json", result.Findings[0].FilePath)
+	assert.Equal(2, len(result.Findings))
+	f := findFinding(result.Findings, "go.sum")
+	assert.NotNil(f)
+	assert.Equal("go.sum", f.FilePath)
+	assert.Equal("Base64 High Entropy String", f.Title)
+	assert.Equal(2, f.Line)
+	assert.Equal(results.Unwrap(), result.Data.Unwrap())
+	tool.Exclude = []string{"go.sum"}
+	result = tool.parseResults(results)
+	assert.Equal(1, len(result.Findings))
+	assert.Equal(1, result.Data.Path("results").Size())
+}
+
+func findFinding(findings assessments.Findings, filename string) *assessments.Finding {
+	for _, f := range findings {
+		if f.FilePath == filename {
+			return f
+		}
+	}
+	return nil
 }

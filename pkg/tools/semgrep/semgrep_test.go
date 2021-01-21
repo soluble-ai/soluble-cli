@@ -18,4 +18,5 @@ func TestParseResults(t *testing.T) {
 	assert.Equal(46, f.Line)
 	assert.Equal("pdl/src/main/java/pdl/PdlDiag.java", f.FilePath)
 	assert.Equal("-", f.Tool["check_id"])
+	assert.Equal(n.Unwrap(), result.Data.Unwrap())
 }

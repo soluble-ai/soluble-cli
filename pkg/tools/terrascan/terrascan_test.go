@@ -23,4 +23,5 @@ func TestParseResults(t *testing.T) {
 	assert.Equal("infrastructure.tf", f.FilePath)
 	assert.Equal(1, f.Line)
 	assert.Equal("MEDIUM", f.Tool["severity"])
+	assert.Equal(results.Unwrap(), result.Data.Unwrap())
 }

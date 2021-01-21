@@ -19,3 +19,11 @@ func ReadJSONFile(filename string) (*jnode.Node, error) {
 	err = d.Decode(&n)
 	return &n, err
 }
+
+func MustReadJSONFile(filename string) *jnode.Node {
+	n, err := ReadJSONFile(filename)
+	if err != nil {
+		panic(err)
+	}
+	return n
+}

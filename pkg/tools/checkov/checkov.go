@@ -69,7 +69,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 func (t *Tool) processResults(data *jnode.Node) *tools.Result {
 	result := &tools.Result{
 		Directory: t.Directory,
-		Data:      jnode.NewObjectNode().Put("data", data),
+		Data:      data,
 		PrintPath: []string{},
 		PrintColumns: []string{
 			"tool.check_id", "pass", "tool.check_type", "filePath", "line", "title",

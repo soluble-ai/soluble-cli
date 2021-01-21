@@ -17,4 +17,5 @@ func TestParseResults(t *testing.T) {
 	assert.Equal("EC2InstanceWithSecurityGroupSample.yaml", f.FilePath)
 	assert.Equal(25, f.Line)
 	assert.LessOrEqual(100, len(f.Tool["Message"]))
+	assert.Equal(results.Unwrap(), result.Data.Unwrap())
 }
