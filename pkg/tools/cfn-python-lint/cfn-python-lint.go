@@ -55,8 +55,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func parseResults(results *jnode.Node) *tools.Result {
-	n := jnode.NewObjectNode()
-	n.Put("results", results)
 	findings := assessments.Findings{}
 	for _, r := range results.Elements() {
 		findings = append(findings, &assessments.Finding{
@@ -70,7 +68,7 @@ func parseResults(results *jnode.Node) *tools.Result {
 		})
 	}
 	result := &tools.Result{
-		Data:         n,
+		Data:         results,
 		Findings:     findings,
 		PrintColumns: []string{"tool.Rule_Id", "tool.Level", "filePath", "line", "tool.Message"},
 	}

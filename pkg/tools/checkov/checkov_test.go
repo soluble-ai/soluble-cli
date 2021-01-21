@@ -26,4 +26,5 @@ func TestParseResults(t *testing.T) {
 		}
 	}
 	assert.Equal(6, passed)
+	assert.Equal(results.Unwrap(), result.Data.Unwrap())
 }

@@ -22,3 +22,12 @@ func RemoveJNodeElementsIf(n *jnode.Node, f func(*jnode.Node) bool) *jnode.Node 
 	}
 	return n
 }
+
+func RemoveJNodeEntriesIf(n *jnode.Node, f func(key string, value *jnode.Node) bool) *jnode.Node {
+	for k, v := range n.Entries() {
+		if f(k, v) {
+			n.Remove(k)
+		}
+	}
+	return n
+}
