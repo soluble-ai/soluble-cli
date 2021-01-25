@@ -2,6 +2,7 @@ package providerscan
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,38 +35,54 @@ func cloudsploitAWSCommand() *cobra.Command {
 No results are sent to Soluble, this is just a convenience utility.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			envCreds, _ := credentials.NewEnvCredentials().Get()
+			awsEnvCreds, _ := credentials.NewEnvCredentials().Get()
 			homeDir, _ := os.UserHomeDir()
-			fileCreds, _ := credentials.NewSharedCredentials(filepath.Join(homeDir, ".aws/credentials"), "default").Get()
-			// prefer envvars
-			var (
-				awsAccessKeyID     string
-				awsSecretAccessKey string
-				awsSessionToken    string
-			)
+			awsFileCreds, _ := credentials.NewSharedCredentials(filepath.Join(homeDir, ".aws/credentials"), "").Get()
+			envvars := make(map[string]string)
+
+			// prefer AWS environment variables to those in ~/.aws/credentials
 			switch {
-			case envCreds.HasKeys():
-				awsAccessKeyID = envCreds.AccessKeyID
-				awsSecretAccessKey = envCreds.SecretAccessKey
-				awsSessionToken = envCreds.SessionToken
-			case fileCreds.HasKeys():
-				awsAccessKeyID = fileCreds.AccessKeyID
-				awsSecretAccessKey = fileCreds.SecretAccessKey
-				awsSessionToken = fileCreds.SessionToken
+			case awsEnvCreds.HasKeys():
+				envvars["AWS_ACCESS_KEY_ID"] = awsEnvCreds.AccessKeyID
+				envvars["AWS_SECRET_ACCESS_KEY"] = awsEnvCreds.SecretAccessKey
+				envvars["AWS_SESSION_TOKEN"] = awsEnvCreds.SessionToken
+			case awsFileCreds.HasKeys():
+				envvars["AWS_ACCESS_KEY_ID"] = awsFileCreds.AccessKeyID
+				envvars["AWS_SECRET_ACCESS_KEY"] = awsFileCreds.SecretAccessKey
+				envvars["AWS_SESSION_TOKEN"] = awsFileCreds.SessionToken
 			default:
 				return fmt.Errorf("neither envvars nor ~/.aws/credentials file have AWS credentials")
 			}
+			// and inculde the Soluble API keys
+			envvars["SOLUBLE_API_KEY"] = os.Getenv("SOLUBLE_API_KEY")
+			envvars["SOLUBLE_ORG_ID"] = os.Getenv("SOLUBLE_ORG_ID")
+
 			if err := hasDocker(); err != nil {
-				return fmt.Errorf("cannot run cloudsploit: %w", err)
+				return fmt.Errorf("cannot run cloudsploit docker container: %w", err)
 			}
+			// Write the environment variables to a tmpdir with a bindmount
+			// (because we don't want to leak sensitive keys into `ps` and logs)
+			envFile, err := ioutil.TempFile("", "soluble-cloudsploit")
+			if err != nil {
+				return fmt.Errorf("unable to create temporary file for cloudsploit: %w", err)
+			}
+			defer os.Remove(envFile.Name())
+			defer envFile.Close()
+			for k, v := range envvars {
+				if v == "" {
+					continue
+				}
+				_, err := envFile.WriteString(fmt.Sprintf("%s=%s\n", k, v))
+				if err != nil {
+					return fmt.Errorf("unable to write environment variables to temporary file: %w", err)
+				}
+			}
+			_ = envFile.Sync()
+
 			solubleDir := filepath.Join(homeDir, ".soluble")
 			cloudsploitCmd := exec.Command("docker", "run", "-it",
-				"-e", fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", awsAccessKeyID),
-				"-e", fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", awsSecretAccessKey),
-				"-e", fmt.Sprintf("AWS_SESSION_TOKEN=%s", awsSessionToken),
-				"-e", "SOLUBLE_API_KEY", // can come from ENV...
-				"-e", "SOLUBLE_ORG_ID",
-				"-v", fmt.Sprintf("%s:/app/.soluble", solubleDir), // ...or from file
+				"--env-file", envFile.Name(),
+				"-v", fmt.Sprintf("%s:/app/.soluble:ro", solubleDir), // soluble baseimg handles reading .soluble dir
 				"gcr.io/soluble-repo/soluble-cloudsploit:latest",
 			) // #nosec G204
 			cloudsploitCmd.Stdin = os.Stdin
