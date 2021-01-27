@@ -10,11 +10,12 @@ import (
 )
 
 type DockerTool struct {
-	Name       string
-	Image      string
-	Directory  string
-	DockerArgs []string
-	Args       []string
+	Name            string
+	Image           string
+	Directory       string
+	DockerArgs      []string
+	Args            []string
+	PolicyDirectory string
 }
 
 func hasDocker() error {
@@ -53,6 +54,15 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 	if t.Directory != "" {
 		args = append(args, "-v", fmt.Sprintf("%s:/src", t.Directory),
 			"-w", "/src")
+	}
+	if t.PolicyDirectory != "" {
+		// mount the policy directory and rewrite args
+		args = append(args, "-v", fmt.Sprintf("%s:/policy", t.PolicyDirectory))
+		for i := range t.Args {
+			if t.Args[i] == t.PolicyDirectory {
+				t.Args[i] = "/policy"
+			}
+		}
 	}
 	args = append(args, t.DockerArgs...)
 	args = append(args, t.Image)

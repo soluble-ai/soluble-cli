@@ -43,12 +43,20 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.Framework != "" {
 		args = append(args, "--framework", t.Framework)
 	}
+	customPoliciesDir, err := t.GetCustomPoliciesDir()
+	if err != nil {
+		return nil, err
+	}
+	if customPoliciesDir != "" {
+		args = append(args, "--external-checks-dir", customPoliciesDir)
+	}
 	args = append(args, t.extraArgs...)
 	dat, err := t.RunDocker(&tools.DockerTool{
-		Name:      "checkov",
-		Image:     "gcr.io/soluble-repo/checkov:latest",
-		Directory: t.GetDirectory(),
-		Args:      args,
+		Name:            "checkov",
+		Image:           "gcr.io/soluble-repo/checkov:latest",
+		Directory:       t.GetDirectory(),
+		PolicyDirectory: customPoliciesDir,
+		Args:            args,
 	})
 	if err != nil {
 		if dat != nil {

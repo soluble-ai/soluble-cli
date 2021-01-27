@@ -77,5 +77,7 @@ func UntarReader(r io.Reader, compressed bool, fs afero.Fs, options *Options) er
 }
 
 func Untar(src afero.File, fs afero.Fs, options *Options) error {
-	return UntarReader(src, strings.HasSuffix(src.Name(), ".gz"), fs, options)
+	return UntarReader(src,
+		strings.HasSuffix(src.Name(), ".gz") || strings.HasSuffix(src.Name(), ".tgz"),
+		fs, options)
 }

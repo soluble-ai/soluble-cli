@@ -7,10 +7,13 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
+
+	args []string
 }
 
 var _ tools.Interface = &Tool{}
@@ -19,11 +22,32 @@ func (t *Tool) Name() string {
 	return "secrets"
 }
 
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Args: func(cmd *cobra.Command, args []string) error {
+			t.args = args
+			return nil
+		},
+	}
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
+	// --all-files includes files not checked into git
+	// --no-verify avoids making network calls to check credentials
+	args := append(t.args, "--all-files", "--no-verify")
+	customPoliciesDir, err := t.GetCustomPoliciesDir()
+	if err != nil {
+		return nil, err
+	}
+	if customPoliciesDir != "" {
+		args = append(args, "--custom-plugins", customPoliciesDir)
+	}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:      "soluble-secrets",
-		Image:     "gcr.io/soluble-repo/soluble-secrets:latest",
-		Directory: t.GetDirectory(),
+		Name:            "soluble-secrets",
+		Image:           "gcr.io/soluble-repo/soluble-secrets:latest",
+		Directory:       t.GetDirectory(),
+		PolicyDirectory: customPoliciesDir,
+		Args:            args,
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
@@ -58,9 +82,6 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 					FilePath: k,
 					Line:     p.Path("line_number").AsInt(),
 					Title:    p.Path("type").AsText(),
-					Tool: map[string]string{
-						"is_verified": p.Path("is_verified").AsText(),
-					},
 				})
 			}
 		}
@@ -69,7 +90,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		Directory:    t.Directory,
 		Data:         results,
 		Findings:     findings,
-		PrintColumns: []string{"filePath", "line", "title", "tool.is_verified"},
+		PrintColumns: []string{"filePath", "line", "title"},
 	}
 	return result
 }

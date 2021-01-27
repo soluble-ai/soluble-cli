@@ -61,12 +61,20 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.Config != "" {
 		args = append(args, "-f", t.Config)
 	}
+	customPoliciesDir, err := t.GetCustomPoliciesDir()
+	if err != nil {
+		return nil, err
+	}
+	if customPoliciesDir != "" {
+		args = append(args, "-f", customPoliciesDir)
+	}
 	args = append(args, t.extraArgs...)
 	args = append(args, ".")
 	d, err := t.RunDocker(&tools.DockerTool{
-		Image:     "returntocorp/semgrep:latest",
-		Directory: t.GetDirectory(),
-		Args:      args,
+		Image:           "returntocorp/semgrep:latest",
+		Directory:       t.GetDirectory(),
+		PolicyDirectory: customPoliciesDir,
+		Args:            args,
 	})
 	if err != nil && util.ExitCode(err) != 1 {
 		// semgrep exits 1 if it finds issues

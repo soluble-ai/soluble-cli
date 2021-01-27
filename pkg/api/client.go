@@ -99,15 +99,16 @@ func NewClient(config *Config) *Client {
 	})
 
 	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
+		t := r.Request.TraceInfo().TotalTime.Truncate(time.Millisecond)
 		if r.IsError() {
-			log.Errorf("{info:%s} {primary:%s} returned {danger:%d}\n", r.Request.Method,
-				r.Request.URL, r.StatusCode())
+			log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Request.Method,
+				r.Request.URL, r.StatusCode(), t)
 			log.Errorf("{warning:%s}\n", r.String())
 			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
 		}
 		log.Debugf("%v", r.Result())
-		log.Infof("{info:%s} {primary:%s} returned {success:%d}\n", r.Request.Method,
-			r.Request.URL, r.StatusCode())
+		log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Request.Method,
+			r.Request.URL, r.StatusCode(), t)
 		return nil
 	})
 	c.SetTimeout(time.Duration(config.TimeoutSeconds) * time.Second)

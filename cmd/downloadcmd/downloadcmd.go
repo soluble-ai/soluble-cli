@@ -169,7 +169,7 @@ func printDirCommand() *cobra.Command {
 			if version == "" {
 				v = meta.FindLatestOrLastInstalledVersion()
 			} else {
-				v = meta.FindVersion(version, true)
+				v = meta.FindVersion(version, 0, true)
 			}
 			if v == nil {
 				return fmt.Errorf("version not found")
