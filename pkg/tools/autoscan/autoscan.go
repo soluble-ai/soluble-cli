@@ -121,6 +121,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 		count++
 		opts := st.GetToolOptions()
+		opts.Tool = st
 		opts.UploadEnabled = t.UploadEnabled
 		opts.ToolPath = t.ToolPaths[st.Name()]
 		opts.ParsedFailThresholds = t.ParsedFailThresholds
@@ -128,7 +129,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 			dopts.Exclude = t.Exclude
 		}
 		start := time.Now()
-		st.Result, st.Err = opts.RunTool(st, false)
+		st.Result, st.Err = opts.RunTool(false)
 		rd := time.Since(start).Truncate(time.Millisecond)
 		n.Put("run_duration", rd.String())
 		if st.Result != nil {

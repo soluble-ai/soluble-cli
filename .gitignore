@@ -17,3 +17,4 @@ soluble
 dist/
 target/
 *.log
+**/.DS_Store

@@ -42,12 +42,13 @@ type DownloadMeta struct {
 }
 
 type Spec struct {
-	Name                 string
-	RequestedVersion     string
-	URL                  string
-	APIServerArtifact    string
-	APIServer            APIServer
-	GithubReleaseMatcher GithubReleaseMatcher
+	Name                       string
+	RequestedVersion           string
+	URL                        string
+	APIServerArtifact          string
+	APIServer                  APIServer
+	GithubReleaseMatcher       GithubReleaseMatcher
+	LatestReleaseCacheDuration time.Duration
 }
 
 type APIServer interface {
@@ -126,7 +127,7 @@ func (m *Manager) Reinstall(spec *Spec) (*Download, error) {
 	}
 	meta := m.GetMeta(name)
 	if meta != nil {
-		d := meta.FindVersion(spec.RequestedVersion, true)
+		d := meta.FindVersion(spec.RequestedVersion, 0, true)
 		_ = m.Remove(name, spec.RequestedVersion)
 		if d != nil {
 			if spec.URL == "" {
@@ -150,7 +151,7 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 	}
 	// see if we've already installed it
 	meta := m.findOrCreateMeta(spec.Name)
-	v := meta.FindVersion(spec.RequestedVersion, false)
+	v := meta.FindVersion(spec.RequestedVersion, spec.LatestReleaseCacheDuration, false)
 	if v != nil {
 		return v, nil
 	}
@@ -175,6 +176,7 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 		url := fmt.Sprintf("%s%s", spec.APIServer.GetHostURL(), spec.APIServerArtifact)
 		spec.URL = strings.ReplaceAll(url, "{org}", spec.APIServer.GetOrganization())
 		options = append(options, withBearerToken(spec.APIServer.GetAuthToken()))
+
 		actualVersion = "latest"
 	}
 	if spec.URL == "" {
@@ -219,7 +221,7 @@ func (meta *DownloadMeta) updateLatestInfo(requestedVersion, actualVersion strin
 	if isLatestTag(requestedVersion) {
 		meta.LatestCheckTime = time.Now()
 		meta.LatestVersion = actualVersion
-		log.Infof("Latest release of {secondary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
+		log.Infof("Latest release of {primary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
 		return meta.findVersionExactly(actualVersion)
 	}
 	return nil
@@ -284,9 +286,12 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	return d, nil
 }
 
-func (meta *DownloadMeta) FindVersion(version string, stale bool) *Download {
+func (meta *DownloadMeta) FindVersion(version string, cacheTime time.Duration, stale bool) *Download {
 	if isLatestTag(version) {
-		if meta.LatestVersion != "" && (stale || meta.LatestCheckTime.After(time.Now().Add(-24*time.Hour))) {
+		if cacheTime == 0 {
+			cacheTime = 24 * time.Hour
+		}
+		if meta.LatestVersion != "" && (stale || meta.LatestCheckTime.After(time.Now().Add(-cacheTime))) {
 			version = meta.LatestVersion
 		} else {
 			return nil
@@ -311,7 +316,7 @@ func (meta *DownloadMeta) findVersionExactly(version string) *Download {
 }
 
 func (meta *DownloadMeta) removeVersion(m *Manager, version string) error {
-	v := meta.FindVersion(version, false)
+	v := meta.FindVersion(version, 0, false)
 	if v != nil {
 		log.Infof("Removing {info:%s}", v.Dir)
 		err := os.RemoveAll(v.Dir)
@@ -351,6 +356,8 @@ func (d *Download) Install(file string) error {
 	base := filepath.Base(file)
 	var unpack archive.Unpack
 	switch {
+	case strings.HasSuffix(base, ".tgz"):
+		fallthrough
 	case strings.HasSuffix(base, ".tar.gz"):
 		fallthrough
 	case strings.HasSuffix(base, ".tar"):
