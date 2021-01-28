@@ -109,6 +109,15 @@ func (w *OptionsCommand) GetCobraCommand() *cobra.Command {
 	return w.CobraCommand
 }
 
+func (w *OptionsCommand) SetContextValues(ctx map[string]string) {
+	if w.ClientOpts != nil {
+		w.ClientOpts.SetContextValues(ctx)
+	}
+	if w.ClusterOpts != nil {
+		w.ClusterOpts.SetContextValues(ctx)
+	}
+}
+
 func init() {
 	RegisterCommandType("print_client", func(c *cobra.Command, cm *CommandModel) Command {
 		opts := &options.PrintClientOpts{}
