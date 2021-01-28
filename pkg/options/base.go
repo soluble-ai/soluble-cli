@@ -20,5 +20,8 @@ import (
 
 type Interface interface {
 	Register(cmd *cobra.Command)
+}
+
+type WithContextValues interface {
 	SetContextValues(context map[string]string)
 }

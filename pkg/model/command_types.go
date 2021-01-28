@@ -28,7 +28,6 @@ type CommandType string
 type CommandMaker func(c *cobra.Command, cm *CommandModel) Command
 
 type Command interface {
-	SetContextValues(context map[string]string)
 	GetAPIClient() *api.Client
 	GetUnauthenticatedAPIClient() *api.Client
 	PrintResult(n *jnode.Node)
@@ -61,7 +60,6 @@ func (t CommandType) makeCommand(c *cobra.Command, cm *CommandModel) Command {
 	return commandTypes[string(t)](c, cm)
 }
 
-func (g *GroupCommand) SetContextValues(context map[string]string) {}
 func (g *GroupCommand) GetAPIClient() *api.Client {
 	return nil
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
@@ -277,7 +278,9 @@ func (cm *CommandModel) GetCommandType() CommandType {
 func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) error {
 	var result *jnode.Node
 	contextValues := NewContextValues()
-	command.SetContextValues(contextValues.values)
+	if cv, ok := command.(options.WithContextValues); ok {
+		cv.SetContextValues(contextValues.values)
+	}
 	parameters, body, err := cm.processParameters(cmd, contextValues)
 	if err != nil {
 		return err

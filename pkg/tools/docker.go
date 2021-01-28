@@ -2,6 +2,7 @@ package tools
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -16,6 +17,7 @@ type DockerTool struct {
 	DockerArgs      []string
 	Args            []string
 	PolicyDirectory string
+	Stdout          io.Writer
 }
 
 func hasDocker() error {
@@ -69,6 +71,11 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 	args = append(args, t.Args...)
 	run := exec.Command("docker", args...)
 	log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
+	run.Stdin = os.Stdin
 	run.Stderr = os.Stderr
+	if t.Stdout != nil {
+		run.Stdout = t.Stdout
+		return nil, run.Run()
+	}
 	return run.Output()
 }
