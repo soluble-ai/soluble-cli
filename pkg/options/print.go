@@ -262,6 +262,3 @@ func (p *PrintOpts) SetColumnFunction(columnName string, computer print.ColumnFu
 	}
 	p.ComputedColumns[columnName] = computer
 }
-
-func (p *PrintOpts) SetContextValues(context map[string]string) {
-}

@@ -29,7 +29,6 @@ func (opts *PrintClientOpts) Register(cmd *cobra.Command) {
 }
 
 func (opts *PrintClientOpts) SetContextValues(context map[string]string) {
-	opts.PrintOpts.SetContextValues(context)
 	opts.ClientOpts.SetContextValues(context)
 }
 
@@ -44,6 +43,5 @@ func (opts *PrintClusterOpts) Register(cmd *cobra.Command) {
 }
 
 func (opts *PrintClusterOpts) SetContextValues(context map[string]string) {
-	opts.PrintOpts.SetContextValues(context)
 	opts.ClusterOpts.SetContextValues(context)
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
 	"github.com/soluble-ai/soluble-cli/cmd/cfnscan"
+	"github.com/soluble-ai/soluble-cli/cmd/cloudscan"
 	"github.com/soluble-ai/soluble-cli/cmd/codescan"
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
 	"github.com/soluble-ai/soluble-cli/cmd/depscan"
@@ -147,6 +148,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		tools.CreateCommand(&autoscan.Tool{}),
 		tools.CreateCommand(&checkov.Tool{}),
 		codescan.Command(),
+		cloudscan.Command(),
 	)
 }
 
