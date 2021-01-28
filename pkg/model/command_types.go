@@ -32,6 +32,7 @@ type Command interface {
 	GetUnauthenticatedAPIClient() *api.Client
 	PrintResult(n *jnode.Node)
 	GetCobraCommand() *cobra.Command
+	SetContextValues(c map[string]string)
 }
 
 type GroupCommand struct {
@@ -70,6 +71,7 @@ func (g *GroupCommand) PrintResult(n *jnode.Node) {}
 func (g *GroupCommand) GetCobraCommand() *cobra.Command {
 	return g.CobraCommand
 }
+func (g *GroupCommand) SetContextValues(m map[string]string) {}
 
 func init() {
 	RegisterCommandType("group", func(c *cobra.Command, cm *CommandModel) Command {
