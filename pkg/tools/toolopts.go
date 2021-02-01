@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
+	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
@@ -28,8 +30,10 @@ type ToolOpts struct {
 	PrintResultOpt        bool
 	DisableCustomPolicies bool
 	ParsedFailThresholds  map[string]int
+	RepoRoot              string
 
 	customPoliciesDir *string
+	config            *Config
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -40,6 +44,17 @@ func (o *ToolOpts) GetToolOptions() *ToolOpts {
 
 func (o *ToolOpts) GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts {
 	return nil
+}
+
+func (o *ToolOpts) GetConfig() *Config {
+	return o.getConfig(o.RepoRoot)
+}
+
+func (o *ToolOpts) getConfig(repoRoot string) *Config {
+	if o.config == nil {
+		o.config = ReadConfig(filepath.Join(repoRoot, ".soluble"))
+	}
+	return o.config
 }
 
 func (o *ToolOpts) Register(c *cobra.Command) {
@@ -68,6 +83,13 @@ func (o *ToolOpts) Validate() error {
 	}
 	if o.UpdatePR && !o.UploadEnabled {
 		return fmt.Errorf("--update-pr must be used with --upload")
+	}
+	if o.RepoRoot == "" {
+		r, err := inventory.FindRepoRoot(".")
+		if err != nil {
+			return err
+		}
+		o.RepoRoot = r
 	}
 	// parse here to return error upfront
 	var err error
@@ -108,6 +130,9 @@ func (o *ToolOpts) PrintToolResult(result *Result) {
 }
 
 func (o *ToolOpts) RunTool(printResult bool) (*Result, error) {
+	if err := o.Tool.Validate(); err != nil {
+		return nil, err
+	}
 	result, err := o.Tool.Run()
 	if err != nil || result == nil {
 		return nil, err

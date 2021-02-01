@@ -56,7 +56,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	result := &tools.Result{
-		Directory: t.Directory,
+		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  parseResults(results),
 		PrintColumns: []string{

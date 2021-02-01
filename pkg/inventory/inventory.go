@@ -31,7 +31,7 @@ type DirDetector interface {
 	DetectDirName(m *Manifest, path string)
 }
 
-var cache map[string]*Manifest
+var cache = util.NewCache(3)
 
 func (m *Manifest) scan(root string, detectors ...interface{}) {
 	buf := make([]byte, 4096)
@@ -92,14 +92,10 @@ func readFileStart(path string, buf []byte) (int, error) {
 }
 
 func Do(root string) *Manifest {
-	// cache single manifest
-	m := cache[root]
-	if m != nil {
+	return cache.Get(root, func(dir string) interface{} {
+		m := &Manifest{}
+		m.scan(root, cloudformationDetector(0), kubernetesDetector(0), cidetector(0),
+			dockerDetector(0), &terraformDetector{})
 		return m
-	}
-	m = &Manifest{}
-	m.scan(root, cloudformationDetector(0), kubernetesDetector(0), cidetector(0),
-		dockerDetector(0), &terraformDetector{})
-	cache = map[string]*Manifest{root: m}
-	return m
+	}).(*Manifest)
 }

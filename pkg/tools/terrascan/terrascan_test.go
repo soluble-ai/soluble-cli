@@ -17,6 +17,7 @@ func TestParseResults(t *testing.T) {
 			Exclude: []string{"nat-server.tf"},
 		},
 	}
+	assert.Nil(tool.Validate())
 	result := tool.parseResults(results)
 	assert.Equal(4, len(result.Findings))
 	f := result.Findings[0]

@@ -12,6 +12,7 @@ func TestParseResults(t *testing.T) {
 	n, err := util.ReadJSONFile("testdata/results.json")
 	assert.Nil(err)
 	tool := &Tool{}
+	assert.Nil(tool.Validate())
 	result := tool.parseResults(n)
 	assert.Equal(2, len(result.Findings))
 	f := result.Findings[0]

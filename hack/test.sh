@@ -15,11 +15,11 @@ export SOLUBLE_OPTS=--force-color
 
 run version
 run auth profile --format none
-run auto-scan --upload --image nginx:1.19 --skip secrets --exclude 'pkg/inventory/testdata/k/t/*.yaml'
 # we don't have any secrets here other than in testdata, so the --error-not-empty will
 # fail right away
 run secrets-scan --exclude go.sum --exclude 'pkg/**/testdata/*.json' \
   --exclude 'pkg/tools/cloudsploit/**' --error-not-empty --upload
+run auto-scan --upload --image nginx:1.19 --skip secrets --exclude 'pkg/inventory/testdata/k/t/*.yaml'
 
 if [ -n "${SOLUBLE_API_TOKEN:-}" -a -n "${GITHUB_ACTIONS:-}" ]; then
     run build update-pr
