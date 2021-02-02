@@ -5,7 +5,6 @@ go 1.15
 require (
 	github.com/avast/retry-go v2.7.0+incompatible
 	github.com/aws/aws-sdk-go v1.37.0
-	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/fatih/color v1.10.0
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
@@ -20,6 +19,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pmezard/go-difflib v1.0.0
+	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect

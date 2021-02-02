@@ -76,7 +76,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 func (t *Tool) processResults(data *jnode.Node) *tools.Result {
 	result := &tools.Result{
-		Directory: t.Directory,
+		Directory: t.GetDirectory(),
 		Data:      data,
 		PrintPath: []string{},
 		PrintColumns: []string{

@@ -87,7 +87,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		}
 	}
 	result := &tools.Result{
-		Directory:    t.Directory,
+		Directory:    t.GetDirectory(),
 		Data:         results,
 		Findings:     findings,
 		PrintColumns: []string{"filePath", "line", "title"},

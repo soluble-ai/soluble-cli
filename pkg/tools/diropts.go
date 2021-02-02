@@ -2,12 +2,12 @@ package tools
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
-	"github.com/bmatcuk/doublestar/v2"
+	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +19,7 @@ type DirectoryBasedToolOpts struct {
 	PrintFingerprints bool
 
 	absDirectory string
+	ignore       *ignore.GitIgnore
 }
 
 func (o *DirectoryBasedToolOpts) GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts {
@@ -33,7 +34,8 @@ func (o *DirectoryBasedToolOpts) GetDirectory() string {
 		}
 		dir, err := filepath.Abs(dir)
 		if err != nil {
-			log.Fatalf("Cannot determine current directory: {danger:%s}", err)
+			log.Errorf("Cannot determine current directory: {danger:%s}", err)
+			panic(err)
 		}
 		o.absDirectory = dir
 	}
@@ -86,16 +88,14 @@ func (o *DirectoryBasedToolOpts) removeExcludedStringSet(ss util.StringSet) util
 }
 
 func (o *DirectoryBasedToolOpts) IsExcluded(file string) bool {
-	if filepath.IsAbs(file) {
-		file, _ = filepath.Abs(file)
-	}
-	for _, pat := range o.Exclude {
-		m, _ := doublestar.PathMatch(pat, file)
-		if m {
+	if o.ignore != nil {
+		rfile := MustRel(o.GetDirectory(), file)
+		if o.ignore.MatchesPath(rfile) {
 			return true
 		}
 	}
-	return false
+	rfile := MustRel(o.RepoRoot, file)
+	return o.GetConfig().IsIgnored(rfile)
 }
 
 func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
@@ -108,13 +108,20 @@ func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {
+	if o.RepoRoot == "" {
+		var err error
+		o.RepoRoot, err = inventory.FindRepoRoot(o.GetDirectory())
+		if err != nil {
+			return err
+		}
+	}
 	if err := o.ToolOpts.Validate(); err != nil {
 		return err
 	}
-	for _, pat := range o.Exclude {
-		_, err := doublestar.PathMatch(pat, "test")
-		if err != nil {
-			return fmt.Errorf("invalid --exclude pattern '%s': %w", pat, err)
+	if len(o.Exclude) > 0 {
+		o.ignore = ignore.CompileIgnoreLines(o.Exclude...)
+		if o.ignore == nil {
+			log.Warnf("Invalid exclude pattern {warning:%s}", strings.Join(o.Exclude, ","))
 		}
 	}
 	return nil

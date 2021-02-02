@@ -10,6 +10,7 @@ import (
 func TestParseResults(t *testing.T) {
 	assert := assert.New(t)
 	tool := &Tool{}
+	assert.Nil(tool.Validate())
 	results, err := util.ReadJSONFile("testdata/results.json")
 	assert.Nil(err)
 	result := tool.processResults(results)

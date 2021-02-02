@@ -36,9 +36,6 @@ func CreateCommand(tool Interface) *cobra.Command {
 func runTool(tool Interface) error {
 	opts := tool.GetToolOptions()
 	opts.Tool = tool
-	if err := opts.Validate(); err != nil {
-		return err
-	}
 	result, err := opts.RunTool(true)
 	if err != nil || result == nil {
 		return err

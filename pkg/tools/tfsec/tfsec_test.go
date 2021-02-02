@@ -1,6 +1,7 @@
 package tfsec
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -11,8 +12,10 @@ func TestParseResults(t *testing.T) {
 	assert := assert.New(t)
 	results, err := util.ReadJSONFile("testdata/results.json")
 	assert.Nil(err)
+	fmt.Println(results)
 	tool := &Tool{}
-	tool.Directory = "/Users/samshen/work/solublegoat/terraform/aws"
+	tool.Directory = "/x/work/solublegoat/terraform/aws"
+	tool.RepoRoot = "/x/work/solublegoat"
 	result := tool.parseResults(results)
 	assert.Equal(9, len(result.Findings))
 	f := result.Findings[8]

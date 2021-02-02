@@ -4,7 +4,7 @@
 			"rule_id": "AWS044",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS044",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/provider.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/provider.tf",
 				"start_line": 9,
 				"end_line": 9
 			},
@@ -15,7 +15,7 @@
 			"rule_id": "GEN003",
 			"link": "https://github.com/tfsec/tfsec/wiki/GEN003",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/provider.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/provider.tf",
 				"start_line": 10,
 				"end_line": 10
 			},
@@ -26,7 +26,7 @@
 			"rule_id": "AWS008",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/security.tf",
 				"start_line": 31,
 				"end_line": 31
 			},
@@ -37,7 +37,7 @@
 			"rule_id": "AWS008",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/security.tf",
 				"start_line": 37,
 				"end_line": 37
 			},
@@ -48,7 +48,7 @@
 			"rule_id": "AWS009",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS009",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/security.tf",
 				"start_line": 43,
 				"end_line": 43
 			},
@@ -59,7 +59,7 @@
 			"rule_id": "AWS009",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS009",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/security.tf",
 				"start_line": 49,
 				"end_line": 49
 			},
@@ -70,7 +70,7 @@
 			"rule_id": "AWS008",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/security.tf",
 				"start_line": 65,
 				"end_line": 65
 			},
@@ -81,7 +81,7 @@
 			"rule_id": "AWS008",
 			"link": "https://github.com/tfsec/tfsec/wiki/AWS008",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/security.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/security.tf",
 				"start_line": 71,
 				"end_line": 71
 			},
@@ -92,7 +92,7 @@
 			"rule_id": "GEN001",
 			"link": "https://github.com/tfsec/tfsec/wiki/GEN001",
 			"location": {
-				"filename": "/Users/samshen/work/solublegoat/terraform/aws/variables.tf",
+				"filename": "/x/work/solublegoat/terraform/aws/variables.tf",
 				"start_line": 16,
 				"end_line": 16
 			},

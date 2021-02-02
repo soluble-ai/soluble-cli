@@ -13,6 +13,7 @@ func TestParseResults(t *testing.T) {
 	results, err := util.ReadJSONFile("testdata/results.json")
 	assert.Nil(err)
 	tool := &Tool{}
+	assert.Nil(tool.Validate())
 	result := tool.parseResults(results)
 	assert.Equal(2, len(result.Findings))
 	f := findFinding(result.Findings, "go.sum")
@@ -22,6 +23,7 @@ func TestParseResults(t *testing.T) {
 	assert.Equal(2, f.Line)
 	assert.Equal(results.Unwrap(), result.Data.Unwrap())
 	tool.Exclude = []string{"go.sum"}
+	assert.Nil(tool.Validate())
 	result = tool.parseResults(results)
 	assert.Equal(1, len(result.Findings))
 	assert.Equal(1, result.Data.Path("results").Size())
