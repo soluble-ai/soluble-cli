@@ -3,16 +3,33 @@ package assessments
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 )
 
-func ParseFailThresholds(thresholds map[string]string) (map[string]int, error) {
+func ParseFailThresholds(thresholds []string) (map[string]int, error) {
+	var err error
+	thresholdsMap := map[string]string{}
+	for _, t := range thresholds {
+		equals := strings.Index(t, "=")
+		var key, val string
+		switch {
+		case equals == 0:
+			err = multierror.Append(err, fmt.Errorf("threshold must be in form severity=count not %s", t))
+		case equals > 0:
+			val = t[equals+1:]
+			key = strings.ToLower(t[0:equals])
+		case equals < 0:
+			val = "1"
+			key = strings.ToLower(t)
+		}
+		thresholdsMap[key] = val
+	}
 	last := -1
 	result := map[string]int{}
-	var err error
 	for _, name := range SeverityNames.Values() {
-		if s, ok := thresholds[name]; ok {
+		if s, ok := thresholdsMap[name]; ok {
 			value, convErr := strconv.Atoi(s)
 			switch {
 			case convErr != nil:
@@ -27,7 +44,7 @@ func ParseFailThresholds(thresholds map[string]string) (map[string]int, error) {
 		}
 		result[name] = last
 	}
-	for key := range thresholds {
+	for key := range thresholdsMap {
 		if !SeverityNames.Contains(key) {
 			err = multierror.Append(err, fmt.Errorf("unrecognized level: %s", key))
 		}

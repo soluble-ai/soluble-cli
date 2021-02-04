@@ -15,7 +15,7 @@ import (
 
 type BuildOpts struct {
 	options.PrintClientOpts
-	FailThresholds map[string]string
+	FailThresholds []string
 
 	parsedFailThresholds map[string]int
 }
@@ -23,7 +23,7 @@ type BuildOpts struct {
 func (opts *BuildOpts) Register(c *cobra.Command) {
 	opts.PrintClientOpts.Register(c)
 	flags := c.Flags()
-	flags.StringToStringVar(&opts.FailThresholds, "fail", nil, "")
+	flags.StringSliceVar(&opts.FailThresholds, "fail", nil, "")
 }
 
 func (opts *BuildOpts) validate() error {
@@ -84,9 +84,10 @@ func buildReportCommand() *cobra.Command {
 			for _, assessment := range assessments {
 				if assessment.Failed {
 					exit.Code = 2
+					a := assessment
 					exit.AddFunc(func() {
 						log.Errorf("{warning:%s} has {danger:%d %s findings}",
-							assessment.Title, assessment.FailedCount, assessment.FailedSeverity)
+							a.Title, a.FailedCount, a.FailedSeverity)
 					})
 				}
 				for _, finding := range assessment.Findings {
@@ -99,6 +100,9 @@ func buildReportCommand() *cobra.Command {
 				}
 			}
 			opts.PrintResult(jnode.NewObjectNode().Put("findings", findings))
+			for _, assessment := range assessments {
+				log.Infof("For more details on the {info:%s} see {primary:%s}", assessment.Title, assessment.URL)
+			}
 			return nil
 		},
 	}
