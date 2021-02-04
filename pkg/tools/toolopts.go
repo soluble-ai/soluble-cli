@@ -113,12 +113,7 @@ func (o *ToolOpts) PrintToolResult(result *Result) {
 	if result.Findings != nil {
 		o.Path = []string{}
 		o.WideColumns = append(o.WideColumns, "repoPath", "partialFingerprint")
-		o.SetFormatter("pass", func(n *jnode.Node) string {
-			if n.AsBool() {
-				return "PASS"
-			}
-			return "FAIL"
-		})
+		o.SetFormatter("pass", PassFormatter)
 		d, _ := json.Marshal(result.Findings)
 		n, _ := jnode.FromJSON(d)
 		o.PrintResult(n)
