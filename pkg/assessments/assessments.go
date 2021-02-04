@@ -57,7 +57,9 @@ var SeverityNames = util.NewStringSetWithValues([]string{
 func (a *Assessment) EvaluateFailures(thresholds map[string]int) {
 	counts := map[string]int{}
 	for _, f := range a.Findings {
-		counts[strings.ToLower(f.Severity)] += 1
+		if !f.Pass {
+			counts[strings.ToLower(f.Severity)] += 1
+		}
 	}
 	for _, level := range SeverityNames.Values() {
 		value := thresholds[level]

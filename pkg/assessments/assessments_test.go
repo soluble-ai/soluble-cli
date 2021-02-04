@@ -16,6 +16,7 @@ func TestAssessmentHasFailures(t *testing.T) {
 		count      int
 	}{
 		{[]*Finding{}, map[string]string{}, false, "", 0},
+		{[]*Finding{{Severity: "high", Pass: true}}, map[string]string{"high": "1"}, false, "", 0},
 		{[]*Finding{{Severity: "high", Pass: false}}, map[string]string{"low": "1"}, true, "high", 1},
 	}
 	for _, tc := range testCases {

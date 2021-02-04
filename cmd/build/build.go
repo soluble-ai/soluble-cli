@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -8,6 +9,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -61,10 +63,11 @@ func buildReportCommand() *cobra.Command {
 		PrintClientOpts: options.PrintClientOpts{
 			PrintOpts: options.PrintOpts{
 				Path:    []string{"findings"},
-				Columns: []string{"module", "pass", "severity", "sid", "description"},
+				Columns: []string{"module", "pass", "severity", "sid", "file:line", "title"},
 			},
 		},
 	}
+	opts.SetFormatter("pass", tools.PassFormatter)
 	c := &cobra.Command{
 		Use:   "report",
 		Short: "List any assessments generated during this build",
@@ -91,7 +94,7 @@ func buildReportCommand() *cobra.Command {
 						Put("module", assessment.Module).
 						Put("pass", finding.Pass).
 						Put("severity", finding.Severity).
-						Put("file", finding.FilePath).
+						Put("file:line", fmt.Sprintf("%s:%d", finding.FilePath, finding.Line)).
 						Put("title", finding.GetTitle())
 				}
 			}
