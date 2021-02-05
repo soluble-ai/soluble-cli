@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/avast/retry-go v2.7.0+incompatible
-	github.com/aws/aws-sdk-go v1.37.3
+	github.com/aws/aws-sdk-go v1.37.5
 	github.com/fatih/color v1.10.0
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
