@@ -4,11 +4,10 @@ go 1.15
 
 require (
 	github.com/avast/retry-go v2.7.0+incompatible
-	github.com/aws/aws-sdk-go v1.37.3
+	github.com/aws/aws-sdk-go-v2/config v1.1.0
 	github.com/fatih/color v1.10.0
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
-	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/hcl/v2 v2.8.2
@@ -21,8 +20,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/sergi/go-diff v1.1.0 // indirect
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.5.1
@@ -30,6 +27,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.6.8
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 )
