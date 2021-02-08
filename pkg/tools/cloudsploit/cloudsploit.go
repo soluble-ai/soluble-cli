@@ -1,11 +1,12 @@
 package cloudsploit
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
@@ -17,10 +18,11 @@ func Command() *cobra.Command {
 		Use:   "cloudsploit",
 		Short: "Scan cloud infrastructure with Cloudsploit",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := credentials.NewChainCredentials([]credentials.Provider{
-				&credentials.EnvProvider{},
-				&credentials.SharedCredentialsProvider{},
-			}).Get()
+			awscfg, err := awsconfig.LoadDefaultConfig(context.Background())
+			if err != nil {
+				return err
+			}
+			creds, err := awscfg.Credentials.Retrieve(context.Background())
 			if err != nil {
 				return err
 			}
