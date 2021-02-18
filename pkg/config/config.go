@@ -47,13 +47,12 @@ var (
 const Redacted = "*** redacted ***"
 
 type ProfileT struct {
-	ProfileName      string `json:"-"`
-	APIServer        string
-	APIToken         string
-	TLSNoVerify      bool
-	Organization     string
-	Email            string
-	DefaultClusterID string
+	ProfileName  string `json:"-"`
+	APIServer    string
+	APIToken     string
+	TLSNoVerify  bool
+	Organization string
+	Email        string
 }
 
 func SelectProfile(name string) bool {

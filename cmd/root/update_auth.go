@@ -30,11 +30,7 @@ func updateAuthAction(command model.Command, result *jnode.Node) (*jnode.Node, e
 	config.Config.TLSNoVerify = cfg.TLSNoVerify
 	config.Config.APIToken = result.Path("token").AsText()
 	config.Config.Email = result.Path("user").Path("email").AsText()
-	org := config.Config.Organization
 	config.Config.Organization = result.Path("user").Path("currentOrgId").AsText()
-	if org != config.Config.Organization {
-		config.Config.DefaultClusterID = ""
-	}
 	config.Save()
 	result.Put("token", config.Redacted)
 	return result, nil
