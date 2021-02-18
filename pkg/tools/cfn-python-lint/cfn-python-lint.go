@@ -1,6 +1,7 @@
 package cfnpythonlint
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
@@ -36,11 +37,15 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no cloudformation templates found")
+	}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:      "cfn-python-lint",
-		Image:     "gcr.io/soluble-repo/soluble-cfn-lint:latest",
-		Directory: t.GetDirectory(),
-		Args:      append([]string{"-f", "json"}, files...),
+		Name:             "cfn-python-lint",
+		DefaultLocalPath: "cfn-lint",
+		Image:            "gcr.io/soluble-repo/soluble-cfn-lint:latest",
+		Directory:        t.GetDirectory(),
+		Args:             append([]string{"-f", "json"}, files...),
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {

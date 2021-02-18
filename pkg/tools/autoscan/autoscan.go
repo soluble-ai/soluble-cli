@@ -47,6 +47,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	flags.StringSliceVar(&t.Skip, "skip", nil, "Don't run these `tools` (command-separated or repeated.)")
 	flags.StringToStringVar(&t.ToolPaths, "tool-paths", nil, "Explicitly specify the path to each tool in the form `tool=path`.")
 	flags.StringSliceVar(&t.Images, "image", nil, "Scan these docker images, as in the image-scan command.")
+	flags.BoolVar(&t.NoDocker, "no-docker", false, "Run all docker-based tools locally")
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {
@@ -125,6 +126,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		opts.UploadEnabled = t.UploadEnabled
 		opts.ToolPath = t.ToolPaths[st.Name()]
 		opts.ParsedFailThresholds = t.ParsedFailThresholds
+		opts.NoDocker = t.NoDocker
 		if dopts := st.GetDirectoryBasedToolOptions(); dopts != nil {
 			dopts.Exclude = t.Exclude
 		}

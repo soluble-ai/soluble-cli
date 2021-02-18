@@ -71,6 +71,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	args = append(args, t.extraArgs...)
 	args = append(args, ".")
 	d, err := t.RunDocker(&tools.DockerTool{
+		Name:            "semgrep",
 		Image:           "returntocorp/semgrep:latest",
 		Directory:       t.GetDirectory(),
 		PolicyDirectory: customPoliciesDir,

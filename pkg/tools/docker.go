@@ -11,13 +11,14 @@ import (
 )
 
 type DockerTool struct {
-	Name            string
-	Image           string
-	Directory       string
-	DockerArgs      []string
-	Args            []string
-	PolicyDirectory string
-	Stdout          io.Writer
+	Name             string
+	Image            string
+	Directory        string
+	DockerArgs       []string
+	Args             []string
+	DefaultLocalPath string
+	PolicyDirectory  string
+	Stdout           io.Writer
 }
 
 func hasDocker() error {

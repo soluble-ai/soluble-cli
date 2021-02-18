@@ -19,6 +19,7 @@ type RunOpts struct {
 	ToolPath        string
 	SkipDockerPull  bool
 	ExtraDockerArgs []string
+	NoDocker        bool
 	Internal        bool
 }
 
@@ -32,14 +33,25 @@ func (o *RunOpts) Register(cmd *cobra.Command) {
 		flags.StringSliceVar(&o.ExtraDockerArgs, "extra-docker-args", nil, "Add extra args to invocations of docker")
 		flags.StringVar(&o.ToolPath, "tool-path", "", "Run `tool` directly instead of using a CLI-managed version")
 		flags.StringVar(&o.ToolVersion, "tool-version", "", "Override version of the tool to run (the image or github release name.)")
+		flags.BoolVar(&o.NoDocker, "no-docker", false, "Always run tools locally instead of using Docker")
 	}
 }
 
 func (o *RunOpts) RunDocker(d *DockerTool) ([]byte, error) {
-	if o.ToolPath != "" {
+	if o.ToolPath != "" || o.NoDocker {
+		path := o.ToolPath
+		if path == "" {
+			path = d.DefaultLocalPath
+		}
+		if path == "" {
+			path = d.Name
+		}
+		if path == "" {
+			return nil, fmt.Errorf("cannot run this tool locally, use --tool-path to explicitly name the local program")
+		}
 		// don't use docker, just run it directly
 		// #nosec G204
-		c := exec.Command(o.ToolPath, d.Args...)
+		c := exec.Command(path, d.Args...)
 		c.Dir = d.Directory
 		c.Stderr = os.Stderr
 		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), c.Dir)

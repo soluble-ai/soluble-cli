@@ -38,6 +38,7 @@ func Command() *cobra.Command {
 			}
 			defer func() { _ = os.Remove(envFile) }()
 			docker := &tools.DockerTool{
+				Name:  "cloudsploit",
 				Image: "gcr.io/soluble-repo/soluble-cloudsploit:latest",
 				DockerArgs: []string{"--env-file", envFile,
 					"-v", fmt.Sprintf("%s:/app/.solulble:ro", config.ConfigDir)},

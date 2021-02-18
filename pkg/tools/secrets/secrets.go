@@ -34,7 +34,13 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 func (t *Tool) Run() (*tools.Result, error) {
 	// --all-files includes files not checked into git
 	// --no-verify avoids making network calls to check credentials
-	args := append(t.args, "--all-files", "--no-verify")
+	var args []string
+	if t.NoDocker {
+		// the image entrypoint sticks scan in the args
+		args = append(args, "scan")
+	}
+	args = append(args, "--all-files", "--no-verify")
+	args = append(args, t.args...)
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
 		return nil, err
@@ -43,11 +49,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 		args = append(args, "--custom-plugins", customPoliciesDir)
 	}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:            "soluble-secrets",
-		Image:           "gcr.io/soluble-repo/soluble-secrets:latest",
-		Directory:       t.GetDirectory(),
-		PolicyDirectory: customPoliciesDir,
-		Args:            args,
+		Name:             "soluble-secrets",
+		DefaultLocalPath: "detect-secrets",
+		Image:            "gcr.io/soluble-repo/soluble-secrets:latest",
+		Directory:        t.GetDirectory(),
+		PolicyDirectory:  customPoliciesDir,
+		Args:             args,
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
