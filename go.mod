@@ -3,7 +3,6 @@ module github.com/soluble-ai/soluble-cli
 go 1.15
 
 require (
-	github.com/avast/retry-go v2.7.0+incompatible
 	github.com/aws/aws-sdk-go-v2/config v1.1.1
 	github.com/fatih/color v1.10.0
 	github.com/go-resty/resty/v2 v2.5.0
@@ -20,6 +19,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/sergi/go-diff v1.1.0 // indirect
+	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
+	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.5.1

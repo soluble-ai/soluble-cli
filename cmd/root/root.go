@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/soluble-ai/soluble-cli/cmd/agent"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
@@ -128,7 +127,6 @@ func getCommandCopy(rootCmd *cobra.Command, args []string) *cobra.Command {
 func addBuiltinCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(
 		auth.Command(),
-		agent.Command(),
 		aws.Command(),
 		configcmd.Command(),
 		modelcmd.Command(),

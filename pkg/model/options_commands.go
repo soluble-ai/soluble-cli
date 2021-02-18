@@ -26,7 +26,6 @@ type OptionsCommand struct {
 	options.Interface
 	ClientOpts   *options.ClientOpts
 	PrintOpts    *options.PrintOpts
-	ClusterOpts  *options.ClusterOpts
 	CobraCommand *cobra.Command
 }
 
@@ -77,10 +76,6 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 			}
 		}
 	}
-	if w.ClusterOpts != nil {
-		opts := w.ClusterOpts
-		opts.ClusterIDOptional = cm.ClusterIDOptional != nil && *cm.ClusterIDOptional
-	}
 	w.Interface.Register(c)
 	return w
 }
@@ -113,9 +108,6 @@ func (w *OptionsCommand) SetContextValues(ctx map[string]string) {
 	if w.ClientOpts != nil {
 		w.ClientOpts.SetContextValues(ctx)
 	}
-	if w.ClusterOpts != nil {
-		w.ClusterOpts.SetContextValues(ctx)
-	}
 }
 
 func init() {
@@ -125,16 +117,6 @@ func init() {
 			Interface:  opts,
 			ClientOpts: &opts.ClientOpts,
 			PrintOpts:  &opts.PrintOpts,
-		}
-		return w.Initialize(c, cm)
-	})
-	RegisterCommandType("print_cluster", func(c *cobra.Command, cm *CommandModel) Command {
-		opts := &options.PrintClusterOpts{}
-		w := &OptionsCommand{
-			Interface:   opts,
-			ClientOpts:  &opts.ClientOpts,
-			PrintOpts:   &opts.PrintOpts,
-			ClusterOpts: &opts.ClusterOpts,
 		}
 		return w.Initialize(c, cm)
 	})
