@@ -25,16 +25,23 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	// versions past v0.30.0 seem broken?
 	d, err := t.InstallTool(&download.Spec{
-		URL:              "github.com/tfsec/tfsec",
-		RequestedVersion: "v0.30.0",
+		URL: "github.com/tfsec/tfsec",
 	})
 	if err != nil {
 		return nil, err
 	}
+	customPoliciesDir, err := t.GetCustomPoliciesDir()
+	if err != nil {
+		return nil, err
+	}
+	args := []string{"-f", "json"}
+	if customPoliciesDir != "" {
+		args = append(args, "--external-checks-dir", customPoliciesDir)
+	}
+	args = append(args, ".")
 	// #nosec G204
-	c := exec.Command(d.GetExePath("tfsec-tfsec"), "-f", "json", ".")
+	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
