@@ -17,6 +17,11 @@ type Manifest struct {
 	KubernetesManifestDirectories  util.StringSet `json:"kubernetes_manifest_directories"`
 	CISystems                      util.StringSet `json:"ci_systems"`
 	DockerDirectories              util.StringSet `json:"docker_directories"`
+	GODirectories                  util.StringSet `json:"go_directories"`
+	PythonDirectories              util.StringSet `json:"python_directories"`
+	NodeDirectories                util.StringSet `json:"node_directories"`
+	JavaDirectories                util.StringSet `json:"java_directories"`
+	RubyDirectories                util.StringSet `json:"ruby_directories"`
 }
 
 type FileDetector interface {
@@ -31,11 +36,28 @@ type DirDetector interface {
 	DetectDirName(m *Manifest, path string)
 }
 
+type FinalizeDetector interface {
+	FinalizeDetection(m *Manifest)
+}
+
 var cache = util.NewCache(3)
+
+func (m *Manifest) getDetectors(detectors []interface{}) (fds []FileDetector, dds []DirDetector) {
+	for _, d := range detectors {
+		if fd, ok := d.(FileDetector); ok {
+			fds = append(fds, fd)
+		}
+		if dd, ok := d.(DirDetector); ok {
+			dds = append(dds, dd)
+		}
+	}
+	return
+}
 
 func (m *Manifest) scan(root string, detectors ...interface{}) {
 	buf := make([]byte, 4096)
 	root, _ = filepath.Abs(root)
+	fileDetectors, dirDetectors := m.getDetectors(detectors)
 	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Warnf("Could not scan {info:%s}: {warning:%s}", path, err)
@@ -50,36 +72,39 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 			if filepath.IsAbs(relpath) {
 				relpath, _ = filepath.Rel(root, relpath)
 			}
-			var ds []ContentDetector
-			for _, d := range detectors {
-				if isdir {
-					if dd, ok := d.(DirDetector); ok {
-						dd.DetectDirName(m, relpath)
-					}
-				} else if fd, ok := d.(FileDetector); ok {
+			var cds []ContentDetector
+			if isdir {
+				for _, dd := range dirDetectors {
+					dd.DetectDirName(m, relpath)
+				}
+			} else {
+				for _, fd := range fileDetectors {
 					if cd := fd.DetectFileName(m, relpath); cd != nil {
-						ds = append(ds, cd)
+						cds = append(cds, cd)
 					}
 				}
 			}
-			if !isdir {
-				if len(ds) > 0 {
-					// read the first 4k of the file
-					n, err := readFileStart(path, buf)
-					if err != nil && !errors.Is(err, io.EOF) {
-						log.Warnf("Could not read {info:%s}: {warning:%s}", path, err)
-						return nil
-					}
-					if n > 0 {
-						for _, d := range ds {
-							d.DetectContent(m, relpath, buf[0:n])
-						}
+			if len(cds) > 0 {
+				// read the first 4k of the file
+				n, err := readFileStart(path, buf)
+				if err != nil && !errors.Is(err, io.EOF) {
+					log.Warnf("Could not read {info:%s}: {warning:%s}", path, err)
+					return nil
+				}
+				if n > 0 {
+					for _, d := range cds {
+						d.DetectContent(m, relpath, buf[0:n])
 					}
 				}
 			}
 		}
 		return nil
 	})
+	for _, d := range detectors {
+		if fd, ok := d.(FinalizeDetector); ok {
+			fd.FinalizeDetection(m)
+		}
+	}
 }
 
 func readFileStart(path string, buf []byte) (int, error) {
@@ -94,8 +119,18 @@ func readFileStart(path string, buf []byte) (int, error) {
 func Do(root string) *Manifest {
 	return cache.Get(root, func(dir string) interface{} {
 		m := &Manifest{}
-		m.scan(root, cloudformationDetector(0), kubernetesDetector(0), cidetector(0),
-			dockerDetector(0), &terraformDetector{})
+		m.scan(root,
+			cloudformationDetector(0),
+			kubernetesDetector(0),
+			cidetector(0),
+			dockerDetector(0),
+			&terraformDetector{},
+			goDetector(),
+			pythonDetector(),
+			javaDetector(),
+			nodeDetector(),
+			rubyDetector(),
+		)
 		return m
 	}).(*Manifest)
 }
