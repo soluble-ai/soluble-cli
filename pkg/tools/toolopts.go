@@ -193,7 +193,6 @@ func (o *ToolOpts) GetCustomPoliciesDir() (string, error) {
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
 		o.customPoliciesDir = &d.Dir
-		fmt.Println(d.Dir)
 	}
 	return *o.customPoliciesDir, nil
 }
