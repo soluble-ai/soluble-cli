@@ -35,7 +35,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// --all-files includes files not checked into git
 	// --no-verify avoids making network calls to check credentials
 	var args []string
-	if t.NoDocker {
+	if t.NoDocker || t.ToolPath != "" {
 		// the image entrypoint sticks scan in the args
 		args = append(args, "scan")
 	}
