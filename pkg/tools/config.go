@@ -50,7 +50,7 @@ func ReadConfig(dir string) *Config {
 	var m map[string]interface{}
 	err = yaml.Unmarshal(d, &m)
 	if err != nil {
-		log.Warnf("Could not parsed {warning:%s} - {warning:%s}", path, err)
+		log.Warnf("Could not parse {warning:%s} - {warning:%s}", path, err)
 	}
 	c.data = jnode.FromMap(m)
 	c.path = path

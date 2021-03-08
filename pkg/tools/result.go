@@ -69,7 +69,13 @@ func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name strin
 		// include various repo files if they exist
 		names := &util.StringSet{}
 		for _, path := range repoFiles {
-			if f, err := os.Open(filepath.Join(dir, filepath.FromSlash(path))); err == nil {
+			p := filepath.Join(dir, filepath.FromSlash(path))
+			fi, err := os.Stat(p)
+			if err != nil || fi.Size() == 0 {
+				// don't include 0 length files
+				continue
+			}
+			if f, err := os.Open(p); err == nil {
 				defer f.Close()
 				name := filepath.Base(path)
 				if names.Add(name) {
