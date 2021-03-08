@@ -30,13 +30,14 @@ func TestUpload(t *testing.T) {
 	tempdir, _ := ioutil.TempDir("", "toolopt*")
 	defer os.RemoveAll(tempdir)
 	createFile(tempdir, filepath.FromSlash(".soluble/config.yml"), "# config.yml\n")
-	createFile(tempdir, filepath.FromSlash(".git/config"), "")
+	createFile(tempdir, filepath.FromSlash(".git/config"), "# .git/config\n")
 	createFile(tempdir, filepath.FromSlash(".github/CODEOWNERS"), "#\n")
 	createFile(tempdir, "README", "hello world\n")
+	createFile(tempdir, "empty.txt", "")
 	result := &Result{
 		Data:      jnode.NewObjectNode(),
 		Directory: tempdir,
-		Files:     util.NewStringSetWithValues([]string{"README"}),
+		Files:     util.NewStringSetWithValues([]string{"README", "empty.txt"}),
 	}
 	result.AddValue("FOO", "hello")
 	opts := &ToolOpts{}
@@ -53,6 +54,8 @@ func TestUpload(t *testing.T) {
 			assert.Nil(h.ParseMultipartForm(1 << 20))
 			checkFile(assert, h, "CODEOWNERS", nil)
 			checkFile(assert, h, "config.yml", nil)
+			_, _, e := h.FormFile("empty.txt")
+			assert.NotNil(e)
 			assert.Equal(h.FormValue("FOO"), "hello")
 			return resp, err
 		})
