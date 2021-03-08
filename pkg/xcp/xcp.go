@@ -16,7 +16,7 @@ var metadataCommands = map[string]string{
 	"SOLUBLE_METADATA_GIT_BRANCH":       "git rev-parse --abbrev-ref HEAD",
 	"SOLUBLE_METADATA_GIT_COMMIT":       "git rev-parse HEAD",
 	"SOLUBLE_METADATA_GIT_COMMIT_SHORT": "git rev-parse --short HEAD",
-	"SOLUBLE_METADATA_GIT_TAG":          "git describe --tags",
+	"SOLUBLE_METADATA_GIT_DESCRIBE":     "git describe --tags --always",
 	"SOLUBLE_METADATA_GIT_REMOTE":       "git ls-remote --get-url",
 }
 
