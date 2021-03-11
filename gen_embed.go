@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build ignore
+// +build gen
 
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
-	"github.com/prometheus/common/log"
 	"github.com/shurcooL/vfsgen"
 )
 
@@ -31,6 +32,7 @@ func main() {
 		Filename:     "pkg/resources/resources_vfsgen.go",
 	})
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
 }

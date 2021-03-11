@@ -111,7 +111,8 @@ envLoop:
 			strings.HasPrefix(k, "CIRCLE_") ||
 			strings.HasPrefix(k, "GITLAB_") ||
 			strings.HasPrefix(k, "CI_") ||
-			strings.HasPrefix(k, "BUILDKITE_") {
+			strings.HasPrefix(k, "BUILDKITE_") ||
+			strings.HasPrefix(k, "ZODIAC_") {
 			values[k] = v
 
 			// and if we haven't set a CI system yet, set it

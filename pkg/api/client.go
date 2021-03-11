@@ -104,6 +104,9 @@ func NewClient(config *Config) *Client {
 			log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Request.Method,
 				r.Request.URL, r.StatusCode(), t)
 			log.Errorf("{warning:%s}\n", r.String())
+			if r.StatusCode() == 401 {
+				log.Infof("Are you not logged in?  Use {primary:soluble login} to login, or {primary:soluble auth profile} to verify")
+			}
 			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
 		}
 		log.Debugf("%v", r.Result())
