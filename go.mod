@@ -3,7 +3,7 @@ module github.com/soluble-ai/soluble-cli
 go 1.15
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.1.1
+	github.com/aws/aws-sdk-go-v2/config v1.1.2
 	github.com/fatih/color v1.10.0
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/gobwas/glob v0.2.3
