@@ -15,11 +15,11 @@ func TestLanguageDetectors(t *testing.T) {
 	m.scan("testdata/lang/python-app", pythonDetector())
 	assert.Contains(m.PythonDirectories.Values(), ".")
 	m = &Manifest{}
-	m.scan("testdata/lang", javaDetector())
+	m.scan("testdata/lang", javaAntMavenDetector(), javaGradleDetector())
 	assert.ElementsMatch(m.JavaDirectories.Values(), []string{
 		"java", "java2", "java3",
 	})
 	m = &Manifest{}
-	m.scan("testdata/lang/java3", javaDetector())
+	m.scan("testdata/lang/java3", javaGradleDetector())
 	assert.ElementsMatch(m.JavaDirectories.Values(), []string{"."})
 }

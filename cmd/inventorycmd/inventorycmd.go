@@ -7,13 +7,8 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := &cobra.Command{
-		Use:   "inventory",
-		Short: "Inventory infrastructure-as-code and optionally send the inventory to Soluble",
-	}
-	c.AddCommand(
-		tools.CreateCommand(&iacinventory.Github{}),
-		tools.CreateCommand(&iacinventory.Local{}),
-	)
+	c := tools.CreateCommand(&iacinventory.Local{})
+	c.Use = "inventory"
+	c.AddCommand(tools.CreateCommand(&iacinventory.Local{}))
 	return c
 }

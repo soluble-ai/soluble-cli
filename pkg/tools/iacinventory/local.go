@@ -25,7 +25,7 @@ func (t *Local) Register(cmd *cobra.Command) {
 func (t *Local) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "local",
-		Short: "Inventory a local directory for infrastructure-as-code",
+		Short: "Inventory a directory for infrastructure-as-code",
 	}
 }
 
