@@ -80,7 +80,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 			Interface: &checkov.Tool{
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
 			},
-			Skip: m.TerraformRootModuleDirectories.Len() == 0 && m.KubernetesManifestDirectories.Len() == 0,
+			Skip: m.TerraformRootModules.Len() == 0 && m.KubernetesManifestDirectories.Len() == 0,
 		},
 		{
 			Interface: &cfnpythonlint.Tool{

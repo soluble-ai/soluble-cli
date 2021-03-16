@@ -10,9 +10,10 @@ import (
 )
 
 type LanguageDetector struct {
-	getValues   func(*Manifest) *util.StringSet
-	markerFiles []string
-	content     ContentDetector
+	getValues          func(*Manifest) *util.StringSet
+	markerFiles        []string
+	content            ContentDetector
+	collapseNestedDirs bool
 }
 
 var _ FileDetector = &LanguageDetector{}
@@ -30,6 +31,9 @@ func (d *LanguageDetector) DetectFileName(m *Manifest, path string) ContentDetec
 }
 
 func (d *LanguageDetector) FinalizeDetection(m *Manifest) {
+	if !d.collapseNestedDirs {
+		return
+	}
 	// collapse nested directories with markers into single dir
 	values := d.getValues(m)
 	if values.Len() == 0 {
@@ -62,10 +66,18 @@ func goDetector() *LanguageDetector {
 	}
 }
 
-func javaDetector() *LanguageDetector {
+func javaAntMavenDetector() *LanguageDetector {
+	return &LanguageDetector{
+		getValues:          func(m *Manifest) *util.StringSet { return &m.JavaDirectories },
+		markerFiles:        []string{"pom.xml", "build.xml", "build.gradle"},
+		collapseNestedDirs: true,
+	}
+}
+
+func javaGradleDetector() *LanguageDetector {
 	return &LanguageDetector{
 		getValues:   func(m *Manifest) *util.StringSet { return &m.JavaDirectories },
-		markerFiles: []string{"pom.xml", "build.xml", "build.gradle"},
+		markerFiles: []string{"build.gradle"},
 	}
 }
 

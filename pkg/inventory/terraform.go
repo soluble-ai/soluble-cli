@@ -24,6 +24,7 @@ func (d *terraformDetector) DetectFileName(m *Manifest, path string) ContentDete
 		d.dotTerraform = ""
 	}
 	if strings.HasSuffix(path, ".tf") || strings.HasSuffix(path, ".tf.json") {
+		m.TerraformModules.Add(filepath.Dir(path))
 		return d
 	}
 	return nil
@@ -40,12 +41,12 @@ func (d *terraformDetector) DetectDirName(m *Manifest, path string) {
 func (*terraformDetector) DetectContent(m *Manifest, path string, content []byte) {
 	if strings.HasSuffix(path, ".tf") {
 		if providerRegexp.Find(content) != nil {
-			m.TerraformRootModuleDirectories.Add(filepath.Dir(path))
+			m.TerraformRootModules.Add(filepath.Dir(path))
 		}
 	} else {
 		p := gjson.ParseBytes(content).Get("provider")
 		if p.IsArray() || p.IsObject() {
-			m.TerraformRootModuleDirectories.Add(filepath.Dir(path))
+			m.TerraformRootModules.Add(filepath.Dir(path))
 		}
 	}
 }

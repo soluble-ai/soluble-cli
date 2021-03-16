@@ -48,7 +48,8 @@ func (o *DirectoryBasedToolOpts) GetInventory() *inventory.Manifest {
 	m.DockerDirectories = o.removeExcludedStringSet(m.DockerDirectories)
 	m.HelmCharts = o.removeExcludedStringSet(m.HelmCharts)
 	m.KubernetesManifestDirectories = o.removeExcludedStringSet(m.KubernetesManifestDirectories)
-	m.TerraformRootModuleDirectories = o.removeExcludedStringSet(m.TerraformRootModuleDirectories)
+	m.TerraformRootModules = o.removeExcludedStringSet(m.TerraformRootModules)
+	m.TerraformModules = o.removeExcludedStringSet(m.TerraformModules)
 	return m
 }
 

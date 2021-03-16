@@ -11,17 +11,18 @@ import (
 )
 
 type Manifest struct {
-	TerraformRootModuleDirectories util.StringSet `json:"terraform_root_modules"`
-	CloudformationFiles            util.StringSet `json:"cloudformation_files"`
-	HelmCharts                     util.StringSet `json:"helm_charts"`
-	KubernetesManifestDirectories  util.StringSet `json:"kubernetes_manifest_directories"`
-	CISystems                      util.StringSet `json:"ci_systems"`
-	DockerDirectories              util.StringSet `json:"docker_directories"`
-	GODirectories                  util.StringSet `json:"go_directories"`
-	PythonDirectories              util.StringSet `json:"python_directories"`
-	NodeDirectories                util.StringSet `json:"node_directories"`
-	JavaDirectories                util.StringSet `json:"java_directories"`
-	RubyDirectories                util.StringSet `json:"ruby_directories"`
+	TerraformRootModules          util.StringSet `json:"terraform_root_modules"`
+	TerraformModules              util.StringSet `json:"terraform_modules"`
+	CloudformationFiles           util.StringSet `json:"cloudformation_files"`
+	HelmCharts                    util.StringSet `json:"helm_charts"`
+	KubernetesManifestDirectories util.StringSet `json:"kubernetes_manifest_directories"`
+	CISystems                     util.StringSet `json:"ci_systems"`
+	DockerDirectories             util.StringSet `json:"docker_directories"`
+	GODirectories                 util.StringSet `json:"go_directories"`
+	PythonDirectories             util.StringSet `json:"python_directories"`
+	NodeDirectories               util.StringSet `json:"node_directories"`
+	JavaDirectories               util.StringSet `json:"java_directories"`
+	RubyDirectories               util.StringSet `json:"ruby_directories"`
 }
 
 type FileDetector interface {
@@ -127,7 +128,8 @@ func Do(root string) *Manifest {
 			&terraformDetector{},
 			goDetector(),
 			pythonDetector(),
-			javaDetector(),
+			javaAntMavenDetector(),
+			javaGradleDetector(),
 			nodeDetector(),
 			rubyDetector(),
 		)
