@@ -45,7 +45,7 @@ func findGitDir(dir string) (string, error) {
 
 func FindRepoRoot(dir string) (string, error) {
 	dir, err := FindGitDir(dir)
-	if err == nil {
+	if err == nil && dir != "" {
 		dir = filepath.Dir(dir)
 	}
 	return dir, err

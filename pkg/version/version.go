@@ -38,7 +38,7 @@ func IsCompatible(version string) bool {
 func isCompatible(v1, v2 string) bool {
 	m1 := versionRe.FindStringSubmatch(v1)
 	m2 := versionRe.FindStringSubmatch(v2)
-	if m2 == nil {
+	if m1 == nil || m2 == nil {
 		return false
 	}
 	if m1[Major] != m2[Major] {
