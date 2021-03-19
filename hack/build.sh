@@ -35,6 +35,9 @@ ldflags="-ldflags=-X 'github.com/soluble-ai/soluble-cli/pkg/version.Version=${VE
 
 set -e
 
+echo "Running go mod tidy -v"
+go mod tidy -v
+
 echo "Running go generate"
 go generate ./...
 

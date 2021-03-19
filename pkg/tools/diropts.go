@@ -95,6 +95,9 @@ func (o *DirectoryBasedToolOpts) IsExcluded(file string) bool {
 			return true
 		}
 	}
+	if o.RepoRoot == "" {
+		return false
+	}
 	rfile := MustRel(o.RepoRoot, file)
 	return o.GetConfig().IsIgnored(rfile)
 }
