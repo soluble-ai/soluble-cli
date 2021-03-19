@@ -1,7 +1,10 @@
 package util
 
 import (
+	"compress/gzip"
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -9,12 +12,25 @@ import (
 )
 
 func ReadJSONFile(filename string) (*jnode.Node, error) {
-	f, err := os.Open(filepath.FromSlash(filename))
+	path := filepath.FromSlash(filename)
+	var r io.ReadCloser
+	var err error
+	r, err = os.Open(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			r, err = os.Open(path + ".gz")
+			if err == nil {
+				rr := r
+				defer rr.Close()
+				r, err = gzip.NewReader(r)
+			}
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-	d := json.NewDecoder(f)
+	defer r.Close()
+	d := json.NewDecoder(r)
 	var n jnode.Node
 	err = d.Decode(&n)
 	return &n, err
