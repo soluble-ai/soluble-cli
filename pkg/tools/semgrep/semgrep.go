@@ -37,7 +37,7 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "semgrep",
 		Short: "Run semgrep",
-		Long:  "Run semgrep in a docker container against a directory.  Any additional arguments will be passed onwards.",
+		Long:  "Run semgrep against a directory.  Any additional arguments will be passed onwards.",
 		Example: `# get help
 ... code-scan -- --help
 
