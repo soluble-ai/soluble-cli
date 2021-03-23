@@ -17,7 +17,6 @@ package model
 import (
 	"crypto/sha256"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -81,7 +80,7 @@ func GetGitSource(url string) (Source, error) {
 
 	source := &GitSource{
 		FileSystemSource: FileSystemSource{
-			Filesystem: http.Dir(dir),
+			Filesystem: os.DirFS(dir),
 			RootPath:   url,
 		},
 		WasFetched: wasFetched,

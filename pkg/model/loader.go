@@ -16,6 +16,7 @@ package model
 
 import (
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -38,7 +39,7 @@ func Load(source Source) error {
 	m := &modelLoader{
 		parser: hclparse.NewParser(),
 	}
-	if err := m.loadModels(source, source.GetModelsDir()); err != nil {
+	if err := m.loadModels(source, "."); err != nil {
 		return err
 	}
 	wr := hcl.NewDiagnosticTextWriter(
@@ -75,18 +76,13 @@ func Load(source Source) error {
 }
 
 func (m *modelLoader) loadModels(source Source, dirName string) error {
-	dir, err := source.GetFileSystem().Open(dirName)
-	if err != nil {
-		return err
-	}
-	defer dir.Close()
-	fileInfos, err := dir.Readdir(0)
+	fileInfos, err := fs.ReadDir(source.GetFileSystem(), dirName)
 	if err != nil {
 		return err
 	}
 	for _, fileInfo := range fileInfos {
 		var path string
-		if dirName == "" {
+		if dirName == "." {
 			path = fileInfo.Name()
 		} else {
 			path = dirName + "/" + fileInfo.Name()
