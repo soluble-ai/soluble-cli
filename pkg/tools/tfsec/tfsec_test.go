@@ -16,15 +16,19 @@ package tfsec
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
-	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/soluble-ai/go-jnode"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParseResults(t *testing.T) {
 	assert := assert.New(t)
-	results, err := util.ReadJSONFile("testdata/results.json")
+	output, err := os.ReadFile("testdata/results.json.txt")
+	assert.NoError(err)
+	output = trimOutput(output)
+	results, err := jnode.FromJSON(output)
 	assert.Nil(err)
 	fmt.Println(results)
 	tool := &Tool{}

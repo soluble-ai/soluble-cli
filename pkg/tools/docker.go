@@ -27,12 +27,13 @@ import (
 type DockerTool struct {
 	Name             string
 	Image            string
-	Directory        string
 	DockerArgs       []string
 	Args             []string
 	DefaultLocalPath string
 	PolicyDirectory  string
 	Stdout           io.Writer
+	Stderr           io.Writer
+	Directory        string
 }
 
 func hasDocker() error {
@@ -67,6 +68,22 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 			log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
 		}
 	}
+	args := t.getArgs(os.Getenv)
+	run := exec.Command("docker", args...)
+	log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
+	run.Stdin = os.Stdin
+	run.Stderr = os.Stderr
+	if t.Stderr != nil {
+		run.Stderr = t.Stderr
+	}
+	if t.Stdout != nil {
+		run.Stdout = t.Stdout
+		return nil, run.Run()
+	}
+	return run.Output()
+}
+
+func (t *DockerTool) getArgs(getenv func(string) string) []string {
 	args := []string{"run", "--rm"}
 	if t.Directory != "" {
 		args = append(args, "-v", fmt.Sprintf("%s:/src", t.Directory),
@@ -82,15 +99,23 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 		}
 	}
 	args = append(args, t.DockerArgs...)
+	args = appendProxyEnv(getenv, args)
 	args = append(args, t.Image)
 	args = append(args, t.Args...)
-	run := exec.Command("docker", args...)
-	log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
-	run.Stdin = os.Stdin
-	run.Stderr = os.Stderr
-	if t.Stdout != nil {
-		run.Stdout = t.Stdout
-		return nil, run.Run()
+	return args
+}
+
+func appendProxyEnv(getenv func(string) string, args []string) []string {
+	for _, k := range []string{
+		"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+	} {
+		if v := getenv(k); v != "" {
+			args = append(args, "-e", k)
+		}
+		lk := strings.ToLower(k)
+		if v := getenv(lk); v != "" {
+			args = append(args, "-e", lk)
+		}
 	}
-	return run.Output()
+	return args
 }
