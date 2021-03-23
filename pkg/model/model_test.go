@@ -15,41 +15,16 @@
 package model
 
 import (
+	"embed"
 	"testing"
-
-	"github.com/spf13/afero"
 )
 
-var testModelSource = `
-api_prefix = "/foo"
-command "group" "foo" {
-  short = "Grouping of commands"
-  command "print_client" "ping" {
-	  short = "ping server"
-	  method = "GET"
-	  path = "ping/{dummyID}"
-	  parameter "dummyID" {
-		  usage = "dummy value"
-		  disposition = "context"
-	  }
-	  parameter "action" {
-		  usage = "action"
-	  }
-	  result {
-		  path = [ "data" ]
-		  columns = [ "col1", "col1" ]
-	  }
-  }
-}`
+//go:embed testdata
+var testModelFS embed.FS
 
 func TestModel(t *testing.T) {
-	fs := afero.NewMemMapFs()
-	if err := afero.WriteFile(fs, "test.hcl", []byte(testModelSource), 0644); err != nil {
-		t.Fatal(err)
-	}
 	source := &FileSystemSource{
-		Filesystem: afero.NewHttpFs(fs),
-		RootPath:   "test",
+		Filesystem: testModelFS,
 	}
 	err := Load(source)
 	if err != nil {

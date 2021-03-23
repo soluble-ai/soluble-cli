@@ -1,6 +1,6 @@
 module github.com/soluble-ai/soluble-cli
 
-go 1.15
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.1.3
@@ -13,14 +13,13 @@ require (
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.8
+	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/sergi/go-diff v1.1.0 // indirect
-	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.6.0

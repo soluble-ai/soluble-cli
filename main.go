@@ -14,8 +14,6 @@
 
 package main
 
-//go:generate go run gen_embed.go
-
 import (
 	"os"
 	"strings"

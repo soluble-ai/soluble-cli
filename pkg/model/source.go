@@ -15,14 +15,13 @@
 package model
 
 import (
-	"net/http"
+	"io/fs"
 
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
 
 type Source interface {
-	GetFileSystem() http.FileSystem
-	GetModelsDir() string
+	GetFileSystem() fs.FS
 	GetPath(file string) string
 	GetVersion(file string, content []byte) string
 	String() string
@@ -30,17 +29,18 @@ type Source interface {
 }
 
 type FileSystemSource struct {
-	Filesystem http.FileSystem
+	Filesystem fs.FS
 	RootPath   string
 	Embedded   bool
-	ModelsDir  string
 }
+
+var _ Source = (*FileSystemSource)(nil)
 
 func (s *FileSystemSource) GetPath(name string) string {
 	return s.RootPath + "/" + name
 }
 
-func (s *FileSystemSource) GetFileSystem() http.FileSystem {
+func (s *FileSystemSource) GetFileSystem() fs.FS {
 	return s.Filesystem
 }
 
@@ -50,10 +50,6 @@ func (s *FileSystemSource) GetVersion(name string, content []byte) string {
 
 func (s *FileSystemSource) IsEmbedded() bool {
 	return s.Embedded
-}
-
-func (s *FileSystemSource) GetModelsDir() string {
-	return s.ModelsDir
 }
 
 func (s *FileSystemSource) String() string {

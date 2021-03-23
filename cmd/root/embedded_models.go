@@ -15,21 +15,21 @@
 package root
 
 import (
+	"embed"
+
 	"github.com/soluble-ai/soluble-cli/pkg/model"
-	"github.com/soluble-ai/soluble-cli/pkg/resources"
 )
 
-var (
-	embeddedModelsSource model.Source
-)
+//go:embed models
+var modelsFS embed.FS
+var embeddedModelsSource model.Source
 
 func getEmbeddedModelsSource() model.Source {
 	if embeddedModelsSource == nil {
 		embeddedModelsSource = &model.FileSystemSource{
-			Filesystem: resources.FileSystem,
-			RootPath:   resources.RootPath(),
+			Filesystem: modelsFS,
+			RootPath:   "<embedded>",
 			Embedded:   true,
-			ModelsDir:  "models",
 		}
 	}
 	return embeddedModelsSource
