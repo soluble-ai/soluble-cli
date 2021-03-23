@@ -49,17 +49,10 @@ You can instead run individual scans:
 
 * `soluble secrets-scan` scans for secrets in code with [detect-secrets](https://github.com/Yelp/detect-secrets).
 
-* `soluble dep-scan` scans application dependencies with [trivy](https://github.com/aquasecurity/trivy).
+* `soluble dep-scan` scans application dependencies with [trivy](https://github.com/aquasecurity/trivy) or [retirejs](https://retirejs.github.io/retire.js/)
 
 * `soluble image-scan` scans container images with [trivy](https://github.com/aquasecurity/trivy).
 
-* `soluble code-scan` scans application code with [semgrep](https://semgrep.dev/).
+* `soluble code-scan` scans application code with [semgrep](https://semgrep.dev/) or [bandit](https://pypi.org/project/bandit/).
 
-## CI Integration
-
-(WIP - basic notes)
-
-1. Set the environment variable `SOLUBLE_API_TOKEN` to an API token from https://app.soluble.cloud/admin/tokens/access 
-2. Add a step to run `soluble auto-scan -d . --upload`, or run individual scans (see `soluble iac-scan --help`)
-3. At then end of your CI job, run `soluble build update-pr` to update the pull request with the scan results.
-
+* `soluble cloud-scan` scans cloud infrastructure with [cloudsploit](https://github.com/aquasecurity/cloudsploit).
