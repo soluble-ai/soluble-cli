@@ -33,7 +33,7 @@ func Command() *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "login",
-		Short: "Authenticate with soluble",
+		Short: "Authenticate with Soluble",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.Config.AssertAPITokenFromConfig(); err != nil {

@@ -31,3 +31,47 @@ func TestDocker(t *testing.T) {
 		assert.Contains(string(d), "Hello from Docker!")
 	}
 }
+
+func TestDockerGetArgs(t *testing.T) {
+	assert := assert.New(t)
+	dt := &DockerTool{
+		DockerArgs: []string{"-m", "256m"},
+		Image:      "test",
+		Args:       []string{"arg1"},
+		Directory:  "/tmp/foo",
+	}
+	args := dt.getArgs(func(k string) string {
+		if k == "no_proxy" {
+			return "127.0.0.1"
+		}
+		return ""
+	})
+	var (
+		image   bool
+		noProxy bool
+		mem     bool
+		dir     bool
+	)
+	for i := range args {
+		if args[i] == "-v" {
+			assert.Equal("/tmp/foo:/src", args[i+1])
+			dir = true
+		}
+		if args[i] == "-m" {
+			assert.Equal("256m", args[i+1])
+			mem = true
+		}
+		if args[i] == "-e" {
+			assert.Equal("no_proxy", args[i+1])
+			noProxy = true
+		}
+		if args[i] == "test" {
+			image = true
+			assert.Equal("arg1", args[i+1])
+		}
+	}
+	assert.True(image)
+	assert.True(noProxy)
+	assert.True(mem)
+	assert.True(dir)
+}

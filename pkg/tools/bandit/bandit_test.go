@@ -23,12 +23,16 @@ import (
 
 func TestParseResults(t *testing.T) {
 	assert := assert.New(t)
-	results, err := util.ReadJSONFile("testdata/results.json")
+	results, err := util.ReadJSONFile("testdata/results.json.gz")
 	assert.Nil(err)
-	result := parseResults(results)
-	assert.Equal(19, len(result.Findings))
+	tool := &Tool{}
+	tool.Exclude = []string{"**/test_local_path_*.py"}
+	assert.NoError(tool.Validate())
+	result := tool.parseResults(results)
+	assert.Equal(16, len(result.Findings))
+	assert.Equal(16, result.Data.Path("results").Size())
 	f := result.Findings[0]
-	assert.Equal("./tests/terraform/module_loading/loaders/test_local_path_loader.py", f.FilePath)
-	assert.Equal(11, f.Line)
+	assert.Equal("./tests/terraform/module_loading/test_registry.py", f.FilePath)
+	assert.Equal(21, f.Line)
 	assert.Equal(results.Unwrap(), result.Data.Unwrap())
 }

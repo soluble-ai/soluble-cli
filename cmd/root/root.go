@@ -42,7 +42,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
@@ -103,28 +102,13 @@ func Command() *cobra.Command {
 		mergeCommands(rootCmd, model.Command.GetCommand().GetCobraCommand(), model)
 	}
 	setupHelp(rootCmd)
-	setupCompat(rootCmd)
 	return rootCmd
 }
 
-func setupCompat(rootCmd *cobra.Command) {
-	// temporary compatibility
-	buildReport := getCommandCopy(rootCmd, []string{"build", "report"})
-	buildReport.Hidden = true
-	options.AddPreRunE(buildReport, func(c *cobra.Command, s []string) error {
-		log.Warnf("This command has been moved to {warning:build report} and will be removed at some point")
-		return nil
-	})
-	rootCmd.AddCommand(buildReport)
-}
-
-func getCommandCopy(rootCmd *cobra.Command, args []string) *cobra.Command {
-	c, _, _ := rootCmd.Find(args)
-	copy := *c
-	return &copy
-}
-
 func addBuiltinCommands(rootCmd *cobra.Command) {
+	// make this hidden for now
+	checkovCommand := tools.CreateCommand(&checkov.Tool{})
+	checkovCommand.Hidden = true
 	rootCmd.AddCommand(
 		auth.Command(),
 		aws.Command(),
@@ -144,7 +128,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		secretsscan.Command(),
 		cfnscan.Command(),
 		tools.CreateCommand(&autoscan.Tool{}),
-		tools.CreateCommand(&checkov.Tool{}),
+		checkovCommand,
 		codescan.Command(),
 		cloudscan.Command(),
 	)

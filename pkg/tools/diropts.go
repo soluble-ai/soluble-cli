@@ -116,6 +116,15 @@ func (o *DirectoryBasedToolOpts) IsExcluded(file string) bool {
 	return o.GetConfig().IsIgnored(rfile)
 }
 
+// Return the directory that a docker-based tool is run in.  Normally
+// this is /src, but if it's run out of PATH, then it's o.GetDirectory()
+func (o *DirectoryBasedToolOpts) GetDockerRunDirectory() string {
+	if o.ToolPath != "" || o.NoDocker {
+		return o.GetDirectory()
+	}
+	return "/src"
+}
+
 func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 	o.ToolOpts.Register(cmd)
 	flags := cmd.Flags()

@@ -49,16 +49,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	args := []string{"-f", "json"}
+	args := []string{"--no-color", "-f", "json"}
 	if customPoliciesDir != "" {
 		args = append(args, "--external-checks-dir", customPoliciesDir)
+	}
+	if fi, err := os.Stat(filepath.Join(t.GetDirectory(), "terraform.tfvars")); err == nil && fi.Mode().IsRegular() {
+		args = append(args, "--tfvars-file", "terraform.tfvars")
 	}
 	args = append(args, ".")
 	// #nosec G204
 	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
-	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
+	log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), t.GetDirectory())
 	output, err := c.Output()
 	if util.ExitCode(err) == 1 {
 		err = nil
@@ -66,6 +69,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	output = trimOutput(output)
 	n, err := jnode.FromJSON(output)
 	if err != nil {
 		return nil, err
@@ -74,6 +78,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 	result := t.parseResults(n)
 	result.AddValue("TFSEC_VERSION", d.Version)
 	return result, nil
+}
+
+func trimOutput(output []byte) []byte {
+	// tfsec unhelpfully logs stuff before json, so skip over that
+	for i := range output {
+		if output[i] == '{' {
+			if i > 0 {
+				log.Warnf("tfsec warning:\n{warning:%s}", strings.TrimSpace(string(output[0:i])))
+			}
+			return output[i:]
+		}
+	}
+	return output
 }
 
 func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
@@ -90,6 +107,9 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 					loc.Put("filename", f)
 					filename = f
 				}
+			}
+			if t.IsExcluded(filename) {
+				continue
 			}
 			findings = append(findings, &assessments.Finding{
 				FilePath:    filename,
