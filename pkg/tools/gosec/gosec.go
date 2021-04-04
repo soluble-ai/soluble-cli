@@ -46,7 +46,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	args := []string{"-fmt=json", "./..."}
-	c := exec.Command(d.GetExePath("gosec-gosec"), args...)
+	c := exec.Command(d.GetExePath("gosec"), args...)
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), t.GetDirectory())
 	output, err := c.Output()
@@ -73,10 +73,10 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		findings = append(findings, &assessments.Finding{
 			Tool: map[string]string{
 				"rule_id":  data.Path("rule_id").AsText(),
-				"details":  data.Path("details").AsText(),
+				"message":  data.Path("details").AsText(),
 				"severity": data.Path("severity").AsText(),
 				"line":     data.Path("line").AsText(),
-				"cwe":      data.Path("cwe").Path("ID").AsText(),
+				"cwe_url":  data.Path("cwe").Path("URL").AsText(),
 			},
 		})
 	}
@@ -85,7 +85,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		Data:      results,
 		Findings:  findings,
 		PrintColumns: []string{
-			"tool.rule_id", "tool.details", "tool.severity", "tool.line", "tool.cwe",
+			"tool.rule_id", "tool.message", "tool.severity", "tool.line", "tool.cwe_url",
 		},
 	}
 	return result
