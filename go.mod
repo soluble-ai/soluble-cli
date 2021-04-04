@@ -19,6 +19,7 @@ require (
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
+	github.com/securego/gosec/v2 v2.7.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
@@ -27,7 +28,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.7.1
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 )
