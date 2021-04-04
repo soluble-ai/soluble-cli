@@ -46,6 +46,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	args := []string{"-fmt=json", "./..."}
+	// #nosec G204
 	c := exec.Command(d.GetExePath("gosec"), args...)
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), t.GetDirectory())
