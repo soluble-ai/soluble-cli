@@ -30,6 +30,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
 	"github.com/soluble-ai/soluble-cli/cmd/inventorycmd"
 	"github.com/soluble-ai/soluble-cli/cmd/k8sscan"
+	"github.com/soluble-ai/soluble-cli/cmd/lintcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/logincmd"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
@@ -121,6 +122,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		imagescan.Command(),
 		inventorycmd.Command(),
 		logincmd.Command(),
+		lintcmd.Command(),
 		build.Command(),
 		depscan.Command(),
 		k8sscan.Command(),
