@@ -31,7 +31,8 @@ var _ tools.Interface = (*Tool)(nil)
 func (t *Tool) Name() string { return "hadolint" }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	dockerFilePath := "." + "/Dockerfile"
+	// This might be a problem if we have multiple dockerfiles and they have extensions like Dockerfile.xyz
+	dockerFilePath := "./Dockerfile"
 	args := []string{"hadolint", "-f", "json", "-", dockerFilePath}
 	d, _ := t.RunDocker(&tools.DockerTool{
 		Name:      "hadolint",
