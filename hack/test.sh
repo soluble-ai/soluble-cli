@@ -36,5 +36,6 @@ run secrets-scan --exclude go.sum --exclude 'pkg/**/testdata/*.json' \
 run auto-scan --upload --image nginx:1.19 --skip secrets --exclude 'pkg/inventory/testdata/k/t/*.yaml'
 
 if [ -n "${SOLUBLE_API_TOKEN:-}" -a -n "${GITHUB_ACTIONS:-}" ]; then
-    run build update-pr
+#    temporarily commenting it out
+#    run build update-pr
 fi
