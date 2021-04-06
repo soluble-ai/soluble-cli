@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bundleraudit
+package yarnaudit
 
 import (
 	"os"
@@ -29,16 +29,16 @@ type Tool struct {
 
 var _ tools.Interface = (*Tool)(nil)
 
-func (t *Tool) Name() string { return "bundler-audit" }
+func (t *Tool) Name() string {
+	return "yarn-audit"
+}
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{
-		"check", "--quiet", "--format", "json", ".",
-	}
+	args := []string{"audit", "-s", "--json"}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:             "bundler-audit",
-		Image:            "gcr.io/soluble-repo/soluble-bundler-audit:latest",
-		DefaultLocalPath: "bundler-audit",
+		Name:             "yarn-audit",
+		Image:            "gcr.io/soluble-repo/soluble-yarn:latest",
+		DefaultLocalPath: "yarn",
 		Directory:        t.GetDirectory(),
 		Args:             args,
 	})
@@ -55,23 +55,26 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
-	for _, data := range results.Path("results").Elements() {
-		findings = append(findings, &assessments.Finding{
-			Tool: map[string]string{
-				"id":        data.Path("advisory").Path("id").AsText(),
-				"issue":     data.Path("advisory").Path("title").AsText(),
-				"component": data.Path("gem").Path("name").AsText(),
-				"version":   data.Path("gem").Path("version").AsText(),
-				"cvss_v3":   data.Path("advisory").Path("cvss_v3").AsText(),
-			},
-		})
+	for _, data := range results.Elements() {
+		if data.Path("type").AsText() == "auditAdvisory" {
+			findings = append(findings, &assessments.Finding{
+				Tool: map[string]string{
+					"id":             data.Path("advisory").Path("id").AsText(),
+					"cwe":            data.Path("advisory").Path("cwe").AsText(),
+					"module":         data.Path("advisory").Path("module_name").AsText(),
+					"recommendation": data.Path("advisory").Path("recommendation").AsText(),
+					"severity":       data.Path("advisory").Path("severity").AsText(),
+					"title":          data.Path("advisory").Path("title").AsText(),
+				},
+			})
+		}
 	}
 	result := &tools.Result{
 		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  findings,
 		PrintColumns: []string{
-			"tool.id", "tool.issue", "tool.component", "tool.version", "tool.cvss_v3",
+			"tool.id", "tool.title", "tool.recommendation", "tool.severity", "tool.module", "tool.cwe",
 		},
 	}
 	return result
@@ -79,7 +82,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
-		Use:   "bundler-audit",
-		Short: "Run bundler-audit to find vulnerable versions of gems",
+		Use:   "yarn-audit",
+		Short: "Run yarn audit to find vulnerable dependencies of a yarn application",
 	}
 }
