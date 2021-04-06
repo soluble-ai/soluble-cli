@@ -36,10 +36,11 @@ func (t *Tool) Name() string {
 func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{"audit", "--json"}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:      "npm-audit",
-		Image:     "gcr.io/soluble-repo/soluble-npm:latest",
-		Directory: t.GetDirectory(),
-		Args:      args,
+		Name:             "npm-audit",
+		Image:            "gcr.io/soluble-repo/soluble-npm:latest",
+		DefaultLocalPath: "npm",
+		Directory:        t.GetDirectory(),
+		Args:             args,
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {
