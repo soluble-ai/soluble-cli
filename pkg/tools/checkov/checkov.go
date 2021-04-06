@@ -66,11 +66,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	args = append(args, t.extraArgs...)
 	dat, err := t.RunDocker(&tools.DockerTool{
-		Name:            "checkov",
-		Image:           "gcr.io/soluble-repo/checkov:latest",
-		Directory:       t.GetDirectory(),
-		PolicyDirectory: customPoliciesDir,
-		Args:            args,
+		Name:             "checkov",
+		Image:            "gcr.io/soluble-repo/checkov:latest",
+		DefaultLocalPath: "checkov",
+		Directory:        t.GetDirectory(),
+		PolicyDirectory:  customPoliciesDir,
+		Args:             args,
 	})
 	if err != nil {
 		if dat != nil {
