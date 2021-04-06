@@ -71,7 +71,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
 	for _, data := range results.Path("Issues").Elements() {
+		file := data.Path("file").AsText()
+		if t.IsExcluded(file) {
+			continue
+		}
 		findings = append(findings, &assessments.Finding{
+			FilePath: file,
+			Line:     data.Path("line").AsInt(),
 			Tool: map[string]string{
 				"rule_id":  data.Path("rule_id").AsText(),
 				"message":  data.Path("details").AsText(),
@@ -95,6 +101,6 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "gosec",
-		Short: "Run gosec to find vulnerabilities in GO projects",
+		Short: "Run gosec identify security flaws in golang",
 	}
 }
