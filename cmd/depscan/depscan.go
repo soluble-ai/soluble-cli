@@ -16,11 +16,8 @@ package depscan
 
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
-<<<<<<< HEAD
 	bundleraudit "github.com/soluble-ai/soluble-cli/pkg/tools/bundler-audit"
-=======
 	"github.com/soluble-ai/soluble-cli/pkg/tools/npmaudit"
->>>>>>> master
 	"github.com/soluble-ai/soluble-cli/pkg/tools/retirejs"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/trivyfs"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/yarnaudit"
