@@ -56,7 +56,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
 	for _, data := range results.Path("warnings").Elements() {
+		file := data.Path("file").AsText()
+		if t.IsExcluded(file) {
+			continue
+		}
 		findings = append(findings, &assessments.Finding{
+			FilePath: file,
+			Line:     data.Path("line").AsInt(),
 			Tool: map[string]string{
 				"type":       data.Path("warning_type").AsText(),
 				"code":       data.Path("warning_code").AsText(),
