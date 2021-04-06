@@ -16,8 +16,10 @@ package depscan
 
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/npmaudit"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/retirejs"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/trivyfs"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/yarnaudit"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +31,8 @@ func Command() *cobra.Command {
 	c.AddCommand(
 		tools.CreateCommand(&trivyfs.Tool{}),
 		tools.CreateCommand(&retirejs.Tool{}),
+		tools.CreateCommand(&npmaudit.Tool{}),
+		tools.CreateCommand(&yarnaudit.Tool{}),
 	)
 	return c
 }
