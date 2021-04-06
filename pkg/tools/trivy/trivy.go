@@ -49,8 +49,8 @@ func (t *Tool) Register(cmd *cobra.Command) {
 
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
-		Use:   "image-scan",
-		Short: "Scan a container image",
+		Use:   "trivy",
+		Short: "Scan a container image for finding vulnerabilities of OS packages",
 		Args:  cobra.ArbitraryArgs,
 	}
 }

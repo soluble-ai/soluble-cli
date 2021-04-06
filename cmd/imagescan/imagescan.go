@@ -16,10 +16,19 @@ package imagescan
 
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/hadolint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/trivy"
 	"github.com/spf13/cobra"
 )
 
 func Command() *cobra.Command {
-	return tools.CreateCommand(&trivy.Tool{})
+	c := tools.CreateCommand(&trivy.Tool{})
+	c.Use = "image-scan"
+	c.Short = "Scan a container image"
+	c.Long = `Scan a container image for vulnerabilities of OS packages or lint a container image for best practices`
+	c.AddCommand(
+		tools.CreateCommand(&trivy.Tool{}),
+		tools.CreateCommand(&hadolint.Tool{}),
+	)
+	return c
 }

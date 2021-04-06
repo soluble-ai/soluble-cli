@@ -20,6 +20,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
@@ -73,4 +74,11 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		},
 	}
 	return result
+}
+
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "hadolint",
+		Short: "Run hadolint to lint your Dockerfile",
+	}
 }
