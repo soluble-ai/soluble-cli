@@ -20,6 +20,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -70,15 +71,20 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 				"file":       data.Path("file").AsText(),
 				"confidence": data.Path("confidence").AsText(),
 				"method":     data.Path("location").Path("method").AsText(),
+				"line":       data.Path("line").AsText(),
 			},
 		})
 	}
+	resultsArray := util.RemoveJNodeElementsIf(results.Path("warnings"), func(n *jnode.Node) bool {
+		return t.IsExcluded(n.Path("file").AsText())
+	})
+	results = resultsArray
 	result := &tools.Result{
 		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  findings,
 		PrintColumns: []string{
-			"tool.code", "tool.type", "tool.message", "tool.file", "tool.confidence", "tool.method",
+			"tool.code", "tool.type", "tool.message", "tool.file", "tool.confidence", "tool.method", "tool.line",
 		},
 	}
 	return result
