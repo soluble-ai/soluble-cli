@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package brakeman
+package hadolint
 
 import (
 	"os"
@@ -30,16 +30,16 @@ type Tool struct {
 
 var _ tools.Interface = (*Tool)(nil)
 
-func (t *Tool) Name() string {
-	return "brakeman"
-}
+func (t *Tool) Name() string { return "hadolint" }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{"-f", "json", "-q"}
+	// This might be a problem if we have multiple dockerfiles and they have extensions like Dockerfile.xyz
+	dockerFilePath := "./Dockerfile"
+	args := []string{"hadolint", "-f", "json", "-", dockerFilePath}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:             "brakeman",
-		Image:            "gcr.io/soluble-repo/soluble-brakeman:latest",
-		DefaultLocalPath: "brakeman",
+		Name:             "hadolint",
+		Image:            "ghcr.io/hadolint/hadolint:latest",
+		DefaultLocalPath: "hadolint",
 		Directory:        t.GetDirectory(),
 		Args:             args,
 	})
@@ -56,7 +56,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
-	for _, data := range results.Path("warnings").Elements() {
+	for _, data := range results.Elements() {
 		file := data.Path("file").AsText()
 		if t.IsExcluded(file) {
 			continue
@@ -65,26 +65,24 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 			FilePath: file,
 			Line:     data.Path("line").AsInt(),
 			Tool: map[string]string{
-				"type":       data.Path("warning_type").AsText(),
-				"code":       data.Path("warning_code").AsText(),
-				"message":    data.Path("message").AsText(),
-				"file":       data.Path("file").AsText(),
-				"confidence": data.Path("confidence").AsText(),
-				"method":     data.Path("location").Path("method").AsText(),
-				"line":       data.Path("line").AsText(),
+				"rule_id":  data.Path("code").AsText(),
+				"message":  data.Path("message").AsText(),
+				"severity": data.Path("level").AsText(),
+				"file":     data.Path("file").AsText(),
+				"line":     data.Path("line").AsText(),
 			},
 		})
 	}
-	resultsArray := util.RemoveJNodeElementsIf(results.Path("warnings"), func(n *jnode.Node) bool {
+	resultsArray := util.RemoveJNodeElementsIf(results, func(n *jnode.Node) bool {
 		return t.IsExcluded(n.Path("file").AsText())
 	})
-	results.Put("warnings", resultsArray)
+	results = resultsArray
 	result := &tools.Result{
 		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  findings,
 		PrintColumns: []string{
-			"tool.code", "tool.type", "tool.message", "tool.file", "tool.confidence", "tool.method", "tool.line",
+			"tool.rule_id", "tool.message", "tool.severity", "tool.file", "tool.line",
 		},
 	}
 	return result
@@ -92,7 +90,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
-		Use:   "brakeman",
-		Short: "Run static analysis to find security vulnerabilities in Ruby on Rails applications",
+		Use:   "hadolint",
+		Short: "Run hadolint to lint your Dockerfile",
 	}
 }

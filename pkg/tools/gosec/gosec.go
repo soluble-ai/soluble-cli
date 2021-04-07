@@ -82,17 +82,22 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 				"rule_id":  data.Path("rule_id").AsText(),
 				"message":  data.Path("details").AsText(),
 				"severity": data.Path("severity").AsText(),
+				"file":     data.Path("file").AsText(),
 				"line":     data.Path("line").AsText(),
 				"cwe_url":  data.Path("cwe").Path("URL").AsText(),
 			},
 		})
 	}
+	resultsArray := util.RemoveJNodeElementsIf(results.Path("Issues"), func(n *jnode.Node) bool {
+		return t.IsExcluded(n.Path("file").AsText())
+	})
+	results.Put("Issues", resultsArray)
 	result := &tools.Result{
 		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  findings,
 		PrintColumns: []string{
-			"tool.rule_id", "tool.message", "tool.severity", "tool.line", "tool.cwe_url",
+			"tool.rule_id", "tool.message", "tool.severity", "tool.file", "tool.line", "tool.cwe_url",
 		},
 	}
 	return result

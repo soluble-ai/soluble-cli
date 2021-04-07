@@ -19,6 +19,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools/bandit"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/brakeman"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/gosec"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/hadolint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/semgrep"
 	"github.com/spf13/cobra"
 )
@@ -33,6 +34,7 @@ func Command() *cobra.Command {
 		tools.CreateCommand(&bandit.Tool{}),
 		tools.CreateCommand(&brakeman.Tool{}),
 		tools.CreateCommand(&gosec.Tool{}),
+		tools.CreateCommand(&hadolint.Tool{}),
 	)
 	return c
 }
