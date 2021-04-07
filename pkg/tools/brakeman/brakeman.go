@@ -78,7 +78,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	resultsArray := util.RemoveJNodeElementsIf(results.Path("warnings"), func(n *jnode.Node) bool {
 		return t.IsExcluded(n.Path("file").AsText())
 	})
-	results = resultsArray
+	results.Put("warnings", resultsArray)
 	result := &tools.Result{
 		Directory: t.GetDirectory(),
 		Data:      results,
