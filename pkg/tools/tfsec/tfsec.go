@@ -26,10 +26,12 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
+	NoInit bool
 }
 
 var _ tools.Interface = &Tool{}
@@ -38,7 +40,20 @@ func (t *Tool) Name() string {
 	return "tfsec"
 }
 
+func (t *Tool) Register(cmd *cobra.Command) {
+	t.DirectoryBasedToolOpts.Register(cmd)
+	cmd.Flags().BoolVar(&t.NoInit, "no-init", false, "Don't try and run terraform init on every detected root module first")
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
+	if !t.NoInit {
+		tfInit, err := runTerraformInit(t)
+		if err != nil {
+			log.Warnf("{warning:terraform init} failed ")
+		} else {
+			defer tfInit.restore()
+		}
+	}
 	d, err := t.InstallTool(&download.Spec{
 		URL: "github.com/tfsec/tfsec",
 	})
