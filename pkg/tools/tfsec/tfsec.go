@@ -15,6 +15,7 @@
 package tfsec
 
 import (
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -70,9 +71,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if customPoliciesDir != "" {
 		args = append(args, "--external-checks-dir", customPoliciesDir)
 	}
-	if fi, err := os.Stat(filepath.Join(t.GetDirectory(), "terraform.tfvars")); err == nil && fi.Mode().IsRegular() {
-		args = append(args, "--tfvars-file", "terraform.tfvars")
-	}
+	args = t.addTfVarsFileArg(args, "terraform.tfvars")
+	args = t.addTfVarsFileArg(args, "terraform.tfvars.json")
+	args = t.addAutoTfVarsFiles(args)
 	args = append(args, ".")
 	// #nosec G204
 	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)
@@ -95,6 +96,32 @@ func (t *Tool) Run() (*tools.Result, error) {
 	result := t.parseResults(n)
 	result.AddValue("TFSEC_VERSION", d.Version)
 	return result, nil
+}
+
+func (t *Tool) addTfVarsFileArg(args []string, name string) []string {
+	if fi, err := os.Stat(filepath.Join(t.GetDirectory(), name)); err == nil && fi.Mode().IsRegular() {
+		args = append(args, "--tfvars-file", name)
+	}
+	return args
+}
+
+func (t *Tool) addAutoTfVarsFiles(args []string) []string {
+	err := filepath.WalkDir(t.GetDirectory(), func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() && t.GetDirectory() != path {
+			return filepath.SkipDir
+		}
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(path, ".auto.tfvars") || strings.HasSuffix(path, ".auto.tfvars.json") {
+			args = append(args, "--tfvars-file", d.Name())
+		}
+		return nil
+	})
+	if err != nil {
+		log.Warnf("Could not read directory {warning:%s}", err)
+	}
+	return args
 }
 
 func trimOutput(output []byte) []byte {
