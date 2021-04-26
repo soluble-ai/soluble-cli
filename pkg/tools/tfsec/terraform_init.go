@@ -8,6 +8,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
+	"github.com/soluble-ai/soluble-cli/pkg/inventory/terraformsettings"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
@@ -51,24 +52,26 @@ type terraformInit struct {
 	files []*deletedFile
 }
 
-func runTerraformInit(t *Tool) (*terraformInit, error) {
-	d, err := t.InstallTool(&download.Spec{
-		Name: "terraform",
-	})
-	if err != nil {
-		return nil, err
-	}
+func (t *Tool) runTerraformInit() (*terraformInit, error) {
 	tfi := &terraformInit{}
 	inv := inventory.Do(t.GetDirectory())
 	for _, rootModule := range inv.TerraformRootModules.Values() {
 		dir := filepath.Join(t.GetDirectory(), rootModule)
+		settings := terraformsettings.Read(dir)
+		d, err := t.InstallTool(&download.Spec{
+			Name:             "terraform",
+			RequestedVersion: settings.GetTerraformVersion(),
+		})
+		if err != nil {
+			return nil, err
+		}
 		tfi.files = append(tfi.files, newDeletedFile(filepath.Join(dir, ".terraform", "terraform.tfstate")))
 		// #nosec G204
 		cmd := exec.Command(d.GetExePath("terraform"), "init", "-backend=false")
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Dir = dir
-		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(cmd.Args, " "), t.GetDirectory())
+		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(cmd.Args, " "), cmd.Dir)
 		err = cmd.Run()
 		if err != nil {
 			tfi.restore()

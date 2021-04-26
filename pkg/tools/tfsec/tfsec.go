@@ -31,7 +31,8 @@ import (
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
-	NoInit bool
+	NoInit           bool
+	TerraformVersion string
 }
 
 var _ tools.Interface = &Tool{}
@@ -43,11 +44,12 @@ func (t *Tool) Name() string {
 func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	cmd.Flags().BoolVar(&t.NoInit, "no-init", false, "Don't try and run terraform init on every detected root module first")
+	cmd.Flags().StringVar(&t.TerraformVersion, "terraform-version", "", "Use this version of terraform to run init")
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
 	if !t.NoInit {
-		tfInit, err := runTerraformInit(t)
+		tfInit, err := t.runTerraformInit()
 		if err != nil {
 			log.Warnf("{warning:terraform init} failed ")
 		} else {
@@ -105,6 +107,8 @@ func trimOutput(output []byte) []byte {
 			return output[i:]
 		}
 	}
+	_, _ = os.Stderr.Write(output)
+	log.Warnf("{warning:tfsec} did not output JSON")
 	return output
 }
 
