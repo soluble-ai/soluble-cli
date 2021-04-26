@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
+
+	"github.com/hashicorp/go-version"
 )
 
 var aPattern = regexp.MustCompile(`<a href="[^"]*">terraform_(.*)</a>`)
-var vPattern = regexp.MustCompile(`(\d+)\.(\d+)\.(\d+)$`)
 
 func GetVersionAndURL(requestedVersion string) (version string, url string, err error) {
 	version = requestedVersion
@@ -32,44 +32,21 @@ func GetVersionAndURL(requestedVersion string) (version string, url string, err 
 
 func parseLatestVersion(r io.Reader) string {
 	scanner := bufio.NewScanner(r)
-	var versions []string
+	var versions []*version.Version
 	for scanner.Scan() {
 		m := aPattern.FindStringSubmatch(scanner.Text())
 		if m != nil {
-			versions = append(versions, m[1])
+			v, err := version.NewVersion(m[1])
+			if err == nil && v.Prerelease() == "" {
+				versions = append(versions, v)
+			}
 		}
 	}
 	sort.Slice(versions, func(i, j int) bool {
-		imajor, iminor, ipatch := parseVersion(versions[i])
-		jmajor, jminor, jpatch := parseVersion(versions[j])
-		switch {
-		case imajor < jmajor:
-			return true
-		case imajor > jmajor:
-			return false
-		case iminor < jminor:
-			return true
-		case iminor > jminor:
-			return false
-		case ipatch < jpatch:
-			return true
-		case ipatch > jpatch:
-			return false
-		}
-		return false
+		return versions[i].LessThan(versions[j])
 	})
 	if len(versions) > 0 {
-		return versions[len(versions)-1]
+		return versions[len(versions)-1].Original()
 	}
 	return ""
-}
-
-func parseVersion(v string) (major, minor, patch int) {
-	m := vPattern.FindStringSubmatch(v)
-	if m != nil {
-		major, _ = strconv.Atoi(m[1])
-		minor, _ = strconv.Atoi(m[2])
-		patch, _ = strconv.Atoi(m[3])
-	}
-	return
 }
