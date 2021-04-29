@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.1.3
 	github.com/fatih/color v1.10.0
-	github.com/go-resty/resty/v2 v2.5.0
+	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-github/v32 v32.1.0
@@ -31,9 +31,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.7.1
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20210228012217-479acdf4ea46 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
