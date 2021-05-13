@@ -55,7 +55,7 @@ func (o *RunOpts) RunDocker(d *DockerTool) ([]byte, error) {
 	if o.ToolPath != "" || o.NoDocker {
 		path := o.ToolPath
 		if path == "" {
-			path = d.DefaultLocalPath
+			path = d.DefaultNoDockerName
 		}
 		if path == "" {
 			path = d.Name

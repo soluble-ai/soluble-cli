@@ -105,7 +105,7 @@ func (findings Findings) ComputePartialFingerprints(dir string) {
 	for filePath, fs := range findingsForFiles {
 		file, err := os.Open(filepath.Join(dir, filePath))
 		if err != nil {
-			log.Warnf("Could not read {warning:%s} - %s", filePath, err.Error())
+			log.Warnf("Could not read file for fingerprinting - {warning:%s}", err.Error())
 			continue
 		}
 		defer file.Close()
