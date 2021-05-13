@@ -16,6 +16,7 @@ package download
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -186,7 +187,11 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 			return nil, err
 		}
 		actualVersion = release.GetTagName()
-		spec.URL = asset.GetBrowserDownloadURL()
+		if owner == "helm" && repo == "helm" {
+			spec.URL = getHelmDownloadURL(asset)
+		} else {
+			spec.URL = asset.GetBrowserDownloadURL()
+		}
 		if latest := meta.updateLatestInfo(spec.RequestedVersion, actualVersion); latest != nil {
 			// if we've requested "latest" and we've already got that specific version
 			// installed, then just update the latest check time and we're done
@@ -403,7 +408,25 @@ func (d *Download) GetExePath(path string) string {
 	if d.OverrideExe != "" {
 		return d.OverrideExe
 	}
-	return filepath.Join(d.Dir, path)
+	exe := filepath.Join(d.Dir, path)
+	if _, err := os.Stat(exe); err != nil && errors.Is(err, os.ErrNotExist) {
+		// if the unarchived dir contains a single dir, then look for the
+		// the path in dir e.g. archive puts its content in a subdir
+		entries, err := os.ReadDir(d.Dir)
+		if err != nil {
+			log.Warnf("Could not read {warning:%s}", d.Dir)
+		} else {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					direxe := filepath.Join(d.Dir, entry.Name(), path)
+					if _, err := os.Stat(direxe); err == nil {
+						return direxe
+					}
+				}
+			}
+		}
+	}
+	return exe
 }
 
 func (d *Download) installExecutable(src afero.File, fs afero.Fs, options *archive.Options) error {

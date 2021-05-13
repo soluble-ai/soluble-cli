@@ -37,11 +37,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 	dockerFilePath := "./Dockerfile"
 	args := []string{"hadolint", "-f", "json", "-", dockerFilePath}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:             "hadolint",
-		Image:            "ghcr.io/hadolint/hadolint:latest",
-		DefaultLocalPath: "hadolint",
-		Directory:        t.GetDirectory(),
-		Args:             args,
+		Name:                "hadolint",
+		Image:               "ghcr.io/hadolint/hadolint:latest",
+		DefaultNoDockerName: "hadolint",
+		Directory:           t.GetDirectory(),
+		Args:                args,
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {

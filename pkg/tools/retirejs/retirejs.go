@@ -28,13 +28,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	var output bytes.Buffer
 	_, err := t.RunDocker(&tools.DockerTool{
-		Name:             "retirejs",
-		Image:            "gcr.io/soluble-repo/soluble-retirejs:latest",
-		DefaultLocalPath: "retire",
-		Directory:        t.GetDirectory(),
-		Args:             args,
-		Stderr:           &output, // retirejs writes to stderr, sigh
-		Stdout:           os.Stderr,
+		Name:                "retirejs",
+		Image:               "gcr.io/soluble-repo/soluble-retirejs:latest",
+		DefaultNoDockerName: "retire",
+		Directory:           t.GetDirectory(),
+		Args:                args,
+		Stderr:              &output, // retirejs writes to stderr, sigh
+		Stdout:              os.Stderr,
 	})
 	if err != nil {
 		_, _ = os.Stderr.Write(output.Bytes())

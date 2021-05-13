@@ -63,12 +63,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 		args = append(args, "--custom-plugins", customPoliciesDir)
 	}
 	d, _ := t.RunDocker(&tools.DockerTool{
-		Name:             "soluble-secrets",
-		DefaultLocalPath: "detect-secrets",
-		Image:            "gcr.io/soluble-repo/soluble-secrets:latest",
-		Directory:        t.GetDirectory(),
-		PolicyDirectory:  customPoliciesDir,
-		Args:             args,
+		Name:                "soluble-secrets",
+		DefaultNoDockerName: "detect-secrets",
+		Image:               "gcr.io/soluble-repo/soluble-secrets:latest",
+		Directory:           t.GetDirectory(),
+		PolicyDirectory:     customPoliciesDir,
+		Args:                args,
 	})
 	results, err := jnode.FromJSON(d)
 	if err != nil {

@@ -15,10 +15,16 @@
 package checkov
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
+	"github.com/soluble-ai/soluble-cli/pkg/download"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -57,6 +63,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.Framework != "" {
 		args = append(args, "--framework", t.Framework)
 	}
+	if t.Framework == "helm" && (t.NoDocker || t.ToolPath != "") {
+		if err := t.makeHelmAvailable(); err != nil {
+			return nil, err
+		}
+	}
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
 		return nil, err
@@ -66,12 +77,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	args = append(args, t.extraArgs...)
 	dat, err := t.RunDocker(&tools.DockerTool{
-		Name:             "checkov",
-		Image:            "gcr.io/soluble-repo/checkov:latest",
-		DefaultLocalPath: "checkov",
-		Directory:        t.GetDirectory(),
-		PolicyDirectory:  customPoliciesDir,
-		Args:             args,
+		Name:                "checkov",
+		Image:               "gcr.io/soluble-repo/checkov:latest",
+		DefaultNoDockerName: "checkov",
+		Directory:           t.GetDirectory(),
+		PolicyDirectory:     customPoliciesDir,
+		Args:                args,
 	})
 	if err != nil {
 		if dat != nil {
@@ -87,6 +98,30 @@ func (t *Tool) Run() (*tools.Result, error) {
 
 	result := t.processResults(n)
 	return result, nil
+}
+
+func (t *Tool) makeHelmAvailable() error {
+	c := exec.Command("helm", "version")
+	if err := c.Run(); err != nil {
+		// helm is not installed, so install it from github
+		d, err := t.InstallTool(&download.Spec{
+			URL: "github.com/helm/helm",
+		})
+		if err != nil {
+			return err
+		}
+		dir := filepath.Dir(d.GetExePath("helm"))
+		// add to path
+		path := os.Getenv("PATH")
+		if path == "" {
+			path = dir
+		} else {
+			path = fmt.Sprintf("%s%c%s", path, os.PathListSeparator, dir)
+		}
+		log.Infof("Adding {info:%s} to PATH", dir)
+		os.Setenv("PATH", path)
+	}
+	return nil
 }
 
 func (t *Tool) processResults(data *jnode.Node) *tools.Result {
@@ -133,6 +168,17 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 		if len(filePath) > 0 && filePath[0] == '/' {
 			filePath = filePath[1:]
 			n.Put("file_path", filePath)
+		}
+		if t.Framework == "helm" {
+			// checkov generates templates with helm, so the "file_path" doesn't
+			// actually match the path in the repo.  We'll rewrite so it does and hope
+			// for the best.  If the template only contains single-line expansions
+			// then this will be fine.
+			base := filepath.Base(t.GetDirectory()) + "/"
+			if strings.HasPrefix(filepath.ToSlash(filePath), base) {
+				filePath = filePath[len(base):]
+				n.Put("file_path", filePath)
+			}
 		}
 	}
 	checks = util.RemoveJNodeElementsIf(checks, func(e *jnode.Node) bool {
