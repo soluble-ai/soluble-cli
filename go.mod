@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.2.0
-	github.com/fatih/color v1.11.0
+	github.com/fatih/color v1.12.0
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/protobuf v1.4.2 // indirect
