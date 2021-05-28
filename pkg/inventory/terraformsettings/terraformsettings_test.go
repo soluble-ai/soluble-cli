@@ -18,5 +18,5 @@ func TestParse(t *testing.T) {
 		return
 	}
 	assert.Equal("~> 0.12.6 ", *settings.RequiredVersion)
-	assert.Equal("0.12.30", settings.GetTerraformVersion())
+	assert.Equal("0.12.31", settings.GetTerraformVersion())
 }
