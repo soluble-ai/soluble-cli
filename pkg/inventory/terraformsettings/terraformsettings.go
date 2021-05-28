@@ -17,6 +17,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
+//go:generate go run ../../../gen/gen_terraform_versions.go
+
 //go:embed terraform_versions.txt
 var terraformVersions []byte
 
