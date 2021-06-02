@@ -1,5 +1,7 @@
 # Soluble CLI
 
+[![IaC](https://app.demo.soluble.cloud/api/v1/public/badges/8c0e2c9a-abe6-45ad-b5ad-0198efdb9430.svg)](https://app.demo.soluble.cloud/repos/details/github.com/soluble-ai/soluble-cli)  
+
 This is the command line interface for [Soluble](https://soluble.ai).
 
 ## Installation
