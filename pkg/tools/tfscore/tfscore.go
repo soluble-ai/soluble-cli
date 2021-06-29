@@ -17,6 +17,7 @@ package tfscore
 import (
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -53,8 +54,29 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	args = append(args, "-d", t.GetDirectory())
 
+	out, err := exec.Command("curl", "-f", "-s", "https://storage.googleapis.com/storage/v1/b/soluble-public/o/tfscore%2Flatest.txt?alt=media").Output()
+	if err != nil {
+		return nil, err
+	}
+	version := strings.TrimSuffix(string(out), "\n")
+	log.Infof("Latest Version of tfscore is {primary:%s}", version)
+	ersion := strings.ReplaceAll(version, "v", "")
+
+	osArch := "linux_amd64"
+
+	osType := runtime.GOOS
+	archType := runtime.GOARCH
+
+	log.Infof("OS Type found: {primary:%s} & Arch Type: {primary:%s}", osType, archType)
+
+	if osType == "darwin" {
+		osArch = "darwin_" + archType
+	}
+
+	downloadURL := "https://storage.googleapis.com/storage/v1/b/soluble-public/o/tfscore%2F" + string(version) + "%2Ftfscore_" + ersion + "_" + osArch + ".tar.gz?alt=media"
+
 	d, err := t.InstallTool(&download.Spec{
-		URL:  "https://storage.googleapis.com/storage/v1/b/soluble-public/o/tfscore%2Fv0.1.9%2Ftfscore_0.1.9_darwin_amd64.tar.gz?alt=media",
+		URL:  downloadURL,
 		Name: "tfscore",
 	})
 	if err != nil {
