@@ -46,7 +46,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{"plan"}
+	args := []string{"plan", "--output=plan_output.json", "--json-only"}
 
 	if t.Region != "" {
 		args = append(args, "--aws.region", t.Region)
@@ -66,10 +66,14 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(d.GetExePath("tfscore"), args...)
 	c.Stderr = os.Stderr
 	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
-	output, err := c.Output()
+	_, err = c.Output()
 	if util.ExitCode(err) == 1 {
 		err = nil
 	}
+	if err != nil {
+		return nil, err
+	}
+	output, err := os.ReadFile("plan_output.json")
 	if err != nil {
 		return nil, err
 	}
