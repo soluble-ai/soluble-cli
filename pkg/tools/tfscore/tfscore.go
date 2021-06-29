@@ -47,7 +47,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{"plan", "--output=plan_output.json", "--json-only"}
+	args := []string{"score", "--save-score=plan_score.json"}
 
 	if t.Region != "" {
 		args = append(args, "--aws.region", t.Region)
@@ -95,7 +95,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	output, err := os.ReadFile("plan_output.json")
+	output, err := os.ReadFile("plan_score.json")
 	if err != nil {
 		return nil, err
 	}
