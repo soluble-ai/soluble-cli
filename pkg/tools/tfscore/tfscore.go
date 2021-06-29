@@ -43,7 +43,6 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringVarP(&t.Region, "aws-region", "r", "", "AWS Region where resources exit") // this needs to be removed when tfscore reads from plan output
-	flags.StringVar(&t.TerraformVersion, "terraform-version", "", "Use this version of terraform to run init")
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
