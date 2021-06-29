@@ -37,6 +37,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/secretsscan"
 	"github.com/soluble-ai/soluble-cli/cmd/tfscan"
+	"github.com/soluble-ai/soluble-cli/cmd/tfscore"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
 	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
@@ -127,6 +128,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		k8sscan.Command(),
 		helmscan.Command(),
 		tfscan.Command(),
+		tfscore.Command(),
 		secretsscan.Command(),
 		cfnscan.Command(),
 		tools.CreateCommand(&autoscan.Tool{}),
