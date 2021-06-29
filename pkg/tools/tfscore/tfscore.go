@@ -46,7 +46,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{"score"}
+	args := []string{"plan"}
 
 	if t.Region != "" {
 		args = append(args, "--aws.region", t.Region)
