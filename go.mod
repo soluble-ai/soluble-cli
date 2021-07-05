@@ -7,7 +7,6 @@ require (
 	github.com/fatih/color v1.12.0
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gobwas/glob v0.2.3
-	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.3.0
@@ -26,14 +25,11 @@ require (
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.6.0
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.8.1
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/appengine v1.6.6 // indirect
-	google.golang.org/protobuf v1.25.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
