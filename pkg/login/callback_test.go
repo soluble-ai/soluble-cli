@@ -43,6 +43,9 @@ func TestListSkipPorts(t *testing.T) {
 		t.Error(port)
 	}
 	e.portSearchEnd = 8086
+	defer func() {
+		e.portSearchEnd = 8186
+	}()
 	_, err = e.listen()
 	if err == nil {
 		t.Fatal("port should not have been found")
