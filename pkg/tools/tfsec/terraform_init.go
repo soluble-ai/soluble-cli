@@ -10,6 +10,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory/terraformsettings"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 )
 
 type deletedFile struct {
@@ -58,7 +59,8 @@ func (t *Tool) runTerraformInit() (*terraformInit, error) {
 	for _, rootModule := range inv.TerraformRootModules.Values() {
 		dir := filepath.Join(t.GetDirectory(), rootModule)
 		settings := terraformsettings.Read(dir)
-		d, err := t.InstallTool(&download.Spec{
+		installer := &tools.RunOpts{}
+		d, err := installer.InstallTool(&download.Spec{
 			Name:             "terraform",
 			RequestedVersion: settings.GetTerraformVersion(),
 		})

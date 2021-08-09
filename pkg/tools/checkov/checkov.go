@@ -104,7 +104,8 @@ func (t *Tool) makeHelmAvailable() error {
 	c := exec.Command("helm", "version")
 	if err := c.Run(); err != nil {
 		// helm is not installed, so install it from github
-		d, err := t.InstallTool(&download.Spec{
+		installer := &tools.RunOpts{}
+		d, err := installer.InstallTool(&download.Spec{
 			URL: "github.com/helm/helm",
 		})
 		if err != nil {
