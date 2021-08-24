@@ -58,29 +58,44 @@ func (t *Tool) runTerraformInit() (*terraformInit, error) {
 	inv := inventory.Do(t.GetDirectory())
 	for _, rootModule := range inv.TerraformRootModules.Values() {
 		dir := filepath.Join(t.GetDirectory(), rootModule)
-		settings := terraformsettings.Read(dir)
-		installer := &tools.RunOpts{}
-		d, err := installer.InstallTool(&download.Spec{
-			Name:             "terraform",
-			RequestedVersion: settings.GetTerraformVersion(),
-		})
-		if err != nil {
-			return nil, err
+		var terraformArgs []string
+		if t.TerraformCommand != "" {
+			terraformArgs = strings.Split(t.TerraformCommand, " ")
+		} else {
+			terraformExe, err := t.downloadTerraformExe(dir)
+			if err != nil {
+				return nil, err
+			}
+			terraformArgs = []string{terraformExe}
 		}
 		tfi.files = append(tfi.files, newDeletedFile(filepath.Join(dir, ".terraform", "terraform.tfstate")))
+		terraformArgs = append(terraformArgs, "init", "-backend=false")
 		// #nosec G204
-		cmd := exec.Command(d.GetExePath("terraform"), "init", "-backend=false")
+		cmd := exec.Command(terraformArgs[0], terraformArgs[1:]...)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Dir = dir
 		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(cmd.Args, " "), cmd.Dir)
-		err = cmd.Run()
+		err := cmd.Run()
 		if err != nil {
 			tfi.restore()
 			return nil, err
 		}
 	}
 	return tfi, nil
+}
+
+func (t *Tool) downloadTerraformExe(dir string) (string, error) {
+	settings := terraformsettings.Read(dir)
+	installer := &tools.RunOpts{}
+	d, err := installer.InstallTool(&download.Spec{
+		Name:             "terraform",
+		RequestedVersion: settings.GetTerraformVersion(),
+	})
+	if err != nil {
+		return "", err
+	}
+	return d.GetExePath("terraform"), nil
 }
 
 func (tfi *terraformInit) restore() {

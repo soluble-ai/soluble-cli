@@ -34,6 +34,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 	NoInit           bool
 	TerraformVersion string
+	TerraformCommand string
 }
 
 var _ tools.Interface = &Tool{}
@@ -46,6 +47,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	cmd.Flags().BoolVar(&t.NoInit, "no-init", false, "Don't try and run terraform init on every detected root module first")
 	cmd.Flags().StringVar(&t.TerraformVersion, "terraform-version", "", "Use this version of terraform to run init")
+	cmd.Flags().StringVar(&t.TerraformCommand, "terraform-command", "", "Use `command` for terraform instead of downloading a version.")
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
