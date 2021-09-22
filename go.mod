@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.8.0
-	github.com/fatih/color v1.12.0
+	github.com/fatih/color v1.13.0
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-github/v32 v32.1.0
@@ -14,8 +14,8 @@ require (
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.8
-	github.com/mattn/go-isatty v0.0.13
+	github.com/mattn/go-colorable v0.1.9
+	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
