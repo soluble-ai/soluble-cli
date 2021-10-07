@@ -14,7 +14,7 @@ require (
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.9
+	github.com/mattn/go-colorable v0.1.11
 	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.1
