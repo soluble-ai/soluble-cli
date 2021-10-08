@@ -15,8 +15,10 @@
 package autoscan
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
@@ -126,6 +128,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	resultData := result.Data.PutArray("data")
 	count := 0
 	as := assessments.Assessments{}
+	var errs error
 	for _, st := range subTools {
 		n := resultData.AppendObject()
 		n.Put("skipped", st.Skip)
@@ -168,6 +171,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 		if st.Err != nil {
 			n.Put("error", st.Err.Error())
+			errs = multierror.Append(errs, fmt.Errorf("%s failed - %w", st.Name(), st.Err))
 		}
 	}
 	log.Infof("Finished running {primary:%d} tools", count)
@@ -176,7 +180,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 			return nil, err
 		}
 	}
-	return result, nil
+	return result, errs
 }
 
 func (t *Tool) getDirectoryOpts() tools.DirectoryBasedToolOpts {

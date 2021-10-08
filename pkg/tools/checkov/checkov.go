@@ -78,7 +78,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	args = append(args, t.extraArgs...)
 	dat, err := t.RunDocker(&tools.DockerTool{
 		Name:                "checkov",
-		Image:               "gcr.io/soluble-repo/checkov:latest",
+		Image:               "bridgecrew/checkov:latest",
 		DefaultNoDockerName: "checkov",
 		Directory:           t.GetDirectory(),
 		PolicyDirectory:     customPoliciesDir,

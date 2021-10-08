@@ -12,4 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v2
+apiVersion: v3
+name: foo
+version: 0.1.0
+appVersion: 1.0.0
