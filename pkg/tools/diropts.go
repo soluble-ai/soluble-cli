@@ -135,6 +135,7 @@ func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {
+	o.absDirectory = ""
 	if o.RepoRoot == "" {
 		var err error
 		o.RepoRoot, err = inventory.FindRepoRoot(o.GetDirectory())

@@ -172,9 +172,7 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 		}
 		if t.Framework == "helm" {
 			// checkov generates templates with helm, so the "file_path" doesn't
-			// actually match the path in the repo.  We'll rewrite so it does and hope
-			// for the best.  If the template only contains single-line expansions
-			// then this will be fine.
+			// actually match the path in the repo.  We'll rewrite so it does.
 			base := filepath.Base(t.GetDirectory()) + "/"
 			if strings.HasPrefix(filepath.ToSlash(filePath), base) {
 				filePath = filePath[len(base):]
