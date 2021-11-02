@@ -34,7 +34,7 @@ jobs:
     - name: Setting up go
       uses: actions/setup-go@v2
       with:
-        go-version: '1.16'
+        go-version: '1.17'
     - name: Caching go modules
       uses: actions/cache@v2
       with:
@@ -43,7 +43,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Installing golangci-lint
-      run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.31.0
+      run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.42.1
     - name: Build and Unit Test
       run: ./hack/build.sh
     - name: Caching docker images for test

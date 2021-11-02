@@ -48,14 +48,14 @@ func outputHash(hashCounts map[uint64]int, hashRaw uint64, lineNumbers []int, in
 // Compute partial fingerprints for each line in a file
 func Partial(r *bufio.Reader, lineFunc func(int, string)) error {
 	var (
-		window      []rune = make([]rune, blockSize)
-		lineNumbers []int  = make([]int, blockSize)
+		window      = make([]rune, blockSize)
+		lineNumbers = make([]int, blockSize)
 		hashRaw     uint64
 		index       int
 		lineNumber  int
-		lineStart   bool = true
+		lineStart   = true
 		prevCR      bool
-		hashCounts  map[uint64]int = map[uint64]int{}
+		hashCounts  = map[uint64]int{}
 	)
 	for i := range lineNumbers {
 		lineNumbers[i] = -1
