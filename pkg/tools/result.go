@@ -166,9 +166,21 @@ func attachFingerprints(diropts *DirectoryBasedToolOpts, findings assessments.Fi
 			Put("partialFingerprint", f.PartialFingerprint).
 			Put("line", f.Line)
 	}
-	if diropts != nil && diropts.PrintFingerprints {
-		p := &print.JSONPrinter{}
-		p.PrintResult(os.Stderr, n)
+	if diropts != nil {
+		if diropts.PrintFingerprints {
+			p := &print.JSONPrinter{}
+			p.PrintResult(os.Stderr, n)
+		}
+		if diropts.SaveFingerprints != "" {
+			p := &print.JSONPrinter{}
+			f, err := os.Create(diropts.SaveFingerprints)
+			if err != nil {
+				log.Warnf("Could not save fingerprints: {warning:%s}", err)
+			} else {
+				p.PrintResult(f, n)
+				_ = f.Close()
+			}
+		}
 	}
 	d, err := json.Marshal(n)
 	if err != nil {

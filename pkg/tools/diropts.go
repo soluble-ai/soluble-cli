@@ -31,6 +31,7 @@ type DirectoryBasedToolOpts struct {
 	Directory         string
 	Exclude           []string
 	PrintFingerprints bool
+	SaveFingerprints  string
 
 	absDirectory string
 	ignore       *ignore.GitIgnore
@@ -131,6 +132,8 @@ func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 	flags.StringVarP(&o.Directory, "directory", "d", "", "The directory to run in.")
 	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob pattern (path/**/foo.txt syntax supported.)  May be repeated.")
 	flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
+	flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
+	_ = flags.MarkHidden("save-fingerprints")
 	_ = flags.MarkHidden("print-fingerprints")
 }
 
