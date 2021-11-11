@@ -80,7 +80,7 @@ func NewClient(config *Config) *Client {
 	}
 
 	apiServer := config.APIServer
-	c.SetHostURL(apiServer)
+	c.SetBaseURL(apiServer)
 	if log.Level == log.Debug {
 		c.Client.Debug = true
 	}
