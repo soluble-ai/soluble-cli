@@ -29,6 +29,7 @@ func Command() *cobra.Command {
 	c.Use = "dep-scan"
 	c.Short = "Scan application dependencies"
 	c.Long = `Scan application dependencies with trivy by default`
+	c.Hidden = true
 	c.AddCommand(
 		tools.CreateCommand(&trivyfs.Tool{}),
 		tools.CreateCommand(&retirejs.Tool{}),

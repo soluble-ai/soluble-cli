@@ -15,7 +15,9 @@ To upgrade to the latest version:
 On linux, run:
 
     wget -O - https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/linux-install.sh | sh
-    # or
+
+Or:
+
     curl https://raw.githubusercontent.com/soluble-ai/soluble-cli/master/linux-install.sh | sh
 
 The install will drop the executable in the current directory.  If you run this as `root` or can sudo to root,
@@ -27,32 +29,25 @@ Windows executables can be found on the releases page.
 
 Run security scans on your code with:
 
-    soluble auto-scan -d ~/my-stuff
-
-This will search under `~/my-stuff` for a variety of infrastructre-as-code files and scan them.
+    # scan terraform IAC
+    soluble terraform-scan -d ~/my-stuff
+    # scan for secrets
+    soluble secrets-scan -d ~/my-stuff
+    # scan container images
+    soluble image-scan -d ~/my-stuff
+    # scan kubernetes manifests
+    soluble kubernetes-scan -d ~/my-stuff
+    # scan Helm charts
+    soluble helm-scan -d ~/my-stuff
 
 If you'd like to manage the findings of those tools with [Soluble](https://app.soluble.cloud), you'll have to authenticate the CLI with:
 
     soluble login
 
-Then re-run the scan with:
+Then re-run the scan with with `--upload` flag, as in:
 
-    soluble auto-scan -d ~/my-stuff --upload
+    soluble terraform-scan -d ~/my-stuff --upload
 
-You can instead run individual scans:
+Some of the scans support multiple tools.  For example, `soluble terraform-scan` by default scans [terraform files](https://www.terraform.io/) with [checkov](https://github.com/bridgecrewio/checkov), and `soluble terraform-scan tfsec` scans with [tfsec](https://github.com/tfsec/tfsec).
 
-* `soluble terraform-scan` scans [terraform files](https://www.terraform.io/) with [checkov](https://github.com/bridgecrewio/checkov).  Alternately, `soluble terraform-scan terrascan` or `soluble terraform-scan tfsec` can be used to scan with [terrascan](https://github.com/accurics/terrascan) or [tfsec](https://github.com/tfsec/tfsec) respectively.
-
-* `soluble kubernetes-scan` scans [kubernetes manifest files](https://kubernetes.io/).
-
-* `soluble cloudformation-scan` scans [AWS cloudformation templates](https://aws.amazon.com/cloudformation/) with [cfn-python-lint](https://github.com/aws-cloudformation/cfn-python-lint).  [cfn_nag](https://github.com/stelligent/cfn_nag) and [checkov](https://github.com/bridgecrewio/checkov) are also available.
-
-* `soluble secrets-scan` scans for secrets in code with [detect-secrets](https://github.com/Yelp/detect-secrets).
-
-* `soluble dep-scan` scans application dependencies with [trivy](https://github.com/aquasecurity/trivy) or [retirejs](https://retirejs.github.io/retire.js/)
-
-* `soluble image-scan` scans container images with [trivy](https://github.com/aquasecurity/trivy).
-
-* `soluble code-scan` scans application code with [semgrep](https://semgrep.dev/) or [bandit](https://pypi.org/project/bandit/).
-
-* `soluble cloud-scan` scans cloud infrastructure with [cloudsploit](https://github.com/aquasecurity/cloudsploit).
+Use the builtin help e.g. `soluble help terraform-scan` to see the supported scanners and options.

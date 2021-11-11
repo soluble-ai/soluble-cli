@@ -26,8 +26,9 @@ import (
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "code-scan",
-		Short: "Scan code with a variety of static analysis tools",
+		Use:    "code-scan",
+		Short:  "Scan code with a variety of static analysis tools",
+		Hidden: true,
 	}
 	c.AddCommand(
 		tools.CreateCommand(&semgrep.Tool{}),

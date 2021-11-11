@@ -21,9 +21,10 @@ import (
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "cloud-scan",
-		Short: "Scan cloud infrastructure",
-		Args:  cobra.NoArgs,
+		Use:    "cloud-scan",
+		Short:  "Scan cloud infrastructure",
+		Args:   cobra.NoArgs,
+		Hidden: true,
 	}
 	c.AddCommand(cloudsploit.Command())
 	return c
