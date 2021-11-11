@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -94,7 +95,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	return &tools.Result{
-		Data: n.Get(0),
+		Data: getData(d.Version, n),
 		Values: map[string]string{
 			"TRIVY_VERSION": d.Version,
 			"IMAGE":         t.Image,
@@ -102,6 +103,17 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PrintPath:    []string{"Vulnerabilities"},
 		PrintColumns: []string{"PkgName", "VulnerabilityID", "Severity", "InstalledVersion", "FixedVersion", "Title"},
 	}, nil
+}
+
+func getData(ver string, n *jnode.Node) *jnode.Node {
+	// trivy changed it's JSON format in v0.20.0
+	// see https://github.com/aquasecurity/trivy/discussions/1050
+	v0_20 := version.Must(version.NewVersion("0.20.0"))
+	v, err := version.NewSemver(ver)
+	if err == nil && v.GreaterThanOrEqual(v0_20) {
+		return n.Path("Results").Get(0)
+	}
+	return n.Get(0)
 }
 
 func runCommand(program string, args ...string) error {
