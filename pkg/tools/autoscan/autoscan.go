@@ -81,6 +81,7 @@ In addition, images can be scanned with trivy.
 `,
 		Example: `# To run a tool locally w/o using docker explicitly specify the tool path
 ... auto-scan --tool-paths checkov=checkov,cfn-python-lint=cfn-lint`,
+		Hidden: true,
 	}
 }
 

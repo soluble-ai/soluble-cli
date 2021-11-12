@@ -25,8 +25,9 @@ import (
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "query",
-		Short: "List and run Soluble queries",
+		Use:    "query",
+		Short:  "List and run Soluble queries",
+		Hidden: true,
 	}
 	c.AddCommand(listCommand())
 	c.AddCommand(listParametersCommand())
