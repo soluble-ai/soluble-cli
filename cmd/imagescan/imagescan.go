@@ -21,5 +21,7 @@ import (
 )
 
 func Command() *cobra.Command {
-	return tools.CreateCommand(&trivy.Tool{})
+	c := tools.CreateCommand(&trivy.Tool{})
+	c.Hidden = true
+	return c
 }
