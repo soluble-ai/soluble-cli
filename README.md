@@ -33,8 +33,6 @@ Run security scans on your code with:
     soluble terraform-scan -d ~/my-stuff
     # scan for secrets
     soluble secrets-scan -d ~/my-stuff
-    # scan container images
-    soluble image-scan -d ~/my-stuff
     # scan kubernetes manifests
     soluble kubernetes-scan -d ~/my-stuff
     # scan Helm charts
