@@ -58,7 +58,7 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{
-		"-d", ".", "-o", "json", "-s",
+		"-o", "json", "-s",
 	}
 	if t.Framework != "" {
 		args = append(args, "--framework", t.Framework)
@@ -76,11 +76,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 		args = append(args, "--external-checks-dir", customPoliciesDir)
 	}
 	args = append(args, t.extraArgs...)
+	toolDir := t.GetDirectory()
+	if t.RepoRoot != "" {
+		dir, _ := filepath.Rel(t.RepoRoot, toolDir)
+		toolDir = t.RepoRoot
+		args = append(args, "-d", dir)
+	} else {
+		args = append(args, "-d", ".")
+	}
 	dat, err := t.RunDocker(&tools.DockerTool{
 		Name:                "checkov",
 		Image:               "bridgecrew/checkov:latest",
 		DefaultNoDockerName: "checkov",
-		Directory:           t.GetDirectory(),
+		Directory:           toolDir,
 		PolicyDirectory:     customPoliciesDir,
 		Args:                args,
 	})
@@ -153,6 +161,9 @@ func (t *Tool) processCheckResults(result *tools.Result, e *jnode.Node) {
 	updateChecks(results, "passed_checks", passedChecks)
 	updateChecks(results, "failed_checks", failedChecks)
 	result.AddValue("CHECKOV_VERSION", e.Path("summary").Path("checkov_version").AsText())
+	if rc := e.Path("summary").Path("resource_count"); !rc.IsMissing() {
+		result.AddValue("RESOURCE_COUNT", rc.AsText())
+	}
 }
 
 func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {

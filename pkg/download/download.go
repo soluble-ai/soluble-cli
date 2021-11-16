@@ -30,6 +30,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/download/terraform"
+	"github.com/soluble-ai/soluble-cli/pkg/download/tfscore"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/afero"
 )
@@ -72,6 +73,13 @@ type APIServer interface {
 	GetHostURL() string
 	GetOrganization() string
 	GetAuthToken() string
+}
+
+type urlResolverFunc func(requestedVersion string) (version string, url string, err error)
+
+var urlResolvers = map[string]urlResolverFunc{
+	"terraform": terraform.GetVersionAndURL,
+	"tfscore":   tfscore.GetVersionAndURL,
 }
 
 func NewManager() *Manager {
@@ -173,9 +181,9 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 		return v, nil
 	}
 	actualVersion := spec.RequestedVersion
-	if spec.Name == "terraform" {
+	if urf := urlResolvers[spec.Name]; urf != nil {
 		var err error
-		actualVersion, spec.URL, err = terraform.GetVersionAndURL(spec.RequestedVersion)
+		actualVersion, spec.URL, err = urf(spec.RequestedVersion)
 		if err != nil {
 			return nil, err
 		}

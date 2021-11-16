@@ -25,6 +25,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type RunOpts struct {
@@ -39,15 +40,24 @@ type RunOpts struct {
 
 var _ options.Interface = &RunOpts{}
 
+func (o *RunOpts) GetRunHiddenOptions() *options.HiddenOptionsGroup {
+	return &options.HiddenOptionsGroup{
+		Name: "run-options",
+		Long: "Otions for running tools",
+		CreateFlagsFunc: func(flags *pflag.FlagSet) {
+			flags.BoolVar(&o.SkipDockerPull, "skip-docker-pull", false, "Don't pull docker images before running them")
+			flags.StringSliceVar(&o.ExtraDockerArgs, "extra-docker-args", nil, "Add extra args to invocations of docker")
+			flags.StringVar(&o.ToolPath, "tool-path", "", "Run `tool` directly instead of using a CLI-managed version")
+			flags.StringVar(&o.ToolVersion, "tool-version", "", "Override version of the tool to run (the image or github release name.)")
+			flags.BoolVar(&o.NoDocker, "no-docker", false, "Always run tools locally instead of using Docker")
+		},
+	}
+}
+
 func (o *RunOpts) Register(cmd *cobra.Command) {
 	o.PrintClientOpts.Register(cmd)
-	flags := cmd.Flags()
 	if !o.Internal {
-		flags.BoolVar(&o.SkipDockerPull, "skip-docker-pull", false, "Don't pull docker images before running them")
-		flags.StringSliceVar(&o.ExtraDockerArgs, "extra-docker-args", nil, "Add extra args to invocations of docker")
-		flags.StringVar(&o.ToolPath, "tool-path", "", "Run `tool` directly instead of using a CLI-managed version")
-		flags.StringVar(&o.ToolVersion, "tool-version", "", "Override version of the tool to run (the image or github release name.)")
-		flags.BoolVar(&o.NoDocker, "no-docker", false, "Always run tools locally instead of using Docker")
+		o.GetRunHiddenOptions().Register(cmd)
 	}
 }
 
