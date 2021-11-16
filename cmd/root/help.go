@@ -20,6 +20,7 @@ import (
 
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -69,9 +70,14 @@ Some options have been hidden, use "{{ helpPath $ }} -a" to display all options{
 
 {{.InheritedFlags.FlagUsagesWrapped 100 | trimTrailingWhitespaces}}
 `)
-	rootCmd.AddCommand(options.GetClientOptionsGroupHelpCommand(),
+	rootCmd.AddCommand(
+		options.GetClientOptionsGroupHelpCommand(),
 		options.GetPrintOptionsGroupHelpCommand(),
-		globalOptionsHelp)
+		globalOptionsHelp,
+		(&tools.ToolOpts{}).GetToolHiddenOptions().GetHelpCommand(),
+		(&tools.RunOpts{}).GetRunHiddenOptions().GetHelpCommand(),
+		(&tools.DirectoryBasedToolOpts{}).GetDirectoryBasedHiddenOptions().GetHelpCommand(),
+	)
 }
 
 func helpCommand(rootCmd *cobra.Command) *cobra.Command {

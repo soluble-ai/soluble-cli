@@ -18,6 +18,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/tfscore"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
 )
@@ -38,6 +39,16 @@ Scans terraform code with checkov.  Use a sub-command to explicitly choose a sca
 		tools.CreateCommand(&checkov.Tool{
 			Framework: "terraform",
 		}),
+		tools.CreateCommand(&planTool{}),
 	)
 	return c
+}
+
+type planTool struct{ tfscore.Tool }
+
+func (*planTool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "plan",
+		Short: "Scan a terraform plan",
+	}
 }

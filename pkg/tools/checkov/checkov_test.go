@@ -24,9 +24,9 @@ import (
 func TestParseResults(t *testing.T) {
 	assert := assert.New(t)
 	tool := &Tool{}
-	assert.Nil(tool.Validate())
-	results, err := util.ReadJSONFile("testdata/results.json")
-	assert.Nil(err)
+	assert.NoError(tool.Validate())
+	results, err := util.ReadJSONFile("testdata/results.json.gz")
+	assert.NoError(err)
 	result := tool.processResults(results)
 	assert.Equal(7, len(result.Findings))
 	passed := 0
@@ -42,4 +42,14 @@ func TestParseResults(t *testing.T) {
 	}
 	assert.Equal(6, passed)
 	assert.Equal(results.Unwrap(), result.Data.Unwrap())
+}
+
+func TestParseResults2(t *testing.T) {
+	assert := assert.New(t)
+	tool := &Tool{}
+	assert.NoError(tool.Validate())
+	results, err := util.ReadJSONFile("testdata/results2.json.gz")
+	assert.NoError(err)
+	result := tool.processResults(results)
+	assert.Equal("6", result.Values["RESOURCE_COUNT"])
 }
