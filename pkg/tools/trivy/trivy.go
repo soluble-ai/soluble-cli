@@ -18,12 +18,10 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
 )
@@ -70,7 +68,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	defer os.Remove(outfile)
 	program := d.GetExePath("trivy")
 	if t.ClearCache {
-		err := runCommand(program, "image", "--clear-cache")
+		err := t.runCommand(program, "image", "--clear-cache")
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +79,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// specify the image to scan at the end of params
 	args = append(args, t.Image)
 
-	err = runCommand(program, args...)
+	err = t.runCommand(program, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,9 +114,9 @@ func getData(ver string, n *jnode.Node) *jnode.Node {
 	return n.Get(0)
 }
 
-func runCommand(program string, args ...string) error {
+func (t *Tool) runCommand(program string, args ...string) error {
 	scan := exec.Command(program, args...)
-	log.Infof("Running {info:%s}", strings.Join(scan.Args, " "))
+	t.LogCommand(scan)
 	scan.Stderr = os.Stderr
 	scan.Stdout = os.Stdout
 	err := scan.Run()

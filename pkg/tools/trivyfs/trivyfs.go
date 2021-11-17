@@ -18,12 +18,10 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -70,7 +68,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(program, args...)
 	c.Stderr = os.Stderr
 	c.Stdout = os.Stderr
-	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
+	t.LogCommand(c)
 	if err := c.Run(); err != nil {
 		return nil, err
 	}
