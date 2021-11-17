@@ -5,11 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -18,6 +16,8 @@ import (
 type Tool struct {
 	tools.DirectoryBasedToolOpts
 	PlanFile string
+
+	extraArgs tools.ExtraArgs
 }
 
 var _ tools.Interface = &Tool{}
@@ -29,6 +29,15 @@ func (t *Tool) Name() string {
 func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	cmd.Flags().StringVar(&t.PlanFile, "plan", "", "Score the terraform plan in `file`")
+}
+
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:     "plan",
+		Short:   "Score a terraform plan with tfscore",
+		Example: "Any extra arguments after -- are passed to tfscore",
+		Args:    t.extraArgs.ArgsValue(),
+	}
 }
 
 func (t *Tool) Validate() error {
@@ -52,11 +61,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	args := []string{"score", "-d", t.GetDirectory(), "--skip-init",
 		"--read-plan", t.PlanFile, "--save-score", scorePath}
+	args = append(args, t.extraArgs...)
 	// #nosec G204
 	c := exec.Command(d.GetExePath("tfscore"), args...)
 	c.Stderr = os.Stderr
 	c.Stdout = os.Stdout
-	log.Infof("Running {info:%s}", strings.Join(c.Args, " "))
+	t.LogCommand(c)
 	if err := c.Run(); err != nil {
 		return nil, err
 	}
@@ -74,5 +84,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PrintPath:    []string{"risks"},
 		PrintColumns: []string{"id", "severity", "file", "line", "message"},
 	}
+	result.AddValue("TFSCORE_VERSION", d.Version)
 	return result, nil
 }

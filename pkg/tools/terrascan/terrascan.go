@@ -19,12 +19,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -70,7 +68,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	program := filepath.Join(d.Dir, "terrascan")
 	scan := exec.Command(program, args...)
-	log.Infof("Running {info:%s}", strings.Join(scan.Args, " "))
+	t.LogCommand(scan)
 	scan.Stderr = os.Stderr
 	output, err := scan.Output()
 	if err != nil && util.ExitCode(err) != 3 {

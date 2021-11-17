@@ -34,7 +34,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 	Framework string
 
-	extraArgs []string
+	extraArgs tools.ExtraArgs
 }
 
 var _ tools.Interface = &Tool{}
@@ -49,10 +49,7 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 		Short: "Scan with checkov",
 		Example: `# Any additional args after -- are passed through to checkov, eg:
 ... checkov -- --help`,
-		Args: func(cmd *cobra.Command, args []string) error {
-			t.extraArgs = args
-			return nil
-		},
+		Args: t.extraArgs.ArgsValue(),
 	}
 }
 

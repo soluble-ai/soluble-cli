@@ -17,12 +17,10 @@ package gosec
 import (
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -49,7 +47,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// #nosec G204
 	c := exec.Command(d.GetExePath("gosec"), args...)
 	c.Stderr = os.Stderr
-	log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), t.GetDirectory())
+	t.LogCommand(c)
 	output, err := c.Output()
 	if util.ExitCode(err) == 1 {
 		err = nil

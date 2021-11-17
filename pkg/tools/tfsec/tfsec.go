@@ -81,7 +81,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
-	log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), t.GetDirectory())
+	t.LogCommand(c)
 	output, err := c.Output()
 	if util.ExitCode(err) == 1 {
 		err = nil

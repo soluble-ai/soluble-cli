@@ -43,7 +43,7 @@ var _ options.Interface = &RunOpts{}
 func (o *RunOpts) GetRunHiddenOptions() *options.HiddenOptionsGroup {
 	return &options.HiddenOptionsGroup{
 		Name: "run-options",
-		Long: "Otions for running tools",
+		Long: "Options for running tools",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.SkipDockerPull, "skip-docker-pull", false, "Don't pull docker images before running them")
 			flags.StringSliceVar(&o.ExtraDockerArgs, "extra-docker-args", nil, "Add extra args to invocations of docker")
@@ -78,7 +78,7 @@ func (o *RunOpts) RunDocker(d *DockerTool) ([]byte, error) {
 		c := exec.Command(path, d.Args...)
 		c.Dir = d.Directory
 		c.Stderr = os.Stderr
-		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), c.Dir)
+		o.LogCommand(c)
 		return c.Output()
 	}
 	n := o.getToolVersion(d.Name)
@@ -119,4 +119,12 @@ func (o *RunOpts) getToolVersion(name string) *jnode.Node {
 		return jnode.MissingNode
 	}
 	return n
+}
+
+func (o *RunOpts) LogCommand(c *exec.Cmd) {
+	if c.Dir != "" {
+		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), c.Dir)
+		return
+	}
+	log.Infof("Running {primary:%s}", strings.Join(c.Args, " "))
 }

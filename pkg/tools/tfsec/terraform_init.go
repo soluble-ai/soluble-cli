@@ -75,7 +75,7 @@ func (t *Tool) runTerraformInit() (*terraformInit, error) {
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Dir = dir
-		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(cmd.Args, " "), cmd.Dir)
+		t.LogCommand(cmd)
 		err := cmd.Run()
 		if err != nil {
 			tfi.restore()

@@ -39,16 +39,7 @@ Scans terraform code with checkov.  Use a sub-command to explicitly choose a sca
 		tools.CreateCommand(&checkov.Tool{
 			Framework: "terraform",
 		}),
-		tools.CreateCommand(&planTool{}),
+		tools.CreateCommand(&tfscore.Tool{}),
 	)
 	return c
-}
-
-type planTool struct{ tfscore.Tool }
-
-func (*planTool) CommandTemplate() *cobra.Command {
-	return &cobra.Command{
-		Use:   "plan",
-		Short: "Scan a terraform plan",
-	}
 }

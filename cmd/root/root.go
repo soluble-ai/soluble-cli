@@ -46,6 +46,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudmap"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -133,6 +134,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		checkovCommand,
 		codescan.Command(),
 		cloudscan.Command(),
+		tools.CreateCommand(&cloudmap.Tool{}),
 	)
 }
 
