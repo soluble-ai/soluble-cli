@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-version v1.3.0
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/jarcoal/httpmock v1.0.8
-	github.com/mattn/go-colorable v0.1.11
+	github.com/mattn/go-colorable v0.1.12
 	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.1
