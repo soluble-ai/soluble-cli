@@ -29,10 +29,9 @@ func Command() *cobra.Command {
 	})
 	c.Use = "terraform-scan"
 	c.Aliases = []string{"tf-scan"}
-	c.Short = `Scan terraform`
-	c.Long = `Scan terraform
-
-Scans terraform code with checkov.  Use a sub-command to explicitly choose a scanner.`
+	c.Short = `Scan terraform infrastructure-as-code.`
+	c.Long = ""
+	c.Example = ""
 	c.AddCommand(
 		tools.CreateCommand(&tfsec.Tool{}),
 		tools.CreateCommand(&terrascan.Tool{}),

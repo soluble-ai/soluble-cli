@@ -26,9 +26,7 @@ func Command() *cobra.Command {
 	})
 	c.Use = "kubernetes-scan"
 	c.Short = "Scan kubernetes manifests"
+	c.Example = ""
 	c.Aliases = []string{"k8s-scan"}
-	c.AddCommand(tools.CreateCommand(&checkov.Tool{
-		Framework: "kubernetes",
-	}))
 	return c
 }
