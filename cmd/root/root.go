@@ -36,6 +36,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
 	"github.com/soluble-ai/soluble-cli/cmd/secretsscan"
+	"github.com/soluble-ai/soluble-cli/cmd/tfplan"
 	"github.com/soluble-ai/soluble-cli/cmd/tfscan"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
 	"github.com/soluble-ai/soluble-cli/pkg/blurb"
@@ -135,6 +136,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		codescan.Command(),
 		cloudscan.Command(),
 		tools.CreateCommand(&cloudmap.Tool{}),
+		tfplan.Command(),
 	)
 }
 
