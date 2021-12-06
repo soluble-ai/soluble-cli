@@ -33,13 +33,16 @@ func Command() *cobra.Command {
 	c.Long = `Scan terraform
 
 Scans terraform code with checkov.  Use a sub-command to explicitly choose a scanner.`
+	scan := tools.CreateCommand(&tfscore.Tool{})
+	scan.Use = "plan"
+	scan.Deprecated = "Use 'terraform-plan scan' instead"
 	c.AddCommand(
 		tools.CreateCommand(&tfsec.Tool{}),
 		tools.CreateCommand(&terrascan.Tool{}),
 		tools.CreateCommand(&checkov.Tool{
 			Framework: "terraform",
 		}),
-		tools.CreateCommand(&tfscore.Tool{}),
+		scan,
 	)
 	return c
 }
