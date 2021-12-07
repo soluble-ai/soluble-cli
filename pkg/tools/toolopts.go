@@ -203,12 +203,10 @@ func (o *ToolOpts) RunTool(printResult bool) (*Result, error) {
 		writeResultValues(f, result)
 		_ = f.Close()
 	}
-	if o.UploadEnabled {
-		err = result.Report(o.Tool)
-		if err == nil && o.UpdatePR {
-			if result.Assessment != nil {
-				err = result.Assessment.UpdatePR(o.GetAPIClient())
-			}
+	err = result.Report(o.Tool, o.UploadEnabled)
+	if err == nil && o.UpdatePR {
+		if result.Assessment != nil {
+			err = result.Assessment.UpdatePR(o.GetAPIClient())
 		}
 	}
 	return result, err

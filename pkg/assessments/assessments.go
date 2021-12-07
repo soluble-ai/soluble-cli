@@ -47,14 +47,15 @@ type Assessment struct {
 type Assessments []*Assessment
 
 type Finding struct {
-	SID         string `json:"sid,omitempty"`
-	Severity    string `json:"severity,omitempty"`
-	Title       string `json:"title,omitempty"`
-	Description string `json:"description,omitempty"`
-	Markdown    string `json:"markdown,omitempty"`
-	FilePath    string `json:"filePath,omitempty"`
-	Line        int    `json:"line,omitempty"`
-	Pass        bool   `json:"pass,omitempty"`
+	SID           string `json:"sid,omitempty"`
+	Severity      string `json:"severity,omitempty"`
+	Title         string `json:"title,omitempty"`
+	Description   string `json:"description,omitempty"`
+	Markdown      string `json:"markdown,omitempty"`
+	FilePath      string `json:"filePath,omitempty"`
+	Line          int    `json:"line,omitempty"`
+	Pass          bool   `json:"pass,omitempty"`
+	GeneratedFile bool   `json:"generated_filed,omitempty"`
 
 	// These fields are filled in by the CLI and sent to
 	RepoPath           string            `json:"repoPath,omitempty"`
@@ -98,7 +99,7 @@ func (findings Findings) ComputePartialFingerprints(dir string) {
 		if f.FilePath != "" && f.Line > 0 {
 			findingsForFiles[f.FilePath] = append(findingsForFiles[f.FilePath], f)
 		}
-		if f.FilePath != "" && relDir != "" {
+		if f.FilePath != "" && relDir != "" && !f.GeneratedFile {
 			f.RepoPath = filepath.Join(relDir, f.FilePath)
 		}
 	}
