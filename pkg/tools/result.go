@@ -68,13 +68,15 @@ func (r *Result) AddValue(name, value string) *Result {
 	return r
 }
 
-func (r *Result) Report(tool Interface) error {
-	return r.report(tool.GetToolOptions(), tool.GetDirectoryBasedToolOptions(), tool.Name())
+func (r *Result) Report(tool Interface, upload bool) error {
+	return r.report(tool.GetToolOptions(), tool.GetDirectoryBasedToolOptions(), tool.Name(), upload)
 }
 
-func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name string) error {
+func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name string, upload bool) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
-	log.Infof("Uploading results of {primary:%s}", name)
+	if upload {
+		log.Infof("Uploading results of {primary:%s}", name)
+	}
 	options := []api.Option{
 		xcp.WithCIEnv(r.Directory), xcp.WithFileFromReader("results_json", "results.json", rr),
 	}
@@ -106,6 +108,9 @@ func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name strin
 		if rf := attachFingerprints(diropts, r.Findings); rf != nil {
 			options = append(options, xcp.WithFileFromReader("fingerprints_json", "fingerprints.json", rf))
 		}
+	}
+	if !upload {
+		return nil
 	}
 	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), name, nil, r.Values, options...)
 	if err != nil {
@@ -160,11 +165,13 @@ func attachFingerprints(diropts *DirectoryBasedToolOpts, findings assessments.Fi
 	}
 	n := jnode.NewArrayNode()
 	for _, f := range m {
-		n.AppendObject().
+		o := n.AppendObject().
 			Put("filePath", f.FilePath).
-			Put("repoPath", f.RepoPath).
 			Put("partialFingerprint", f.PartialFingerprint).
 			Put("line", f.Line)
+		if f.RepoPath != "" {
+			o.Put("repoPath", f.RepoPath)
+		}
 	}
 	if diropts != nil {
 		if diropts.PrintFingerprints {

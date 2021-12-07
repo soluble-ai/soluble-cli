@@ -132,7 +132,9 @@ envLoop:
 			// and if we haven't set a CI system yet, set it
 			if ciSystem == "" {
 				idx := strings.Index(k, "_")
-				ciSystem = k[:idx]
+				if idx > 0 {
+					ciSystem = k[:idx]
+				}
 			}
 		}
 	}

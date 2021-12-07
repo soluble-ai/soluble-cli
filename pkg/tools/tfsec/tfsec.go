@@ -160,9 +160,10 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 				continue
 			}
 			findings = append(findings, &assessments.Finding{
-				FilePath:    filename,
-				Line:        r.Path("location").Path("start_line").AsInt(),
-				Description: r.Path("description").AsText(),
+				FilePath:      filename,
+				Line:          r.Path("location").Path("start_line").AsInt(),
+				Description:   r.Path("description").AsText(),
+				GeneratedFile: strings.HasPrefix(filepath.ToSlash(filename), ".terraform/modules/"),
 				Tool: map[string]string{
 					"severity": r.Path("severity").AsText(),
 					"rule_id":  r.Path("rule_id").AsText(),

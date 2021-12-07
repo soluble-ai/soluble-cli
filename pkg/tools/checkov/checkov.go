@@ -46,9 +46,9 @@ func (t *Tool) Name() string {
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "checkov",
-		Short: "Scan with checkov",
-		Example: `# Any additional args after -- are passed through to checkov, eg:
-... checkov -- --help`,
+		Short: "Scan terraform for security vulnerabilities",
+		Example: `To enable checking external terraform modules use:
+soluble tf-scan -d my-terraform -- --download-external-modules true`,
 		Args: t.extraArgs.ArgsValue(),
 	}
 }
@@ -192,15 +192,17 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 		return t.IsExcluded(e.Path("file_path").AsText())
 	})
 	for _, n := range checks.Elements() {
+		path := n.Path("file_path").AsText()
 		result.Findings = append(result.Findings, &assessments.Finding{
 			Tool: map[string]string{
 				"check_id":   n.Path("check_id").AsText(),
 				"check_type": checkType,
 			},
-			FilePath: n.Path("file_path").AsText(),
-			Line:     n.Path("file_line_range").Get(0).AsInt(),
-			Pass:     pass,
-			Title:    n.Path("check_name").AsText(),
+			FilePath:      path,
+			Line:          n.Path("file_line_range").Get(0).AsInt(),
+			Pass:          pass,
+			Title:         n.Path("check_name").AsText(),
+			GeneratedFile: strings.HasPrefix(filepath.ToSlash(path), ".external_modules/"),
 		})
 	}
 	return checks
