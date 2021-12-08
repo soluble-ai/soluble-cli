@@ -143,7 +143,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		opts.Tool = st
 		opts.UploadEnabled = t.UploadEnabled
 		opts.ToolPath = t.ToolPaths[st.Name()]
-		opts.ParsedFailThresholds = t.ParsedFailThresholds
 		opts.NoDocker = t.NoDocker
 		if dopts := st.GetDirectoryBasedToolOptions(); dopts != nil {
 			dopts.Exclude = t.Exclude

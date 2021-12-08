@@ -25,7 +25,6 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
-	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
@@ -129,15 +128,6 @@ func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name strin
 	}
 	if r.Assessment == nil {
 		log.Infof("No assessment for {warning:%s} was returned", name)
-	} else {
-		r.Assessment.EvaluateFailures(o.ParsedFailThresholds)
-		if r.Assessment.Failed {
-			exit.Code = 2
-			exit.AddFunc(func() {
-				log.Errorf("Found {danger:%d failed %s} findings",
-					r.Assessment.FailedCount, r.Assessment.FailedSeverity)
-			})
-		}
 	}
 	return nil
 }
