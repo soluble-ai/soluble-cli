@@ -85,7 +85,15 @@ func buildReportCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "report",
 		Short: "List any assessments generated during this build",
-		Args:  cobra.NoArgs,
+		Example: `
+The severity levels are critical, high, medium, low, and info in that
+order.
+
+# Fail if 1 or more high or critical severity findings in this build:
+soluble build report --fail high=1
+# Or shorter:
+soluble build report --fail high`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.validate(); err != nil {
 				return err
@@ -115,14 +123,16 @@ func buildReportCommand() *cobra.Command {
 			}
 			opts.PrintResult(jnode.NewObjectNode().Put("findings", findings))
 			for _, assessment := range assessments {
-				log.Infof("For more details on the {info:%s} see {primary:%s}", assessment.Title, assessment.URL)
+				if assessment.URL != "" {
+					log.Infof("For more details on the {info:%s} see {primary:%s}", assessment.Title, assessment.URL)
+				}
 			}
 			return nil
 		},
 	}
 	opts.Register(c)
 	c.Flag("fail").Usage = longUsage(`
-Set failure thresholds in the form 'severity=count'.  The command will exit with exit code 2 
+Set failure thresholds in the form 'severity=count'.  The command will exit with exit code 2
 if the assessments generated during this build have count or more failed findings of the
 specified severity.`)
 	return c
@@ -131,9 +141,10 @@ specified severity.`)
 func updatePRCommand() *cobra.Command {
 	opts := &BuildOpts{}
 	c := &cobra.Command{
-		Use:   "update-pr",
-		Short: "Update this build's pull-request with the results of any assessments generated during the build",
-		Args:  cobra.NoArgs,
+		Use:    "update-pr",
+		Short:  "Update this build's pull-request with the results of any assessments generated during the build",
+		Args:   cobra.NoArgs,
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.validate(); err != nil {
 				return err
