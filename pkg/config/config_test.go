@@ -19,9 +19,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfig(t *testing.T) {
+	assert := assert.New(t)
 	f, err := ioutil.TempFile("", "config")
 	if err != nil {
 		t.Fatal(err)
@@ -31,7 +34,7 @@ func TestConfig(t *testing.T) {
 	os.Remove(ConfigFile)
 	Load()
 	Config.APIToken = "xxx"
-	Save()
+	assert.NoError(Save())
 	defer os.Remove(ConfigFile)
 	Load()
 	if Config.APIToken != "xxx" {
@@ -42,7 +45,7 @@ func TestConfig(t *testing.T) {
 		t.Error(GlobalConfig)
 	}
 	Config.APIToken = "yyy"
-	Save()
+	assert.NoError(Save())
 	Load()
 	if GlobalConfig.CurrentProfile != "test" || Config.APIToken != "yyy" {
 		t.Error(GlobalConfig)

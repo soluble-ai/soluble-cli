@@ -81,8 +81,7 @@ func addModel() *cobra.Command {
 			}
 			log.Infof("Added model source {info:%s}", source)
 			config.GlobalConfig.ModelLocations = append(config.GlobalConfig.ModelLocations, url)
-			config.Save()
-			return nil
+			return config.Save()
 		},
 	}
 	opts.Register(c)

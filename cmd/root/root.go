@@ -69,7 +69,9 @@ func Command() *cobra.Command {
 			log.Debugf("Loaded configuration from {primary:%s}", config.ConfigFile)
 			if setProfile != "" {
 				config.SelectProfile(setProfile)
-				config.Save()
+				if err := config.Save(); err != nil {
+					return err
+				}
 			}
 			if profile != "" {
 				config.SelectProfile(profile)

@@ -31,6 +31,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -69,7 +70,13 @@ func (o *ToolOpts) GetConfig() *Config {
 
 func (o *ToolOpts) getConfig(repoRoot string) *Config {
 	if o.config == nil {
-		o.config = ReadConfig(filepath.Join(repoRoot, ".soluble"))
+		if util.FileExists(filepath.Join(repoRoot, ".soluble", "config.yml")) &&
+			!util.FileExists(filepath.Join(repoRoot, ".lacework", "config.yml")) {
+			log.Warnf("{info:.soluble/config.yml} is {warning:deprecated}.  Use {info:.lacework/config.yml} instead.")
+			o.config = ReadConfig(filepath.Join(repoRoot, ".soluble"))
+		} else {
+			o.config = ReadConfig(filepath.Join(repoRoot, ".lacework"))
+		}
 	}
 	return o.config
 }

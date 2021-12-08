@@ -27,6 +27,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -38,10 +39,11 @@ var GlobalConfig = &struct {
 
 // Config points to the current profile
 var (
-	Config         = &ProfileT{}
-	ConfigFile     string
-	ConfigDir      string
-	configFileRead string
+	Config             = &ProfileT{}
+	ConfigFile         string
+	ConfigDir          string
+	configFileRead     string
+	migrationAvailable bool
 )
 
 const Redacted = "*** redacted ***"
@@ -158,14 +160,14 @@ func (c *ProfileT) GetAPIServer() string {
 	return c.APIServer
 }
 
-func Save() {
+func Save() error {
 	dir := filepath.Dir(ConfigFile)
 	if dir != "" {
 		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
 			err := os.MkdirAll(dir, 0777)
 			if err != nil {
 				log.Errorf("Could not create config directory {info:%s}: {danger:%s}", dir, err.Error())
-				return
+				return err
 			}
 		}
 	}
@@ -175,7 +177,7 @@ func Save() {
 		if err != nil {
 			log.Errorf("Could not rename legacy config file {info:%s} to {info:%s}: {danger:%s}",
 				configFileRead, ConfigFile, err.Error())
-			return
+			return err
 		}
 	}
 	log.Infof("Updating {info:%s}\n", ConfigFile)
@@ -189,6 +191,7 @@ func Save() {
 	if err != nil {
 		log.Errorf("Failed to save {info:%s}: {danger:%s}", ConfigFile, err.Error())
 	}
+	return err
 }
 
 func Set(name, value string) error {
@@ -216,19 +219,19 @@ func Load() {
 	if ConfigDir == "" {
 		ConfigDir = os.Getenv("SOLUBLE_CONFIG_DIR")
 		if ConfigDir == "" {
-			ConfigDir, _ = homedir.Expand("~/.soluble")
+			ConfigDir, _ = homedir.Expand("~/.lacework")
 		}
 	}
 	if ConfigFile == "" {
 		ConfigFile = os.Getenv("SOLUBLE_CONFIG_FILE")
 		if ConfigFile == "" {
 			ConfigFile = filepath.Join(ConfigDir, "cli-config.json")
-			if _, err := os.Stat(ConfigFile); errors.Is(err, os.ErrNotExist) {
-				legacyConfigFile, _ := homedir.Expand("~/.soluble_cli")
-				if _, err := os.Stat(legacyConfigFile); err == nil {
-					// read from the legacy config file, we'll migrate
-					// it when we save
+			if !util.FileExists(ConfigFile) {
+				legacyConfigFile, _ := homedir.Expand("~/.soluble/cli-config.json")
+				if util.FileExists(legacyConfigFile) {
 					configFileRead = legacyConfigFile
+					migrationAvailable = true
+					log.Warnf("Using legacy config file {warning:%s}, use {primary:soluble config migrate} to migrate", configFileRead)
 				}
 			}
 		}
@@ -280,4 +283,12 @@ func setIfChanged(c *string, v string) bool {
 
 func GetModelLocations() []string {
 	return GlobalConfig.ModelLocations
+}
+
+func Migrate() error {
+	if !migrationAvailable {
+		log.Infof("Config file {info:%s} is already up-to-date", ConfigFile)
+		return nil
+	}
+	return Save()
 }
