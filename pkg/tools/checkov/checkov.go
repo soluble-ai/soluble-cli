@@ -32,7 +32,8 @@ import (
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
-	Framework string
+	Framework            string
+	EnableModuleDownload bool
 
 	extraArgs tools.ExtraArgs
 }
@@ -43,13 +44,19 @@ func (t *Tool) Name() string {
 	return "checkov"
 }
 
+func (t *Tool) Register(cmd *cobra.Command) {
+	t.DirectoryBasedToolOpts.Register(cmd)
+	iacbot := os.Getenv("ZODIAC_JOB_NAME") != ""
+	flags := cmd.Flags()
+	flags.BoolVar(&t.EnableModuleDownload, "enable-module-download", !iacbot,
+		"Enable module download.  Use --enable-module-download=false to disable.")
+}
+
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "checkov",
 		Short: "Scan terraform for security vulnerabilities",
-		Example: `To enable checking external terraform modules use:
-soluble tf-scan -d my-terraform -- --download-external-modules true`,
-		Args: t.extraArgs.ArgsValue(),
+		Args:  t.extraArgs.ArgsValue(),
 	}
 }
 
@@ -59,6 +66,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	if t.Framework != "" {
 		args = append(args, "--framework", t.Framework)
+	}
+	if t.Framework == "terraform" && t.EnableModuleDownload {
+		args = append(args, "--download-external-modules", "true")
 	}
 	if t.Framework == "helm" && (t.NoDocker || t.ToolPath != "") {
 		if err := t.makeHelmAvailable(); err != nil {
