@@ -49,7 +49,9 @@ func profileCmd() *cobra.Command {
 				return err
 			}
 			if config.UpdateFromServerProfile(result) {
-				config.Save()
+				if err := config.Save(); err != nil {
+					return err
+				}
 			}
 			opts.PrintResult(result)
 			return nil
@@ -100,7 +102,9 @@ func setAccessTokenCmd() *cobra.Command {
 			config.Config.APIServer = cfg.APIServer
 			config.Config.TLSNoVerify = cfg.TLSNoVerify
 			config.UpdateFromServerProfile(result)
-			config.Save()
+			if err := config.Save(); err != nil {
+				return err
+			}
 			log.Infof("Current org is {info:%s}", config.Config.Organization)
 			return nil
 		},
@@ -125,7 +129,9 @@ func setOrgCommand() *cobra.Command {
 				return err
 			}
 			if config.UpdateFromServerProfile(result) {
-				config.Save()
+				if err := config.Save(); err != nil {
+					return err
+				}
 			}
 			log.Infof("Current org set to {info:%s}", config.Config.Organization)
 			return nil

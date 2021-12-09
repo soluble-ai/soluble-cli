@@ -45,6 +45,7 @@ type Result struct {
 }
 
 var repoFiles = []string{
+	".lacework/config.yml",
 	".soluble/config.yml",
 	"CODEOWNERS",
 	"docs/CODEOWNERS",

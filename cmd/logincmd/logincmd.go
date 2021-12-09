@@ -58,9 +58,8 @@ func Command() *cobra.Command {
 			config.Config.APIServer = resp.APIServer
 			config.Config.APIToken = resp.Token
 			config.Config.Organization = resp.OrgID
-			config.Save()
-			log.Infof("Authentication successful")
-			return nil
+			defer log.Infof("Authentication successful")
+			return config.Save()
 		},
 	}
 	opts.Register(c)

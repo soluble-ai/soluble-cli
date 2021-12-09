@@ -29,11 +29,13 @@ func Command() *cobra.Command {
 		Use:   "config",
 		Short: "Configure the CLI",
 	}
-	c.AddCommand(showConfigCmd())
-	c.AddCommand(setConfigCmd())
-	c.AddCommand(setProfileCmd())
-	c.AddCommand(listProfilesCmd())
-	c.AddCommand(updateProfileCmd())
+	c.AddCommand(
+		showConfigCmd(),
+		setConfigCmd(),
+		setProfileCmd(),
+		listProfilesCmd(),
+		updateProfileCmd(),
+		migrateCmd())
 	return c
 }
 
@@ -83,7 +85,9 @@ func setProfileCmd() *cobra.Command {
 					return err
 				}
 			}
-			config.Save()
+			if err := config.Save(); err != nil {
+				return err
+			}
 			opts.PrintResult(getProfiles([]string{name}))
 			return nil
 		},
@@ -114,13 +118,17 @@ func updateProfileCmd() *cobra.Command {
 			switch {
 			case del:
 				if config.DeleteProfile(name) {
-					config.Save()
+					if err := config.Save(); err != nil {
+						return err
+					}
 				}
 			case rename != "":
 				if err := config.RenameProfile(name, rename); err != nil {
 					return err
 				}
-				config.Save()
+				if err := config.Save(); err != nil {
+					return err
+				}
 			default:
 				return fmt.Errorf("either --delete or --rename must be given")
 			}
@@ -189,11 +197,21 @@ func setConfigCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			config.Save()
-			opts.PrintConfig()
-			return nil
+			defer opts.PrintConfig()
+			return config.Save()
 		},
 	}
 	opts.Register(c)
 	return c
+}
+
+func migrateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "migrate",
+		Short: "Move the legacy config file to its current location if necessary",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return config.Migrate()
+		},
+	}
 }

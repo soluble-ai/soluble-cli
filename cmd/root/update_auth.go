@@ -31,7 +31,9 @@ func updateAuthAction(command model.Command, result *jnode.Node) (*jnode.Node, e
 	config.Config.APIToken = result.Path("token").AsText()
 	config.Config.Email = result.Path("user").Path("email").AsText()
 	config.Config.Organization = result.Path("user").Path("currentOrgId").AsText()
-	config.Save()
+	if err := config.Save(); err != nil {
+		return nil, err
+	}
 	result.Put("token", config.Redacted)
 	return result, nil
 }
