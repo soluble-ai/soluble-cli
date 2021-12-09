@@ -41,7 +41,6 @@ type ToolOpts struct {
 	RunOpts
 	Tool                  Interface
 	UploadEnabled         bool
-	UpdatePR              bool
 	PrintAsessment        bool
 	PrintResultOpt        bool
 	SaveResult            string
@@ -92,7 +91,6 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON reesult from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")
 			flags.StringVar(&o.SaveResultValues, "save-result-values", "", "Save the result values from the tool to `file`")
-			flags.BoolVar(&o.UpdatePR, "update-pr", false, "Update this build's pull-request with the resulting assessment")
 		},
 	}
 }
@@ -111,9 +109,6 @@ func (o *ToolOpts) Validate() error {
 	if o.UploadEnabled && o.GetAPIClientConfig().APIToken == "" {
 		blurb.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble}.", "")
 		return fmt.Errorf("not authenticated with Soluble")
-	}
-	if o.UpdatePR && !o.UploadEnabled {
-		return fmt.Errorf("--update-pr must be used with --upload")
 	}
 	if o.RepoRoot == "" {
 		r, err := inventory.FindRepoRoot(".")
@@ -200,11 +195,6 @@ func (o *ToolOpts) RunTool(printResult bool) (*Result, error) {
 		_ = f.Close()
 	}
 	err = result.Report(o.Tool, o.UploadEnabled)
-	if err == nil && o.UpdatePR {
-		if result.Assessment != nil {
-			err = result.Assessment.UpdatePR(o.GetAPIClient())
-		}
-	}
 	return result, err
 }
 

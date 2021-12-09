@@ -17,6 +17,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -41,15 +42,23 @@ func NewIntegration(ctx context.Context, config *jnode.Node) assessments.PRInteg
 		return nil
 	}
 	p := strings.Split(gitRepo, "/")
+	var token oauth2.TokenSource
+	if t := config.Path("token"); !t.IsMissing() {
+		token = oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: config.Path("token").AsText(),
+		})
+	} else if t := os.Getenv("GITHUB_TOKEN"); t != "" {
+		token = oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: t,
+		})
+	}
+	// support other token sources
 	if len(p) == 3 && p[0] == "github.com" {
 		return &Integration{
 			owner:  p[1],
 			repo:   p[2],
 			commit: config.Path("gitCommit").AsText(),
-			gh: github.NewClient(oauth2.NewClient(ctx,
-				oauth2.StaticTokenSource(&oauth2.Token{
-					AccessToken: config.Path("token").AsText(),
-				}))),
+			gh:     github.NewClient(oauth2.NewClient(ctx, token)),
 		}
 	}
 	return nil

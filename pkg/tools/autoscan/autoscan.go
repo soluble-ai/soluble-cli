@@ -20,7 +20,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
@@ -128,7 +127,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	resultData := result.Data.PutArray("data")
 	count := 0
-	as := assessments.Assessments{}
 	var errs error
 	for _, st := range subTools {
 		n := resultData.AppendObject()
@@ -164,9 +162,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 					n.Put("findings_count", len(tp.GetRows(st.Result.Data)))
 				}
 			}
-			if st.Result.Assessment != nil {
+			if st.Result.Assessment != nil && st.Result.Assessment.URL != "" {
 				n.Put("assessment_url", st.Result.Assessment.URL)
-				as = append(as, st.Result.Assessment)
 			}
 		}
 		if st.Err != nil {
@@ -175,11 +172,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 	}
 	log.Infof("Finished running {primary:%d} tools", count)
-	if t.UpdatePR {
-		if err := as.UpdatePR(t.GetAPIClient()); err != nil {
-			return nil, err
-		}
-	}
 	return result, errs
 }
 
