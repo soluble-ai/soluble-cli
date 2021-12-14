@@ -47,7 +47,7 @@ type Download struct {
 	APIServerArtifact string
 	Dir               string
 	InstallTime       time.Time
-	OverrideExe       string
+	OverrideExe       string `json:"-"`
 }
 
 type DownloadMeta struct {

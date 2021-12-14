@@ -41,13 +41,14 @@ http_download () {
 fi
 
 configure_cli () {
-
     if [ -f "${HOME}/.soluble/cli-config.json" ]; then
-        echo "soluble config (${HOME}/.soluble/cli-config.json already exists"
+        echo "soluble config ${HOME}/.soluble/cli-config.json already exists"
+    elif [ -f "${HOME}/.config/lacework/cli-config.json" ]; then
+        echo "soluble config ${HOME}/.config/lacework/cli-config.json already exists"
     else 
         if [ "${SOLUBLE_API_URL}" != "" ]; then
             echo "Setting SOLUBLE_API_URL=${SOLUBLE_API_URL}"
-            ${soluble_exe} config  set APIServer "${SOLUBLE_API_URL}" >/dev/null
+            ${soluble_exe} config set APIServer "${SOLUBLE_API_URL}" >/dev/null
         fi
         if [ "${SOLUBLE_API_TOKEN}" != "" ]; then
             echo "Setting SOLUBLE_TOKEN=*******"

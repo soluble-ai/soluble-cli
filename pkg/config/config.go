@@ -125,7 +125,11 @@ func (c *ProfileT) String() string {
 	if cfg.APIToken != "" {
 		cfg.APIToken = Redacted
 	}
-	s, _ := yaml.Marshal(cfg)
+	var m map[string]interface{}
+	dat, _ := json.Marshal(cfg)
+	_ = json.Unmarshal(dat, &m)
+	m["ConfigFile"] = configFileRead
+	s, _ := yaml.Marshal(m)
 	return string(s)
 }
 
@@ -219,7 +223,7 @@ func Load() {
 	if ConfigDir == "" {
 		ConfigDir = os.Getenv("SOLUBLE_CONFIG_DIR")
 		if ConfigDir == "" {
-			ConfigDir, _ = homedir.Expand("~/.lacework")
+			ConfigDir, _ = homedir.Expand("~/.config/lacework")
 		}
 	}
 	if ConfigFile == "" {

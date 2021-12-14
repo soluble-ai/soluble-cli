@@ -23,7 +23,6 @@ import (
 )
 
 type terraformDetector struct {
-	dotTerraform string
 }
 
 var providerRegexp = regexp.MustCompile(`(?m)^provider\s+"`)
@@ -31,25 +30,17 @@ var providerRegexp = regexp.MustCompile(`(?m)^provider\s+"`)
 var _ FileDetector = &terraformDetector{}
 
 func (d *terraformDetector) DetectFileName(m *Manifest, path string) ContentDetector {
-	if d.dotTerraform != "" {
-		if strings.HasPrefix(path, d.dotTerraform) {
+	for _, dir := range filepath.SplitList(filepath.Dir(path)) {
+		// ignore paths in any directory that starts with a "."
+		if dir[0] == '.' {
 			return nil
 		}
-		d.dotTerraform = ""
 	}
 	if strings.HasSuffix(path, ".tf") || strings.HasSuffix(path, ".tf.json") {
 		m.TerraformModules.Add(filepath.Dir(path))
 		return d
 	}
 	return nil
-}
-
-func (d *terraformDetector) DetectDirName(m *Manifest, path string) {
-	// terraform init will download modules into .terraform, we're going to
-	// ignore these
-	if d.dotTerraform == "" && filepath.Base(path) == ".terraform" {
-		d.dotTerraform = path
-	}
 }
 
 func (*terraformDetector) DetectContent(m *Manifest, path string, content []byte) {
