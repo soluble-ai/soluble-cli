@@ -32,3 +32,11 @@ func TestTerraform(t *testing.T) {
 		"r1", "r1j", "r2", "m1",
 	})
 }
+
+func TestTerraformIgnroed(t *testing.T) {
+	assert := assert.New(t)
+	td := &terraformDetector{}
+	assert.True(td.isIgnoredDirectory("foo/.terraform/main.tf"))
+	assert.False(td.isIgnoredDirectory("main.tf"))
+	assert.True(td.isIgnoredDirectory(".external_modules/foo/main.tf"))
+}

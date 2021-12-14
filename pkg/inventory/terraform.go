@@ -15,6 +15,7 @@
 package inventory
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -29,12 +30,21 @@ var providerRegexp = regexp.MustCompile(`(?m)^provider\s+"`)
 
 var _ FileDetector = &terraformDetector{}
 
-func (d *terraformDetector) DetectFileName(m *Manifest, path string) ContentDetector {
-	for _, dir := range filepath.SplitList(filepath.Dir(path)) {
-		// ignore paths in any directory that starts with a "."
-		if dir[0] == '.' {
-			return nil
+func (d *terraformDetector) isIgnoredDirectory(path string) bool {
+	if pathDir := filepath.Dir(path); pathDir != "." {
+		for _, dir := range strings.Split(pathDir, string(os.PathSeparator)) {
+			// ignore paths in any directory that starts with a "."
+			if dir[0] == '.' {
+				return true
+			}
 		}
+	}
+	return false
+}
+
+func (d *terraformDetector) DetectFileName(m *Manifest, path string) ContentDetector {
+	if d.isIgnoredDirectory(path) {
+		return nil
 	}
 	if strings.HasSuffix(path, ".tf") || strings.HasSuffix(path, ".tf.json") {
 		m.TerraformModules.Add(filepath.Dir(path))
