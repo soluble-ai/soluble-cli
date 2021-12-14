@@ -71,7 +71,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	args := []string{"--no-color", "-f", "json"}
 	if customPoliciesDir != "" {
-		args = append(args, "--external-checks-dir", customPoliciesDir)
+		args = append(args, "--custom-check-dir", customPoliciesDir)
 	}
 	args = t.addTfVarsFileArg(args, "terraform.tfvars")
 	args = t.addTfVarsFileArg(args, "terraform.tfvars.json")
