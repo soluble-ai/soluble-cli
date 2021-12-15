@@ -22,11 +22,11 @@ require (
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.6.0
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.12.1
-	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
@@ -49,18 +49,16 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/kyokomi/emoji v2.1.0+incompatible // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
-	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
+	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
