@@ -33,6 +33,7 @@ func (group *HiddenOptionsGroup) Register(cmd *cobra.Command) {
 	group.CreateFlagsFunc(flags)
 	flags.VisitAll(func(f *pflag.Flag) {
 		f.Hidden = true
+		f.Usage = fmt.Sprintf("%s.  See help-%s for examples.", f.Usage, group.Name)
 		cmd.Flags().AddFlag(f)
 	})
 }
