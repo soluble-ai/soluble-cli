@@ -43,6 +43,7 @@ type PrintOpts struct {
 	DefaultSortBy       []string
 	Limit               int
 	Filter              string
+	Template            string
 	Formatters          map[string]print.Formatter
 	ComputedColumns     map[string]print.ColumnFunction
 	DiffContextSize     int
@@ -54,39 +55,35 @@ var _ Interface = &PrintOpts{}
 
 func GetPrintOptionsGroupHelpCommand() *cobra.Command {
 	opts := &PrintOpts{}
-	return opts.GetPrintOptionsGroup(true).GetHelpCommand()
+	return opts.GetPrintOptionsGroup().GetHelpCommand()
 }
 
-func (p *PrintOpts) GetPrintOptionsGroup(full bool) *HiddenOptionsGroup {
+func (p *PrintOpts) GetPrintOptionsGroup() *HiddenOptionsGroup {
 	return &HiddenOptionsGroup{
 		Name: "print-options",
 		Long: "These options control how results are printed",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
-			if !full {
-				flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
-					"Use this output `format`, where format is one of: yaml, json, value or none")
-			} else {
-				flags.StringVar(&p.OutputFormat, "format", p.DefaultOutputFormat,
-					"Use this output `format`, where format is one of: table, yaml, json, none, csv, or value(name).  See below.")
-				flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
-				flags.StringVar(&p.Filter, "filter", "", "Print results that match a `filter`.  See examples.")
-				if full || p.WideColumns != nil {
-					flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
-				}
-				flags.StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
-					"Sort by these `columns`.  See examples.")
-				flags.IntVar(&p.Limit, "print-limit", 0, "Print no more than this `number` of rows")
-				flags.IntVar(&p.DiffContextSize, "diff-context", 3,
-					"When printing diffs, the number of `lines` to print before and after a a diff.")
-				flags.BoolVar(&p.ExitErrorNotEmtpy, "error-not-empty", false,
-					"Exit with exit code 2 if the results (after filtering) are not empty")
-			}
+			flags.StringVar(&p.Template, "print-template", "",
+				"The go `template` to print with.  If the template begins with @, then read the template from a file.")
+			flags.StringVar(&p.OutputFormat, "format", "",
+				"Use this output `format` where format is one of: table, yaml, json, none, csv, template, or value(name).")
+			flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
+			flags.StringVar(&p.Filter, "filter", "", "Print results that match a `filter`.")
+			flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
+			flags.StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
+				"Sort by these `columns`")
+			flags.IntVar(&p.Limit, "print-limit", 0, "Print no more than this `number` of rows")
+			flags.IntVar(&p.DiffContextSize, "diff-context", 3,
+				"When printing diffs, the number of `lines` to print before and after a a diff.")
+			flags.BoolVar(&p.ExitErrorNotEmtpy, "error-not-empty", false,
+				"Exit with exit code 2 if the results (after filtering) are not empty")
 		},
 		Example: `
 Output formats:
 
-The output format can be selected with the --format flag.  For commands that support
-tabular data the default output format is "table"; otherwise the default is "yaml".
+The output format can be selected with the --format flag.  If --print-template is given
+the default format in "template".  For commands that support tabular data the default
+output format is "table"; otherwise the default is "yaml".
 
 The "value(name)" format prints only the "name" attribute from the results (from each row
 if printing tabular data.)
@@ -110,24 +107,31 @@ Tabular output can be filtered with glob-style patterns.  Examples:
 }
 
 func (p *PrintOpts) Register(cmd *cobra.Command) {
-	p.GetPrintOptionsGroup(p.Path != nil).Register(cmd)
+	p.GetPrintOptionsGroup().Register(cmd)
 }
 
 func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 	outputFormat := p.OutputFormat
+	if outputFormat == "" {
+		if p.Template != "" {
+			outputFormat = "template"
+		} else {
+			outputFormat = p.DefaultOutputFormat
+		}
+	}
 	switch {
-	case strings.HasPrefix(p.OutputFormat, "value("):
+	case strings.HasPrefix(outputFormat, "value("):
 		outputFormat = "value"
-	case p.Path == nil && p.OutputFormat == "":
+	case p.Path == nil && outputFormat == "":
 		// this is the default if the command hasn't specified a Path to the results
 		outputFormat = "yaml"
-	case p.Path != nil && p.OutputFormat == "":
+	case p.Path != nil && outputFormat == "":
 		// and this is the default if there is a Path
 		outputFormat = "table"
 	}
 	if p.ExitErrorNotEmtpy {
 		switch outputFormat {
-		case "table", "csv", "value", "vertical":
+		case "table", "csv", "value", "vertical", "template":
 			// supported
 			break
 		default:
@@ -158,6 +162,21 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			PathSupport: p.getPathSupport(),
 		}
 		return vp, nil
+	case "template":
+		if p.Template == "" {
+			return nil, fmt.Errorf("--print-template must be specified for --format template")
+		}
+		template := p.Template
+		if template[0] == '@' {
+			dat, err := os.ReadFile(template[1:])
+			if err != nil {
+				return nil, err
+			}
+			template = string(dat)
+		}
+		return &print.TemplatePrinter{
+			Template: template,
+		}, nil
 	case "table":
 		if p.Path == nil {
 			return nil, fmt.Errorf("this command does not support --format table")
