@@ -37,6 +37,7 @@ type Manifest struct {
 	NodeDirectories               util.StringSet `json:"node_directories"`
 	JavaDirectories               util.StringSet `json:"java_directories"`
 	RubyDirectories               util.StringSet `json:"ruby_directories"`
+	CDKDirectories                util.StringSet `json:"cdk_directories"`
 }
 
 type FileDetector interface {
@@ -146,6 +147,7 @@ func Do(root string) *Manifest {
 			javaGradleDetector(),
 			nodeDetector(),
 			rubyDetector(),
+			cdkDetector(),
 		)
 		return m
 	}).(*Manifest)
