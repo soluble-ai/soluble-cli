@@ -16,13 +16,10 @@ package autoscan
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
@@ -41,13 +38,11 @@ type Tool struct {
 	Images           []string
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Consolidated = &Tool{}
 
 type SubordinateTool struct {
-	tools.Interface
-	Skip   bool
-	Result *tools.Result
-	Err    error
+	tools.Single
+	Skip bool
 }
 
 func (*Tool) Name() string {
@@ -84,56 +79,47 @@ In addition, images can be scanned with trivy.
 	}
 }
 
-func (t *Tool) Run() (*tools.Result, error) {
+func (t *Tool) RunAll() (tools.Results, error) {
 	m := inventory.Do(t.GetDirectory())
 	subTools := []SubordinateTool{
 		{
-			Interface: &iacinventory.Local{
+			Single: &iacinventory.Local{
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
 			},
 		},
 		{
-			Interface: &checkov.Tool{
+			Single: &checkov.Tool{
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
 			},
 			Skip: m.TerraformRootModules.Len() == 0 && m.KubernetesManifestDirectories.Len() == 0,
 		},
 		{
-			Interface: &cfnpythonlint.Tool{
+			Single: &cfnpythonlint.Tool{
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
 				Templates:              m.CloudformationFiles.Values(),
 			},
 			Skip: m.CloudformationFiles.Len() == 0,
 		},
 		{
-			Interface: &secrets.Tool{
+			Single: &secrets.Tool{
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
 			},
 		},
 	}
 	for _, image := range t.Images {
 		subTools = append(subTools, SubordinateTool{
-			Interface: &trivy.Tool{
+			Single: &trivy.Tool{
 				Image: image,
 			},
 		})
 	}
-	result := &tools.Result{
-		Data:      jnode.NewObjectNode(),
-		PrintPath: []string{"data"},
-		PrintColumns: []string{
-			"name", "run_duration", "findings_count", "error",
-			"assessment_url"},
-	}
-	resultData := result.Data.PutArray("data")
 	count := 0
-	var errs error
+	var (
+		errs    error
+		results []*tools.Result
+	)
 	for _, st := range subTools {
-		n := resultData.AppendObject()
-		n.Put("skipped", st.Skip)
-		n.Put("name", st.Name())
 		if st.Skip || util.StringSliceContains(t.Skip, st.Name()) {
-			n.Put("run_duration", "skipped")
 			continue
 		}
 		count++
@@ -145,34 +131,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 		if dopts := st.GetDirectoryBasedToolOptions(); dopts != nil {
 			dopts.Exclude = t.Exclude
 		}
-		start := time.Now()
-		st.Result, st.Err = opts.RunTool(false)
-		rd := time.Since(start).Truncate(time.Millisecond)
-		n.Put("run_duration", rd.String())
-		if st.Result != nil {
-			opts.Path = st.Result.PrintPath
-			opts.Columns = st.Result.PrintColumns
-			if t.PrintToolResults {
-				opts.PrintToolResult(st.Result)
-			}
-			if pr, err := st.GetToolOptions().GetPrinter(); err == nil {
-				if st.Result.Findings != nil {
-					n.Put("findings_count", len(st.Result.Findings))
-				} else if tp, ok := pr.(*print.TablePrinter); ok {
-					n.Put("findings_count", len(tp.GetRows(st.Result.Data)))
-				}
-			}
-			if st.Result.Assessment != nil && st.Result.Assessment.URL != "" {
-				n.Put("assessment_url", st.Result.Assessment.URL)
+		log.Infof("Running {info:%s}", opts.Tool.Name())
+		toolResults, toolErr := opts.RunTool()
+		for _, res := range toolResults {
+			if res != nil {
+				results = append(results, res)
 			}
 		}
-		if st.Err != nil {
-			n.Put("error", st.Err.Error())
-			errs = multierror.Append(errs, fmt.Errorf("%s failed - %w", st.Name(), st.Err))
+		if toolErr != nil {
+			errs = multierror.Append(errs, fmt.Errorf("%s failed - %w", st.Name(), toolErr))
 		}
 	}
 	log.Infof("Finished running {primary:%d} tools", count)
-	return result, errs
+	return results, errs
 }
 
 func (t *Tool) getDirectoryOpts() tools.DirectoryBasedToolOpts {

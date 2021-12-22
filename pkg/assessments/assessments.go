@@ -58,7 +58,7 @@ type Finding struct {
 	Pass          bool   `json:"pass,omitempty"`
 	GeneratedFile bool   `json:"generated_filed,omitempty"`
 
-	// These fields are filled in by the CLI and sent to
+	// These fields are filled in by the CLI and sent to the api-server
 	RepoPath           string            `json:"repoPath,omitempty"`
 	PartialFingerprint string            `json:"partialFingerprint,omitempty"`
 	Tool               map[string]string `json:"tool,omitempty"`

@@ -31,7 +31,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *Tool) Name() string {
 	return "trivy-fs"

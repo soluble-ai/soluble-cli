@@ -41,7 +41,6 @@ type ToolOpts struct {
 	RunOpts
 	Tool                  Interface
 	UploadEnabled         bool
-	PrintAsessment        bool
 	PrintResultOpt        bool
 	SaveResult            string
 	PrintResultValues     bool
@@ -69,9 +68,11 @@ func (o *ToolOpts) GetConfig() *Config {
 
 func (o *ToolOpts) getConfig(repoRoot string) *Config {
 	if o.config == nil {
-		if util.FileExists(filepath.Join(repoRoot, ".soluble", "config.yml")) &&
-			!util.FileExists(filepath.Join(repoRoot, ".lacework", "config.yml")) {
-			log.Warnf("{info:.soluble/config.yml} is {warning:deprecated}.  Use {info:.lacework/config.yml} instead.")
+		oldConfig := filepath.Join(repoRoot, ".soluble", "config.yml")
+		newConfig := filepath.Join(repoRoot, ".lacework", "config.yml")
+		if util.FileExists(oldConfig) && !util.FileExists(newConfig) {
+			log.Warnf("{info:%s} is {warning:deprecated}.  Use {info:%s} instead.",
+				oldConfig, newConfig)
 			o.config = ReadConfig(filepath.Join(repoRoot, ".soluble"))
 		} else {
 			o.config = ReadConfig(filepath.Join(repoRoot, ".lacework"))
@@ -86,7 +87,6 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 		Long: "Options for running tools",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", false, "Don't use custom policies")
-			flags.BoolVar(&o.PrintAsessment, "print-assessment", false, "Print the full assessment response on stderr after an upload")
 			flags.BoolVar(&o.PrintResultOpt, "print-result", false, "Print the JSON result from the tool on stderr")
 			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON reesult from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")
@@ -96,12 +96,15 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 }
 
 func (o *ToolOpts) Register(c *cobra.Command) {
-	// set this now so help shows up, it will be corrected before we print anything
 	o.Path = []string{}
+	o.Columns = []string{
+		"sid", "severity", "pass", "title", "filePath", "line",
+	}
+	o.SetFormatter("pass", PassFormatter)
 	o.AuthNotRequired = true
 	o.RunOpts.Register(c)
 	flags := c.Flags()
-	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload report to Soluble")
+	flags.BoolVar(&o.UploadEnabled, "upload", true, "Upload report to Soluble.  Use --upload=false to disable.")
 	o.GetToolHiddenOptions().Register(c)
 }
 
@@ -131,44 +134,66 @@ func (o *ToolOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Dow
 	})
 }
 
-func (o *ToolOpts) PrintToolResult(result *Result) {
-	o.Columns = result.PrintColumns
-	if result.Findings != nil {
-		o.Path = []string{}
-		o.WideColumns = append(o.WideColumns, "repoPath", "partialFingerprint")
-		o.SetFormatter("pass", PassFormatter)
-		d, _ := json.Marshal(result.Findings)
-		n, _ := jnode.FromJSON(d)
-		o.PrintResult(n)
-		return
-	}
-	o.Path = result.PrintPath
-	o.Columns = result.PrintColumns
-	o.PrintResult(result.Data)
-}
-
-func (o *ToolOpts) RunTool(printResult bool) (*Result, error) {
+func (o *ToolOpts) RunTool() (Results, error) {
 	if err := o.Tool.Validate(); err != nil {
 		return nil, err
 	}
-	result, err := o.Tool.Run()
-	if err != nil || result == nil {
-		return nil, err
+	var (
+		results Results
+		err     error
+	)
+	if s, ok := o.Tool.(Single); ok {
+		var r *Result
+		r, err = s.Run()
+		if r != nil {
+			results = Results{r}
+		}
+	} else if c, ok := o.Tool.(Consolidated); ok {
+		results, err = c.RunAll()
 	}
+	for _, result := range results {
+		rerr := o.processResult(result)
+		if rerr != nil {
+			// processResult only fails if the upload failed, and if that
+			// fais then it's likely that nothing is going to work
+			return nil, rerr
+		}
+	}
+	return results, err
+}
+
+func (o *ToolOpts) processResult(result *Result) error {
 	result.AddValue("TOOL_NAME", o.Tool.Name()).
 		AddValue("CLI_VERSION", version.Version).
 		AddValue("SOLUBLE_COMMAND_LINE", strings.Join(os.Args, " "))
 	if diropts := o.Tool.GetDirectoryBasedToolOptions(); diropts != nil {
-		result.Findings.ComputePartialFingerprints(diropts.GetDirectory())
+		result.UpdateFileFingerprints(diropts.GetDirectory())
 		if o.RepoRoot != "" {
 			reldir, err := filepath.Rel(o.RepoRoot, diropts.GetDirectory())
 			if err == nil {
 				result.AddValue("ASSESSMENT_DIRECTORY", reldir)
 			}
 		}
-	}
-	if printResult {
-		o.PrintToolResult(result)
+		if diropts.PrintFingerprints || diropts.SaveFingerprints != "" {
+			d, err := json.Marshal(result.FileFingerprints)
+			util.Must(err)
+			n, err := jnode.FromJSON(d)
+			util.Must(err)
+			if diropts.PrintFingerprints {
+				p := &print.JSONPrinter{}
+				p.PrintResult(os.Stderr, n)
+			}
+			if diropts.SaveFingerprints != "" {
+				p := &print.JSONPrinter{}
+				f, err := os.Create(diropts.SaveFingerprints)
+				if err != nil {
+					log.Warnf("Could not save fingerprints: {warning:%s}", err)
+				} else {
+					p.PrintResult(f, n)
+					_ = f.Close()
+				}
+			}
+		}
 	}
 	if o.PrintResultOpt {
 		p := &print.JSONPrinter{}
@@ -177,7 +202,7 @@ func (o *ToolOpts) RunTool(printResult bool) (*Result, error) {
 	if o.SaveResult != "" {
 		f, err := os.Create(o.SaveResult)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		p := &print.JSONPrinter{}
 		p.PrintResult(f, result.Data)
@@ -189,13 +214,17 @@ func (o *ToolOpts) RunTool(printResult bool) (*Result, error) {
 	if o.SaveResultValues != "" {
 		f, err := os.Create(o.SaveResultValues)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		writeResultValues(f, result)
 		_ = f.Close()
 	}
-	err = result.Report(o.Tool, o.UploadEnabled)
-	return result, err
+	if o.UploadEnabled {
+		if err := result.Upload(o.GetAPIClient(), o.GetOrganization(), o.Tool.Name()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writeResultValues(w io.Writer, result *Result) {

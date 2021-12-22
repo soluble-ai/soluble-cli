@@ -27,21 +27,30 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
 type Result struct {
-	Data         *jnode.Node
-	Findings     assessments.Findings
-	Values       map[string]string
-	Directory    string
-	Files        *util.StringSet
-	PrintPath    []string
-	PrintColumns []string
+	Data             *jnode.Node
+	Findings         assessments.Findings
+	Values           map[string]string
+	Directory        string
+	Files            *util.StringSet
+	PrintPath        []string
+	PrintColumns     []string
+	FileFingerprints []*FileFingerprint
 
 	Assessment *assessments.Assessment
+}
+
+type Results []*Result
+
+type FileFingerprint struct {
+	Line               int    `json:"line"`
+	RepoPath           string `json:"repoPath,omitempty"`
+	PartialFingerprint string `json:"partialFingerprint,omitempty"`
+	FilePath           string `json:"filePath"`
 }
 
 var repoFiles = []string{
@@ -68,15 +77,9 @@ func (r *Result) AddValue(name, value string) *Result {
 	return r
 }
 
-func (r *Result) Report(tool Interface, upload bool) error {
-	return r.report(tool.GetToolOptions(), tool.GetDirectoryBasedToolOptions(), tool.Name(), upload)
-}
-
-func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name string, upload bool) error {
+func (r *Result) Upload(client *api.Client, org, name string) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
-	if upload {
-		log.Infof("Uploading results of {primary:%s}", name)
-	}
+	log.Infof("Uploading results of {primary:%s}", name)
 	options := []api.Option{
 		xcp.WithCIEnv(r.Directory), xcp.WithFileFromReader("results_json", "results.json", rr),
 	}
@@ -102,23 +105,16 @@ func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name strin
 		}
 	}
 	if r.Findings != nil {
-		if rf := attachFindings(r.Findings); rf != nil {
+		if rf := r.attachFindings(); rf != nil {
 			options = append(options, xcp.WithFileFromReader("findings_json", "findings.json", rf))
 		}
-		if rf := attachFingerprints(diropts, r.Findings); rf != nil {
+		if rf := r.attachFingerprints(); rf != nil {
 			options = append(options, xcp.WithFileFromReader("fingerprints_json", "fingerprints.json", rf))
 		}
 	}
-	if !upload {
-		return nil
-	}
-	n, err := o.GetAPIClient().XCPPost(o.GetOrganization(), name, nil, r.Values, options...)
+	n, err := client.XCPPost(org, name, nil, r.Values, options...)
 	if err != nil {
 		return err
-	}
-	if o.PrintAsessment {
-		p := &print.YAMLPrinter{}
-		p.PrintResult(os.Stderr, n)
 	}
 	if n.Path("assessment").IsObject() {
 		r.Assessment = &assessments.Assessment{}
@@ -133,18 +129,10 @@ func (r *Result) report(o *ToolOpts, diropts *DirectoryBasedToolOpts, name strin
 	return nil
 }
 
-func attachFindings(findings assessments.Findings) io.Reader {
-	fd, err := json.Marshal(findings)
-	if err != nil {
-		log.Warnf("Could not marshal findings: {warning:%s}", err)
-		return nil
-	}
-	return bytes.NewReader(fd)
-}
-
-func attachFingerprints(diropts *DirectoryBasedToolOpts, findings assessments.Findings) io.Reader {
+func (r *Result) UpdateFileFingerprints(dir string) {
+	r.Findings.ComputePartialFingerprints(dir)
 	m := map[string]*assessments.Finding{}
-	for _, f := range findings {
+	for _, f := range r.Findings {
 		if f.PartialFingerprint == "" {
 			continue
 		}
@@ -154,35 +142,47 @@ func attachFingerprints(diropts *DirectoryBasedToolOpts, findings assessments.Fi
 			m[key] = f
 		}
 	}
-	n := jnode.NewArrayNode()
+	r.FileFingerprints = make([]*FileFingerprint, 0, len(m))
 	for _, f := range m {
-		o := n.AppendObject().
-			Put("filePath", f.FilePath).
-			Put("partialFingerprint", f.PartialFingerprint).
-			Put("line", f.Line)
-		if f.RepoPath != "" {
-			o.Put("repoPath", f.RepoPath)
-		}
+		r.FileFingerprints = append(r.FileFingerprints,
+			&FileFingerprint{
+				FilePath:           f.FilePath,
+				PartialFingerprint: f.PartialFingerprint,
+				Line:               f.Line,
+				RepoPath:           f.RepoPath,
+			})
 	}
-	if diropts != nil {
-		if diropts.PrintFingerprints {
-			p := &print.JSONPrinter{}
-			p.PrintResult(os.Stderr, n)
-		}
-		if diropts.SaveFingerprints != "" {
-			p := &print.JSONPrinter{}
-			f, err := os.Create(diropts.SaveFingerprints)
-			if err != nil {
-				log.Warnf("Could not save fingerprints: {warning:%s}", err)
-			} else {
-				p.PrintResult(f, n)
-				_ = f.Close()
-			}
-		}
+}
+
+func (r *Result) attachFindings() io.Reader {
+	fd, err := json.Marshal(r.Findings)
+	if err != nil {
+		log.Warnf("Could not marshal findings: {warning:%s}", err)
+		return nil
 	}
-	d, err := json.Marshal(n)
+	return bytes.NewReader(fd)
+}
+
+func (r *Result) attachFingerprints() io.Reader {
+	d, err := json.Marshal(r.FileFingerprints)
 	if err != nil {
 		log.Warnf("Could not marshal fingerprints: {warning:%s}", err)
 	}
 	return bytes.NewReader(d)
+}
+
+func (results Results) getFindingsJNode() (*jnode.Node, error) {
+	var findings []*assessments.Finding
+	for _, result := range results {
+		if result.Assessment != nil {
+			findings = append(findings, result.Assessment.Findings...)
+		} else {
+			findings = append(findings, result.Findings...)
+		}
+	}
+	d, err := json.Marshal(findings)
+	if err != nil {
+		return nil, err
+	}
+	return jnode.FromJSON(d)
 }

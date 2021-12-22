@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	_ tools.Interface = &Tool{}
+	_ tools.Single = &Tool{}
 )
 
 type Tool struct {

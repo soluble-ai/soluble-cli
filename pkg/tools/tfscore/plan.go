@@ -17,7 +17,7 @@ type PlanTool struct {
 	extraArgs     tools.ExtraArgs
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *PlanTool) Name() string {
 	return "tfscore-plan"

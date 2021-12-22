@@ -32,7 +32,7 @@ type Tool struct {
 	ClearCache bool
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *Tool) Name() string {
 	return "trivy"

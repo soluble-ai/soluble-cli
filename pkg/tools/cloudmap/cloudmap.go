@@ -17,7 +17,7 @@ type Tool struct {
 	extraArgs tools.ExtraArgs
 }
 
-var _ tools.Interface = (*Tool)(nil)
+var _ tools.Single = (*Tool)(nil)
 
 func (*Tool) Name() string {
 	return "cloud-map"

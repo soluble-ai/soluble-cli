@@ -37,7 +37,7 @@ type Tool struct {
 	TerraformCommand string
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *Tool) Name() string {
 	return "tfsec"
