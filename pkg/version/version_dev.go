@@ -18,17 +18,20 @@
 package version
 
 import (
-	"time"
-
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
 func init() {
-	// when running locally initialize version strings by looking at
-	// local git version
-	v, err := util.Git("describe", "--tags", "--dirty", "--always")
+	// When running locally initialize version strings by looking at
+	// local git version. But first make sure we're in the soluble-cli
+	// repository.
+	u, err := util.Git("config", "remote.origin.url")
 	if err == nil {
-		Version = v
+		if u == "git@github.com:soluble-ai/soluble-cli.git" {
+			v, err := util.Git("describe", "--tags", "--dirty", "--always")
+			if err == nil {
+				Version = v
+			}
+		}
 	}
-	BuildTime = time.Now().Format(time.RFC3339)
 }

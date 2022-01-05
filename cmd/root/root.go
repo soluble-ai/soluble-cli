@@ -62,7 +62,7 @@ func Command() *cobra.Command {
 	// rootCmd represents the base command when called without any subcommands
 	rootCmd := &cobra.Command{
 		Use:           "soluble",
-		Long:          fmt.Sprintf(`Soluble CLI version %s built %s`, v.Version, v.BuildTime),
+		Long:          fmt.Sprintf(`Soluble CLI version %s`, v.Version),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
