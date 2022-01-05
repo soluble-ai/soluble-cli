@@ -20,10 +20,10 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	if Version == "" || BuildTime == "" {
+	if Version == "" {
 		t.Error("missing version")
 	}
-	if !IsCompatible(Version) {
+	if Version != "<unknown>" && !IsCompatible(Version) {
 		t.Error(Version)
 	}
 }
