@@ -17,6 +17,7 @@ package assessments
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,7 +107,9 @@ func (findings Findings) ComputePartialFingerprints(dir string) {
 	for filePath, fs := range findingsForFiles {
 		file, err := os.Open(filepath.Join(dir, filePath))
 		if err != nil {
-			log.Warnf("Could not read file for fingerprinting - {warning:%s}", err.Error())
+			if !errors.Is(err, os.ErrNotExist) {
+				log.Warnf("Could not read file for fingerprinting - {warning:%s}", err.Error())
+			}
 			continue
 		}
 		defer file.Close()
