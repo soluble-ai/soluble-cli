@@ -21,6 +21,18 @@ type Interface interface {
 	GetToolOptions() *ToolOpts
 	GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts
 	Validate() error
-	Run() (*Result, error)
 	Name() string
+}
+
+// A Single tool runs and returns a single result
+type Single interface {
+	Interface
+	Run() (*Result, error)
+}
+
+// A Consolidated tool runs and returns multiple results (typically by invoking
+// other tools)
+type Consolidated interface {
+	Interface
+	RunAll() (Results, error)
 }

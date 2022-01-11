@@ -29,7 +29,7 @@ type Tool struct {
 	Templates []string
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *Tool) Name() string {
 	return "cfn-nag"

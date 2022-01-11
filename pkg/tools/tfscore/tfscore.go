@@ -21,7 +21,7 @@ type Tool struct {
 	extraArgs tools.ExtraArgs
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *Tool) Name() string {
 	return "tfscore"

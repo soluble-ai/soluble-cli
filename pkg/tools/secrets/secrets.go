@@ -30,7 +30,7 @@ type Tool struct {
 	args []string
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (t *Tool) Name() string {
 	return "secrets"

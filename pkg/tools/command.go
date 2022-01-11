@@ -17,7 +17,6 @@ package tools
 import (
 	"fmt"
 
-	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -50,15 +49,26 @@ func CreateCommand(tool Interface) *cobra.Command {
 func runTool(tool Interface) error {
 	opts := tool.GetToolOptions()
 	opts.Tool = tool
-	result, err := opts.RunTool(true)
-	if err != nil || result == nil {
+	results, toolErr := opts.RunTool()
+	// even if the tool had an error we may have partial
+	// results that can be displayed
+	for _, result := range results {
+		if result.Assessment != nil && result.Assessment.URL != "" {
+			log.Infof("Asessment uploaded, see {primary:%s} for more information", result.Assessment.URL)
+		}
+	}
+	n, err := results.getFindingsJNode()
+	if err != nil {
 		return err
 	}
-	if !opts.UploadEnabled {
-		blurb.SignupBlurb(opts, "Want to manage findings with {primary:Soluble}?", "run this command again with the {info:--upload} flag")
+	if toolErr == nil || n.Size() > 0 {
+		opts.PrintResult(n)
 	}
-	if result.Assessment != nil && result.Assessment.URL != "" {
-		log.Infof("Results uploaded, see {primary:%s} for more information", result.Assessment.URL)
+	if toolErr != nil {
+		return toolErr
+	}
+	if !opts.UploadEnabled {
+		log.Infof("Scan results not uploaded")
 	}
 	return nil
 }

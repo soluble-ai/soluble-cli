@@ -25,7 +25,7 @@ type Local struct {
 	tools.DirectoryBasedToolOpts
 }
 
-var _ tools.Interface = &Local{}
+var _ tools.Single = &Local{}
 
 func (t *Local) Name() string {
 	return "local-inventory"

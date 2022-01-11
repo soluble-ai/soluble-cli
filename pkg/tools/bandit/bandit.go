@@ -28,7 +28,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 }
 
-var _ tools.Interface = (*Tool)(nil)
+var _ tools.Single = (*Tool)(nil)
 
 func (t *Tool) Name() string {
 	return "bandit"

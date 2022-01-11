@@ -33,7 +33,7 @@ type Tool struct {
 	extraArgs []string
 }
 
-var _ tools.Interface = &Tool{}
+var _ tools.Single = &Tool{}
 
 func (*Tool) Name() string {
 	return "semgrep"
