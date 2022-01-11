@@ -22,18 +22,14 @@ import (
 	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 type DirectoryBasedToolOpts struct {
 	ToolOpts
-	Directory         string
-	Exclude           []string
-	PrintFingerprints bool
-	SaveFingerprints  string
+	Directory string
+	Exclude   []string
 
 	absDirectory string
 	ignore       *ignore.GitIgnore
@@ -128,23 +124,11 @@ func (o *DirectoryBasedToolOpts) GetDockerRunDirectory() string {
 	return "/src"
 }
 
-func (o *DirectoryBasedToolOpts) GetDirectoryBasedHiddenOptions() *options.HiddenOptionsGroup {
-	return &options.HiddenOptionsGroup{
-		Name: "directory-based-options",
-		Long: "Options for running tools in a directory",
-		CreateFlagsFunc: func(flags *pflag.FlagSet) {
-			flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
-			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
-		},
-	}
-}
-
 func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 	o.ToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringVarP(&o.Directory, "directory", "d", "", "The directory to run in.")
 	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob pattern (path/**/foo.txt syntax supported.)  May be repeated.")
-	o.GetDirectoryBasedHiddenOptions().Register(cmd)
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {

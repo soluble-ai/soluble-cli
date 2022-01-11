@@ -76,7 +76,6 @@ Some options have been hidden, use "{{ helpPath $ }} -a" to display all options{
 		globalOptionsHelp,
 		(&tools.ToolOpts{}).GetToolHiddenOptions().GetHelpCommand(),
 		(&tools.RunOpts{}).GetRunHiddenOptions().GetHelpCommand(),
-		(&tools.DirectoryBasedToolOpts{}).GetDirectoryBasedHiddenOptions().GetHelpCommand(),
 	)
 }
 

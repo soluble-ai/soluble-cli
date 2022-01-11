@@ -22,3 +22,11 @@ func PassFormatter(n *jnode.Node) string {
 	}
 	return "FAIL"
 }
+
+func MissingFormatter(n *jnode.Node) string {
+	t := n.AsText()
+	if t == "" {
+		return "?"
+	}
+	return t
+}

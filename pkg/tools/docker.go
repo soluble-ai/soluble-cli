@@ -59,12 +59,11 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 		return nil, err
 	}
 	if !skipPull {
-		log.Infof("Pulling {primary:%s}", t.Image)
 		// #nosec G204
 		pull := exec.Command("docker", "pull", t.Image)
-		pull.Stderr = os.Stderr
-		pull.Stdout = os.Stdout
-		if err := pull.Run(); err != nil {
+		out, err := pull.Output()
+		if err != nil {
+			os.Stderr.Write(out)
 			log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
 		}
 	}

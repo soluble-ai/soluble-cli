@@ -47,6 +47,8 @@ type ToolOpts struct {
 	SaveResultValues      string
 	DisableCustomPolicies bool
 	RepoRoot              string
+	PrintFingerprints     bool
+	SaveFingerprints      string
 
 	customPoliciesDir *string
 	config            *Config
@@ -91,6 +93,8 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON reesult from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")
 			flags.StringVar(&o.SaveResultValues, "save-result-values", "", "Save the result values from the tool to `file`")
+			flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
+			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
 		},
 	}
 }
@@ -101,6 +105,9 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 		"sid", "severity", "pass", "title", "filePath", "line",
 	}
 	o.SetFormatter("pass", PassFormatter)
+	// if not uploaded these columns will be empty, so make that a little easier to see
+	o.SetFormatter("sid", MissingFormatter)
+	o.SetFormatter("severity", MissingFormatter)
 	o.AuthNotRequired = true
 	o.RunOpts.Register(c)
 	flags := c.Flags()
@@ -166,32 +173,32 @@ func (o *ToolOpts) processResult(result *Result) error {
 	result.AddValue("TOOL_NAME", o.Tool.Name()).
 		AddValue("CLI_VERSION", version.Version).
 		AddValue("SOLUBLE_COMMAND_LINE", strings.Join(os.Args, " "))
-	if diropts := o.Tool.GetDirectoryBasedToolOptions(); diropts != nil {
-		result.UpdateFileFingerprints(diropts.GetDirectory())
+	if result.Directory != "" {
+		result.UpdateFileFingerprints()
 		if o.RepoRoot != "" {
-			reldir, err := filepath.Rel(o.RepoRoot, diropts.GetDirectory())
-			if err == nil {
+			reldir, err := filepath.Rel(o.RepoRoot, result.Directory)
+			if err == nil && !strings.HasPrefix(reldir, "..") {
 				result.AddValue("ASSESSMENT_DIRECTORY", reldir)
 			}
 		}
-		if diropts.PrintFingerprints || diropts.SaveFingerprints != "" {
-			d, err := json.Marshal(result.FileFingerprints)
-			util.Must(err)
-			n, err := jnode.FromJSON(d)
-			util.Must(err)
-			if diropts.PrintFingerprints {
-				p := &print.JSONPrinter{}
-				p.PrintResult(os.Stderr, n)
-			}
-			if diropts.SaveFingerprints != "" {
-				p := &print.JSONPrinter{}
-				f, err := os.Create(diropts.SaveFingerprints)
-				if err != nil {
-					log.Warnf("Could not save fingerprints: {warning:%s}", err)
-				} else {
-					p.PrintResult(f, n)
-					_ = f.Close()
-				}
+	}
+	if o.PrintFingerprints || o.SaveFingerprints != "" {
+		d, err := json.Marshal(result.FileFingerprints)
+		util.Must(err)
+		n, err := jnode.FromJSON(d)
+		util.Must(err)
+		if o.PrintFingerprints {
+			p := &print.JSONPrinter{}
+			p.PrintResult(os.Stderr, n)
+		}
+		if o.SaveFingerprints != "" {
+			p := &print.JSONPrinter{}
+			f, err := os.Create(o.SaveFingerprints)
+			if err != nil {
+				log.Warnf("Could not save fingerprints: {warning:%s}", err)
+			} else {
+				p.PrintResult(f, n)
+				_ = f.Close()
 			}
 		}
 	}
