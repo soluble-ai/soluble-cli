@@ -129,8 +129,11 @@ func (r *Result) Upload(client *api.Client, org, name string) error {
 	return nil
 }
 
-func (r *Result) UpdateFileFingerprints(dir string) {
-	r.Findings.ComputePartialFingerprints(dir)
+func (r *Result) UpdateFileFingerprints() {
+	if r.Directory == "" {
+		return
+	}
+	r.Findings.ComputePartialFingerprints(r.Directory)
 	m := map[string]*assessments.Finding{}
 	for _, f := range r.Findings {
 		if f.PartialFingerprint == "" {

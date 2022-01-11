@@ -25,3 +25,8 @@ func TestPassFormatter(t *testing.T) {
 	assert := assert.New(t)
 	assert.Equal("PASS", PassFormatter(jnode.NewObjectNode().Put("pass", true).Path("pass")))
 }
+
+func TestMissingFormatter(t *testing.T) {
+	assert := assert.New(t)
+	assert.Equal("?", MissingFormatter(jnode.NewObjectNode().Path("missing")))
+}

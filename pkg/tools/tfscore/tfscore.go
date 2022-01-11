@@ -50,7 +50,7 @@ func (t *Tool) Validate() error {
 	if t.Directory == "" {
 		t.Directory = filepath.Dir(t.PlanFile)
 	}
-	return t.GetDirectoryBasedToolOptions().Validate()
+	return t.DirectoryBasedToolOpts.Validate()
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
