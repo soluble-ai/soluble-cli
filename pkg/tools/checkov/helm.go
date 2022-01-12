@@ -24,6 +24,9 @@ func (h *Helm) RunAll() (tools.Results, error) {
 		errs    error
 	)
 	inventory := h.GetInventory()
+	if len(inventory.HelmCharts.Values()) == 0 {
+		return nil, fmt.Errorf("no helm charts found under %s", h.GetDirectory())
+	}
 	for _, chart := range inventory.HelmCharts.Values() {
 		checkov := &Tool{
 			DirectoryBasedToolOpts: h.DirectoryBasedToolOpts,

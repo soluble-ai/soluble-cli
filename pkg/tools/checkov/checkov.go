@@ -203,7 +203,7 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 	})
 	for _, n := range checks.Elements() {
 		path := n.Path("file_path").AsText()
-		result.Findings = append(result.Findings, &assessments.Finding{
+		finding := &assessments.Finding{
 			Tool: map[string]string{
 				"check_id":   n.Path("check_id").AsText(),
 				"check_type": checkType,
@@ -212,8 +212,16 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 			Line:          n.Path("file_line_range").Get(0).AsInt(),
 			Pass:          pass,
 			Title:         n.Path("check_name").AsText(),
-			GeneratedFile: strings.HasPrefix(filepath.ToSlash(path), ".external_modules/"),
-		})
+			GeneratedFile: t.isGeneratedFile(path),
+		}
+		result.Findings = append(result.Findings, finding)
 	}
 	return checks
+}
+
+func (t *Tool) isGeneratedFile(path string) bool {
+	if t.Framework == "" || t.Framework == "terraform" {
+		return strings.HasPrefix(filepath.ToSlash(path), ".external_modules/")
+	}
+	return false
 }
