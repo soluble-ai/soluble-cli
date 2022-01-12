@@ -87,5 +87,12 @@ func (cdk *CDK) Run() (*tools.Result, error) {
 	if err := checkov.Validate(); err != nil {
 		return nil, err
 	}
-	return checkov.Run()
+	result, err := checkov.Run()
+	if result != nil {
+		// all cdk findings are in generated files
+		for _, f := range result.Findings {
+			f.GeneratedFile = true
+		}
+	}
+	return result, err
 }

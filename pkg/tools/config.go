@@ -18,7 +18,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/soluble-ai/go-jnode"
@@ -51,9 +50,8 @@ func (c *Config) IsIgnored(path string) bool {
 	return c.ignore.MatchesPath(path)
 }
 
-func ReadConfig(dir string) *Config {
+func ReadConfigFile(path string) *Config {
 	c := &Config{}
-	path := filepath.Join(dir, "config.yml")
 	d, err := ioutil.ReadFile(path)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {

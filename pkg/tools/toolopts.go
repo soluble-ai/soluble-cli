@@ -49,6 +49,7 @@ type ToolOpts struct {
 	RepoRoot              string
 	PrintFingerprints     bool
 	SaveFingerprints      string
+	ConfigFile            string
 
 	customPoliciesDir *string
 	config            *Config
@@ -70,14 +71,18 @@ func (o *ToolOpts) GetConfig() *Config {
 
 func (o *ToolOpts) getConfig(repoRoot string) *Config {
 	if o.config == nil {
-		oldConfig := filepath.Join(repoRoot, ".soluble", "config.yml")
-		newConfig := filepath.Join(repoRoot, ".lacework", "config.yml")
-		if util.FileExists(oldConfig) && !util.FileExists(newConfig) {
-			log.Warnf("{info:%s} is {warning:deprecated}.  Use {info:%s} instead.",
-				oldConfig, newConfig)
-			o.config = ReadConfig(filepath.Join(repoRoot, ".soluble"))
+		if o.ConfigFile != "" {
+			o.config = ReadConfigFile(o.ConfigFile)
 		} else {
-			o.config = ReadConfig(filepath.Join(repoRoot, ".lacework"))
+			oldConfig := filepath.Join(repoRoot, ".soluble", "config.yml")
+			newConfig := filepath.Join(repoRoot, ".lacework", "config.yml")
+			if util.FileExists(oldConfig) && !util.FileExists(newConfig) {
+				log.Warnf("{info:%s} is {warning:deprecated}.  Use {info:%s} instead.",
+					oldConfig, newConfig)
+				o.config = ReadConfigFile(oldConfig)
+			} else {
+				o.config = ReadConfigFile(newConfig)
+			}
 		}
 	}
 	return o.config
@@ -95,6 +100,7 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 			flags.StringVar(&o.SaveResultValues, "save-result-values", "", "Save the result values from the tool to `file`")
 			flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
 			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
+			flags.StringVar(&o.ConfigFile, "config-file", "", "Read tool configuration from `file`, overriding the default config file search.")
 		},
 	}
 }

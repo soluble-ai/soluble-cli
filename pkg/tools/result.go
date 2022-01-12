@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
@@ -51,6 +52,7 @@ type FileFingerprint struct {
 	RepoPath           string `json:"repoPath,omitempty"`
 	PartialFingerprint string `json:"partialFingerprint,omitempty"`
 	FilePath           string `json:"filePath"`
+	MultiDocumentFile  bool   `json:"multiDocumentFile,omitempty"`
 }
 
 var repoFiles = []string{
@@ -135,26 +137,48 @@ func (r *Result) UpdateFileFingerprints() {
 	}
 	r.Findings.ComputePartialFingerprints(r.Directory)
 	m := map[string]*assessments.Finding{}
+	multiDocument := map[string]*bool{}
 	for _, f := range r.Findings {
-		if f.PartialFingerprint == "" {
-			continue
-		}
 		key := fmt.Sprintf("%s:%d", f.FilePath, f.Line)
 		ff := m[key]
 		if ff == nil {
 			m[key] = f
 		}
+		md := multiDocument[f.FilePath]
+		if md == nil {
+			m := isMultiDocument(f.FilePath)
+			multiDocument[f.FilePath] = &m
+		}
 	}
 	r.FileFingerprints = make([]*FileFingerprint, 0, len(m))
 	for _, f := range m {
+		md := multiDocument[f.FilePath]
 		r.FileFingerprints = append(r.FileFingerprints,
 			&FileFingerprint{
 				FilePath:           f.FilePath,
 				PartialFingerprint: f.PartialFingerprint,
 				Line:               f.Line,
 				RepoPath:           f.RepoPath,
+				MultiDocumentFile:  md != nil && *md,
 			})
 	}
+}
+
+func isMultiDocument(path string) bool {
+	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") {
+		var dash3Count int
+		_ = util.ForEachLine(path, func(line string) bool {
+			if line == "---" {
+				dash3Count++
+				if dash3Count > 1 {
+					return false
+				}
+			}
+			return true
+		})
+		return dash3Count > 1
+	}
+	return false
 }
 
 func (r *Result) attachFindings() io.Reader {
