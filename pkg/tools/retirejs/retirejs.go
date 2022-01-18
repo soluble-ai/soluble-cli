@@ -83,9 +83,8 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 	})
 	results.Put("data", dataArray)
 	result := &tools.Result{
-		Data:         results,
-		Findings:     findings,
-		PrintColumns: []string{"tool.component", "tool.version", "tool.severity", "tool.identifier", "filePath"},
+		Data:     results,
+		Findings: findings,
 	}
 	return result
 }

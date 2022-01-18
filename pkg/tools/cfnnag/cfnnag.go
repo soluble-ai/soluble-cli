@@ -73,9 +73,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  parseResults(results),
-		PrintColumns: []string{
-			"tool.id", "tool.type", "filePath", "description",
-		},
 	}
 	return result, nil
 }

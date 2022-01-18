@@ -179,12 +179,5 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 		Directory: t.GetDirectory(),
 		Data:      n,
 		Findings:  findings,
-		PrintColumns: []string{
-			"tool.rule_id",
-			"tool.severity",
-			"filePath",
-			"line",
-			"description",
-		},
 	}
 }

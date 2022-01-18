@@ -87,9 +87,8 @@ func parseResults(results *jnode.Node) *tools.Result {
 		})
 	}
 	result := &tools.Result{
-		Data:         results,
-		Findings:     findings,
-		PrintColumns: []string{"tool.Rule_Id", "tool.Level", "filePath", "line", "tool.Message"},
+		Data:     results,
+		Findings: findings,
 	}
 	return result
 }

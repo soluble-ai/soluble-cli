@@ -23,6 +23,10 @@ func (*Tool) Name() string {
 	return "cloud-map"
 }
 
+func (*Tool) IsNonAssessment() bool {
+	return true
+}
+
 func (t *Tool) CommandTemplate() *cobra.Command {
 	return &cobra.Command{
 		Use:     "cloud-map",
@@ -35,6 +39,8 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	cmd.Flags().StringVar(&t.StateFile, "state-file", "", "Map resources from terraform state `file`")
+	t.Path = []string{"managed_resources"}
+	t.Columns = []string{"source_location.file", "source_location.line", "cloud_id"}
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
@@ -60,9 +66,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	result := &tools.Result{
-		Data:         n,
-		PrintPath:    []string{"managed_resources"},
-		PrintColumns: []string{"source_location.file", "source_location.line", "cloud_id"},
+		Data: n,
 	}
 	result.AddValue("TFSCORE_VERSION", d.Version)
 	return result, nil

@@ -57,6 +57,10 @@ type ToolOpts struct {
 
 var _ options.Interface = &ToolOpts{}
 
+func (o *ToolOpts) IsNonAssessment() bool {
+	return false
+}
+
 func (o *ToolOpts) GetToolOptions() *ToolOpts {
 	return o
 }
@@ -106,10 +110,6 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 }
 
 func (o *ToolOpts) Register(c *cobra.Command) {
-	o.Path = []string{}
-	o.Columns = []string{
-		"sid", "severity", "pass", "title", "filePath", "line",
-	}
 	o.SetFormatter("pass", PassFormatter)
 	// if not uploaded these columns will be empty, so make that a little easier to see
 	o.SetFormatter("sid", MissingFormatter)
@@ -247,6 +247,9 @@ func writeResultValues(w io.Writer, result *Result) {
 }
 
 func (o *ToolOpts) GetCustomPoliciesDir() (string, error) {
+	if o.DisableCustomPolicies {
+		return "", nil
+	}
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil
 	}

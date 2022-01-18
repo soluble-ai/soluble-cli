@@ -90,8 +90,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Values: map[string]string{
 			"TRIVY_VERSION": d.Version,
 		},
-		Findings:     parseResults(n),
-		PrintColumns: []string{"filePath", "tool.PkgName", "tool.VulnerabilityID", "tool.Severity", "tool.InstalledVersion", "tool.FixedVersion", "title"},
+		Findings: parseResults(n),
 	}
 
 	return result, nil

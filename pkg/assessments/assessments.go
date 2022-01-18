@@ -100,7 +100,7 @@ func (findings Findings) ComputePartialFingerprints(dir string) {
 		if f.FilePath != "" && f.Line > 0 {
 			findingsForFiles[f.FilePath] = append(findingsForFiles[f.FilePath], f)
 		}
-		if f.FilePath != "" && relDir != "" && !f.GeneratedFile {
+		if f.RepoPath == "" && f.FilePath != "" && relDir != "" && !f.GeneratedFile {
 			f.RepoPath = filepath.Join(relDir, f.FilePath)
 		}
 	}
@@ -112,7 +112,6 @@ func (findings Findings) ComputePartialFingerprints(dir string) {
 			}
 			continue
 		}
-		defer file.Close()
 		findingsForLine := map[int][]*Finding{}
 		for _, f := range fs {
 			findingsForLine[f.Line] = append(findingsForLine[f.Line], f)
@@ -125,6 +124,7 @@ func (findings Findings) ComputePartialFingerprints(dir string) {
 		if err != nil {
 			log.Warnf("Could not compute partial fingerprint for %s - %s", filePath, err.Error())
 		}
+		_ = file.Close()
 	}
 }
 

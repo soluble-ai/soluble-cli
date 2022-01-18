@@ -41,7 +41,16 @@ go mod tidy -v
 echo "Running go generate"
 go generate ./...
 
-echo "Running go test"
+# verify integration tests have build tag
+if find . -name '*.go' | \
+    egrep "integration/.*_test.go" | \
+    xargs egrep -c "//go:build integration" | \
+    egrep ":0$"; then
+    echo "Error: the integration tests listed above should have a '//go:build integration' build constraint"
+    exit 1
+fi
+
+echo "Running go test (unit tests)"
 go test -cover ./...
 
 linter=golangci-lint
@@ -57,6 +66,11 @@ if "${linter}" --help > /dev/null 2>&1; then
 else
     echo "golangci-lint not available, skipping lint"
 fi
+
+
+echo "Running go test (integration tests)"
+
+go test -tags=integration -timeout 30s ./.../integration
 
 rm -rf dist
 mkdir -p dist
