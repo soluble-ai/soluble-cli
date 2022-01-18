@@ -48,7 +48,7 @@ type PrintOpts struct {
 	ComputedColumns     map[string]print.ColumnFunction
 	DiffContextSize     int
 	ExitErrorNotEmtpy   bool
-	output              io.Writer
+	outputSource        func() io.Writer
 }
 
 var _ Interface = &PrintOpts{}
@@ -108,6 +108,7 @@ Tabular output can be filtered with glob-style patterns.  Examples:
 
 func (p *PrintOpts) Register(cmd *cobra.Command) {
 	p.GetPrintOptionsGroup().Register(cmd)
+	p.outputSource = cmd.OutOrStdout
 }
 
 func (p *PrintOpts) GetPrinter() (print.Interface, error) {
@@ -225,8 +226,8 @@ func (p *PrintOpts) getPathSupport() print.PathSupport {
 
 func (p *PrintOpts) PrintResult(result *jnode.Node) {
 	var w io.Writer
-	if p.output != nil {
-		w = p.output
+	if p.outputSource != nil {
+		w = p.outputSource()
 	} else {
 		w = os.Stdout
 	}

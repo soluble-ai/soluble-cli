@@ -91,6 +91,7 @@ func checkFile(assert *assert.Assertions, h *http.Request, name string, fn func(
 
 func TestIsMultiDocument(t *testing.T) {
 	assert := assert.New(t)
-	assert.True(isMultiDocument("testdata/multi_document.yaml"))
-	assert.False(isMultiDocument("testdata/single_document.yaml"))
+	r := &Result{Directory: "."}
+	assert.True(r.isMultiDocument("testdata/multi_document.yaml"))
+	assert.False(r.isMultiDocument("testdata/single_document.yaml"))
 }

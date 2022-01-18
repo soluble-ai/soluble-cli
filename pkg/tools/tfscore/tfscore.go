@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -92,13 +93,22 @@ func (t *Tool) Run() (*tools.Result, error) {
 		if err != nil {
 			return nil, err
 		}
+		findings := assessments.Findings{}
+		for _, f := range n.Path("risks").Elements() {
+			findings = append(findings,
+				&assessments.Finding{
+					SID:         f.Path("id").AsText(),
+					Severity:    f.Path("severity").AsText(),
+					FilePath:    f.Path("file").AsText(),
+					Line:        f.Path("line").AsInt(),
+					Description: f.Path("message").AsText(),
+				},
+			)
+		}
 		result = &tools.Result{
 			Data:      n,
 			Directory: t.GetDirectory(),
-			PrintPath: []string{"risks"},
-			PrintColumns: []string{
-				"id", "severity", "resource_name", "file", "line", "local_location.file", "local_location.line", "message",
-			},
+			Findings:  findings,
 		}
 		result.AddValue("TFSCORE_VERSION", d.Version)
 	}

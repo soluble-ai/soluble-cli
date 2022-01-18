@@ -129,9 +129,6 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 	result := &tools.Result{
 		Data:     n,
 		Findings: findings,
-		PrintColumns: []string{
-			"tool.check_id", "tool.severity", "filePath", "line", "tool.message",
-		},
 	}
 	return result
 }

@@ -38,8 +38,6 @@ type Result struct {
 	Values           map[string]string
 	Directory        string
 	Files            *util.StringSet
-	PrintPath        []string
-	PrintColumns     []string
 	FileFingerprints []*FileFingerprint
 
 	Assessment *assessments.Assessment
@@ -146,7 +144,7 @@ func (r *Result) UpdateFileFingerprints() {
 		}
 		md := multiDocument[f.FilePath]
 		if md == nil {
-			m := isMultiDocument(f.FilePath)
+			m := r.isMultiDocument(f.FilePath)
 			multiDocument[f.FilePath] = &m
 		}
 	}
@@ -164,10 +162,13 @@ func (r *Result) UpdateFileFingerprints() {
 	}
 }
 
-func isMultiDocument(path string) bool {
+func (r *Result) isMultiDocument(path string) bool {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(r.Directory, path)
+	}
 	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") {
 		var dash3Count int
-		_ = util.ForEachLine(path, func(line string) bool {
+		err := util.ForEachLine(path, func(line string) bool {
 			if line == "---" {
 				dash3Count++
 				if dash3Count > 1 {
@@ -176,6 +177,9 @@ func isMultiDocument(path string) bool {
 			}
 			return true
 		})
+		if err != nil {
+			log.Warnf("{warning:%s}", err)
+		}
 		return dash3Count > 1
 	}
 	return false

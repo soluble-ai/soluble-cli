@@ -22,6 +22,7 @@ type Interface interface {
 	GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts
 	Validate() error
 	Name() string
+	IsNonAssessment() bool
 }
 
 // A Single tool runs and returns a single result

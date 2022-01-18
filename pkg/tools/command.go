@@ -43,6 +43,13 @@ func CreateCommand(tool Interface) *cobra.Command {
 		return runTool(tool)
 	}
 	tool.Register(c)
+	if !tool.IsNonAssessment() {
+		o := tool.GetToolOptions()
+		o.Path = []string{}
+		o.Columns = []string{
+			"sid", "severity", "pass", "title", "filePath", "line",
+		}
+	}
 	return c
 }
 
@@ -57,12 +64,17 @@ func runTool(tool Interface) error {
 			log.Infof("Asessment uploaded, see {primary:%s} for more information", result.Assessment.URL)
 		}
 	}
-	n, err := results.getFindingsJNode()
-	if err != nil {
-		return err
-	}
-	if toolErr == nil || n.Size() > 0 {
-		opts.PrintResult(n)
+	if len(results) == 1 && tool.IsNonAssessment() {
+		result := results[0]
+		opts.PrintResult(result.Data)
+	} else {
+		n, err := results.getFindingsJNode()
+		if err != nil {
+			return err
+		}
+		if toolErr == nil || n.Size() > 0 {
+			opts.PrintResult(n)
+		}
 	}
 	if toolErr != nil {
 		return toolErr

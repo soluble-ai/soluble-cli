@@ -110,7 +110,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		_, _ = os.Stderr.Write(dat)
 		return nil, err
 	}
-
 	result := t.processResults(n)
 	return result, nil
 }
@@ -142,12 +141,11 @@ func (t *Tool) makeHelmAvailable() error {
 
 func (t *Tool) processResults(data *jnode.Node) *tools.Result {
 	result := &tools.Result{
-		Directory: t.GetDirectory(),
+		Directory: t.RepoRoot,
 		Data:      data,
-		PrintPath: []string{},
-		PrintColumns: []string{
-			"tool.check_id", "pass", "tool.check_type", "filePath", "line", "title",
-		},
+	}
+	if result.Directory == "" {
+		result.Directory = t.GetDirectory()
 	}
 	if data.IsArray() {
 		// checkov returns an array if it runs more than one check type at a go
@@ -213,6 +211,12 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 			Pass:          pass,
 			Title:         n.Path("check_name").AsText(),
 			GeneratedFile: t.isGeneratedFile(path),
+		}
+		if t.RepoRoot != "" {
+			// we run checkov in the repo root with the -d argument
+			// pointing to the actual directory, so in this case
+			// the RepoPath is the same as the path
+			finding.RepoPath = path
 		}
 		result.Findings = append(result.Findings, finding)
 	}

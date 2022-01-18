@@ -70,9 +70,6 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		Directory: t.GetDirectory(),
 		Data:      results,
 		Findings:  findings,
-		PrintColumns: []string{
-			"tool.id", "tool.issue", "tool.component", "tool.version", "tool.cvss_v3",
-		},
 	}
 	return result
 }

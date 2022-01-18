@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
@@ -92,14 +93,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	findings := assessments.Findings{}
+	for _, v := range n.Path("Vulnerabilities").Elements() {
+		findings = append(findings, &assessments.Finding{
+			Title: v.Path("Title").AsText(),
+		})
+	}
 	return &tools.Result{
 		Data: getData(d.Version, n),
 		Values: map[string]string{
 			"TRIVY_VERSION": d.Version,
 			"IMAGE":         t.Image,
 		},
-		PrintPath:    []string{"Vulnerabilities"},
-		PrintColumns: []string{"PkgName", "VulnerabilityID", "Severity", "InstalledVersion", "FixedVersion", "Title"},
+		Findings: findings,
 	}, nil
 }
 

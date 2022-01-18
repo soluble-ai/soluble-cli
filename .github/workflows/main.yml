@@ -44,16 +44,14 @@ jobs:
           ${{ runner.os }}-go-
     - name: Installing golangci-lint
       run: wget -O - -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s v1.42.1
-    - name: Build and Unit Test
+    - name: Build and Test
       run: ./hack/build.sh
-    - name: Caching docker images for test
-      uses: satackey/action-docker-layer-caching@v0.0.11
-      continue-on-error: true
-    - name: Test
-      run: ./hack/test.sh
       env:
         SOLUBLE_API_TOKEN: ${{ secrets.SOLUBLE_API_TOKEN }}
         SOLUBLE_API_SERVER: https://api.demo.soluble.cloud
+    - name: Caching docker images for test
+      uses: satackey/action-docker-layer-caching@v0.0.11
+      continue-on-error: true
     - name: Distribute Release
       run: ./hack/dist.sh
       env:

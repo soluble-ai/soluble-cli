@@ -16,6 +16,7 @@ package options
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/soluble-ai/go-jnode"
@@ -24,7 +25,7 @@ import (
 func TestPrintResult(t *testing.T) {
 	opts := &PrintOpts{}
 	w := &bytes.Buffer{}
-	opts.output = w
+	opts.outputSource = func() io.Writer { return w }
 	opts.PrintResult(jnode.NewObjectNode().Put("greeting", "hello"))
 	if s := w.String(); s != "greeting: hello\n\n" {
 		t.Error(s)
@@ -39,7 +40,7 @@ func TestPrintLimit(t *testing.T) {
 		NoHeaders: true,
 	}
 	w := &bytes.Buffer{}
-	opts.output = w
+	opts.outputSource = func() io.Writer { return w }
 	opts.PrintResult(fromJSON(`[{"x":"one"},{"x":"two"}]`))
 	if s := w.String(); s != "one\n" {
 		t.Error(s)

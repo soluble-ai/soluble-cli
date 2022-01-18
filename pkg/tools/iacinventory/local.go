@@ -31,6 +31,10 @@ func (t *Local) Name() string {
 	return "local-inventory"
 }
 
+func (t *Local) IsNonAssessment() bool {
+	return true
+}
+
 func (t *Local) Register(cmd *cobra.Command) {
 	t.Internal = true
 	t.DirectoryBasedToolOpts.Register(cmd)

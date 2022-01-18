@@ -157,10 +157,10 @@ func listProfilesCmd() *cobra.Command {
 	return c
 }
 
-type PrintConfigOpts options.PrintOpts
+type PrintConfigOpts struct{ options.PrintOpts }
 
 func (opts *PrintConfigOpts) Register(c *cobra.Command) {
-	(*options.PrintOpts)(opts).Register(c)
+	opts.PrintOpts.Register(c)
 	opts.NoHeaders = true
 	opts.Path = []string{"data"}
 	opts.Columns = []string{"text"}
@@ -169,7 +169,7 @@ func (opts *PrintConfigOpts) Register(c *cobra.Command) {
 func (opts *PrintConfigOpts) PrintConfig() {
 	n := jnode.NewObjectNode()
 	n.PutArray("data").AppendObject().Put("text", config.Config.String())
-	(*options.PrintOpts)(opts).PrintResult(n)
+	opts.PrintResult(n)
 }
 
 func showConfigCmd() *cobra.Command {
