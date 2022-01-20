@@ -123,7 +123,7 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 
 func (o *ToolOpts) Validate() error {
 	if o.UploadEnabled && o.GetAPIClientConfig().APIToken == "" {
-		blurb.SignupBlurb(o, "{info:--upload} requires signing up with {primary:Soluble}.", "")
+		blurb.SignupBlurb(o, "This command requires signing up with {primary:Soluble} (unless --upload=false).", "")
 		return fmt.Errorf("not authenticated with Soluble")
 	}
 	if o.RepoRoot == "" {

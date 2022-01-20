@@ -293,8 +293,9 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		log.Errorf("Could not install {warning:%s}", meta.Name)
-		if resp.StatusCode == http.StatusUnauthorized {
+		log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
+			resp.StatusCode)
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusNotFound {
 			log.Infof("Not logged into soluble?  Use {primary:soluble login} to login.")
 		}
 		return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)

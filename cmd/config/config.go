@@ -20,6 +20,7 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -179,6 +180,7 @@ func showConfigCmd() *cobra.Command {
 		Short: "Show the configuration of the CLI",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
+			log.Infof("Current profile is {primary:%s}", config.GlobalConfig.CurrentProfile)
 			opts.PrintConfig()
 		},
 	}
