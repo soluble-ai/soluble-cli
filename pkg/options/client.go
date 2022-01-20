@@ -15,6 +15,8 @@
 package options
 
 import (
+	"time"
+
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/spf13/cobra"
@@ -48,11 +50,12 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.StringVar(&opts.APIServer, "api-server", "", "Soluble API server `url` (e.g. https://api.soluble.cloud)")
 			flags.BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
-			flags.IntVar(&opts.TimeoutSeconds, "timeout", opts.DefaultTimeout, "The timeout (in `seconds`) for requests (0 means no timeout)")
+			flags.DurationVar(&opts.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
+				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
 			flags.IntVar(&opts.RetryCount, "retry", 0, "The `number` of times to retry the request")
-			flags.Float64Var(&opts.RetryWaitSeconds, "retry-wait", 0,
+			flags.Float64Var(&opts.RetryWaitSeconds, "api-retry-wait", 0,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
-			flags.StringSliceVar(&opts.Headers, "header", nil, "Set custom headers in the form `name:value` on requests")
+			flags.StringSliceVar(&opts.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
 			flags.StringVar(&opts.Organization, "organization", "", "The organization `id` to use.")
 			flags.StringVar(&opts.APIToken, "api-token", "", "The authentication `token` (read from profile by default)")
 		},

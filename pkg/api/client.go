@@ -39,7 +39,7 @@ type Config struct {
 	APIPrefix        string
 	Debug            bool
 	TLSNoVerify      bool
-	TimeoutSeconds   int
+	Timeout          time.Duration
 	RetryCount       int
 	RetryWaitSeconds float64
 	Headers          []string
@@ -97,14 +97,13 @@ func NewClient(config *Config) *Client {
 		log.Debugf("{warning:%+v}\n", info)
 		return nil
 	})
-
 	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
 		t := r.Request.TraceInfo().TotalTime.Truncate(time.Millisecond)
 		if r.IsError() {
 			log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Request.Method,
 				r.Request.URL, r.StatusCode(), t)
 			log.Errorf("{warning:%s}\n", r.String())
-			if r.StatusCode() == 401 {
+			if r.StatusCode() == 401 || r.StatusCode() == 404 {
 				log.Infof("Are you not logged in?  Use {primary:soluble login} to login, or {primary:soluble auth profile} to verify")
 			}
 			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
@@ -114,7 +113,7 @@ func NewClient(config *Config) *Client {
 			r.Request.URL, r.StatusCode(), t)
 		return nil
 	})
-	c.SetTimeout(time.Duration(config.TimeoutSeconds) * time.Second)
+	c.SetTimeout(config.Timeout)
 	c.SetRetryCount(config.RetryCount)
 	if config.RetryWaitSeconds > 0 {
 		c.SetRetryWaitTime(time.Duration(config.RetryWaitSeconds*1000) * time.Millisecond)
