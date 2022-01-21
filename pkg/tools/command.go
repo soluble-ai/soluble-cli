@@ -17,6 +17,7 @@ package tools
 import (
 	"fmt"
 
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -66,9 +67,22 @@ func runTool(tool Interface) error {
 	}
 	if len(results) == 1 && tool.IsNonAssessment() {
 		result := results[0]
+		// for non-asessment tools just print the data
 		opts.PrintResult(result.Data)
 	} else {
-		n, err := results.getFindingsJNode()
+		var (
+			n   *jnode.Node
+			err error
+		)
+		// What we really want to work off here is a list of all the assessments.
+		// But the printer doesn't support a splat-like path i.e. *.findings to
+		// accumulate all the findings across the assessments.  So for the default
+		// or table output format we do that accumulation in code here.
+		if opts.OutputFormat == "" || opts.OutputFormat == "table" {
+			n, err = results.getFindingsJNode()
+		} else {
+			n, err = results.getAssessmentsJNode()
+		}
 		if err != nil {
 			return err
 		}

@@ -58,7 +58,9 @@ func (t *Tool) Run() error {
 	} else {
 		t.Args = append(t.Args, "--upload=false")
 	}
-	t.Args = append(t.Args, "--no-color")
+	// NB - for now disabling custom policies as it fails with the
+	// api token in github
+	t.Args = append(t.Args, "--no-color", "--disable-custom-policies")
 	if t.dir != "" {
 		t.Args = append(t.Args, "-d", t.dir)
 	}
