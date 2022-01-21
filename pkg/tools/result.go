@@ -40,7 +40,8 @@ type Result struct {
 	Files            *util.StringSet
 	FileFingerprints []*FileFingerprint
 
-	Assessment *assessments.Assessment
+	Assessment    *assessments.Assessment
+	AssessmentRaw *jnode.Node
 }
 
 type Results []*Result
@@ -117,6 +118,7 @@ func (r *Result) Upload(client *api.Client, org, name string) error {
 		return err
 	}
 	if n.Path("assessment").IsObject() {
+		r.AssessmentRaw = n.Path("assessment")
 		r.Assessment = &assessments.Assessment{}
 		if err := json.Unmarshal([]byte(n.Path("assessment").String()), r.Assessment); err != nil {
 			log.Warnf("The server returned a garbled assessment: {warning:%s}", err)
@@ -216,4 +218,28 @@ func (results Results) getFindingsJNode() (*jnode.Node, error) {
 		return nil, err
 	}
 	return jnode.FromJSON(d)
+}
+
+func (results Results) getAssessmentsJNode() (*jnode.Node, error) {
+	assmts := jnode.NewArrayNode()
+	for _, result := range results {
+		if result.AssessmentRaw != nil {
+			assmts.Append(result.AssessmentRaw)
+		} else {
+			// If we didn't upload we're going to fake it
+			a := &assessments.Assessment{
+				Findings: result.Findings,
+			}
+			d, err := json.Marshal(a)
+			if err != nil {
+				return nil, err
+			}
+			n, err := jnode.FromJSON(d)
+			if err != nil {
+				return nil, err
+			}
+			assmts.Append(n)
+		}
+	}
+	return assmts, nil
 }

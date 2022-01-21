@@ -32,17 +32,17 @@ import (
 )
 
 type Assessment struct {
-	ID       string `json:"assessmentId"`
-	URL      string `json:"appUrl"`
-	Title    string
-	Module   string
-	Category string
-	Markdown string
-	Findings Findings
+	ID       string   `json:"assessmentId"`
+	URL      string   `json:"appUrl"`
+	Title    string   `json:"title"`
+	Module   string   `json:"module"`
+	Category string   `json:"category"`
+	Markdown string   `json:"markdown,omitempty"`
+	Findings Findings `json:"findings"`
 
-	Failed         bool
-	FailedCount    int
-	FailedSeverity string
+	Failed         bool   `json:"failed"`
+	FailedCount    int    `json:"failedCount"`
+	FailedSeverity string `json:"failedSeverity"`
 }
 
 type Assessments []*Assessment
