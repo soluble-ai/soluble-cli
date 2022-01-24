@@ -28,6 +28,7 @@ import (
 	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
 	"github.com/soluble-ai/soluble-cli/cmd/depscan"
 	"github.com/soluble-ai/soluble-cli/cmd/downloadcmd"
+	"github.com/soluble-ai/soluble-cli/cmd/fingerprint"
 	"github.com/soluble-ai/soluble-cli/cmd/helmscan"
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
 	"github.com/soluble-ai/soluble-cli/cmd/inventorycmd"
@@ -141,6 +142,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		tools.CreateCommand(&cloudmap.Tool{}),
 		tfplan.Command(),
 		cdkscan.Command(),
+		fingerprint.Command(),
 	)
 }
 
