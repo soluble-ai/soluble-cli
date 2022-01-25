@@ -30,7 +30,6 @@ func Command() *cobra.Command {
 	c.Long = `Scan cloudformation templates with cfn-python-lint by default.
 
 Use the sub-commands to explicitly choose a scanner to use.`
-	c.Hidden = true
 	c.AddCommand(
 		tools.CreateCommand(&cfnnag.Tool{}),
 		tools.CreateCommand(&cfnpythonlint.Tool{}),
