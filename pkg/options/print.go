@@ -120,18 +120,19 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			outputFormat = p.DefaultOutputFormat
 		}
 	}
+	outputFormatType := outputFormat
 	switch {
 	case strings.HasPrefix(outputFormat, "value("):
-		outputFormat = "value"
+		outputFormatType = "value"
 	case p.Path == nil && outputFormat == "":
 		// this is the default if the command hasn't specified a Path to the results
-		outputFormat = "yaml"
+		outputFormatType = "yaml"
 	case p.Path != nil && outputFormat == "":
 		// and this is the default if there is a Path
-		outputFormat = "table"
+		outputFormatType = "table"
 	}
 	if p.ExitErrorNotEmtpy {
-		switch outputFormat {
+		switch outputFormatType {
 		case "table", "csv", "value", "vertical", "template":
 			// supported
 			break
@@ -139,7 +140,7 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			return nil, fmt.Errorf("the output format %s cannot be used with --exit-not-empty", outputFormat)
 		}
 	}
-	switch outputFormat {
+	switch outputFormatType {
 	case "none":
 		return &print.NonePrinter{}, nil
 	case "json":
@@ -159,7 +160,7 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 		}, nil
 	case "value":
 		vp := &print.ValuePrinter{
-			Format:      p.OutputFormat,
+			Format:      outputFormat,
 			PathSupport: p.getPathSupport(),
 		}
 		return vp, nil
