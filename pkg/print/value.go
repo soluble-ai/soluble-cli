@@ -36,7 +36,7 @@ var valueSpecRe = regexp.MustCompile(`value\((.*)\)`)
 
 func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	m := valueSpecRe.FindStringSubmatch(p.Format)
-	if m[1] == "" {
+	if m == nil || m[1] == "" {
 		log.Warnf("invalid value specifier {warning:%s} - must be in the form 'value(name)'", p.Format)
 		os.Exit(2)
 	}
