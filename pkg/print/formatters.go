@@ -196,3 +196,17 @@ func DurationMillisFormatter(n *jnode.Node) string {
 	d := time.Millisecond * time.Duration(val)
 	return formatDuration(d)
 }
+
+func TruncateFormatter(width int, left bool) Formatter {
+	return func(n *jnode.Node) string {
+		s := n.AsText()
+		if len(s) <= width {
+			return s
+		}
+		if left {
+			off := len(s) - width + 3
+			return fmt.Sprintf("...%s", s[off:])
+		}
+		return fmt.Sprintf("%s...", s[0:width-3])
+	}
+}

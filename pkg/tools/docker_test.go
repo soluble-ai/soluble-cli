@@ -15,10 +15,29 @@
 package tools
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNoDocker(t *testing.T) {
+	assert := assert.New(t)
+	assert.False(IsDockerError(nil))
+	assert.False(IsDockerError(fmt.Errorf("not a docker error")))
+	f, err := util.TempFile("docker*")
+	if assert.NoError(err) {
+		defer os.Remove(f)
+		err := hasDocker(func(c *exec.Cmd) {
+			c.Args = []string{"docker", "-H", fmt.Sprintf("unix://%s", f), "info"}
+		})
+		assert.Error(err)
+		assert.True(IsDockerError(err))
+	}
+}
 
 func TestDocker(t *testing.T) {
 	if hasDocker() == nil {

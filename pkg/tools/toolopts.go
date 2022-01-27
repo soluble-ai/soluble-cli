@@ -53,6 +53,7 @@ type ToolOpts struct {
 
 	customPoliciesDir *string
 	config            *Config
+	repoRootSet       bool
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -126,7 +127,7 @@ func (o *ToolOpts) Validate() error {
 		blurb.SignupBlurb(o, "This command requires signing up with {primary:Soluble} (unless --upload=false).", "")
 		return fmt.Errorf("not authenticated with Soluble")
 	}
-	if o.RepoRoot == "" {
+	if o.RepoRoot == "" && !o.repoRootSet {
 		r, err := inventory.FindRepoRoot(".")
 		if err != nil {
 			return err

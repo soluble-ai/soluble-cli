@@ -56,12 +56,15 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no cloudformation templates found")
 	}
-	d, _ := t.RunDocker(&tools.DockerTool{
+	d, err := t.RunDocker(&tools.DockerTool{
 		Name:      "cfn_nag",
 		Image:     "stelligent/cfn_nag:latest",
 		Directory: t.GetDirectory(),
 		Args:      append([]string{"--output-format=json"}, files...),
 	})
+	if err != nil && tools.IsDockerError(err) {
+		return nil, err
+	}
 	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {

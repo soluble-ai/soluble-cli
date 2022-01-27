@@ -139,6 +139,7 @@ func (o *DirectoryBasedToolOpts) Validate() error {
 		if err != nil {
 			return err
 		}
+		o.repoRootSet = true
 	}
 	if err := o.ToolOpts.Validate(); err != nil {
 		return err

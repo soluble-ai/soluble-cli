@@ -36,13 +36,16 @@ func (t *Tool) Name() string {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{"-f", "json", "-q"}
-	d, _ := t.RunDocker(&tools.DockerTool{
+	d, err := t.RunDocker(&tools.DockerTool{
 		Name:                "brakeman",
 		Image:               "gcr.io/soluble-repo/soluble-brakeman:latest",
 		DefaultNoDockerName: "brakeman",
 		Directory:           t.GetDirectory(),
 		Args:                args,
 	})
+	if err != nil && tools.IsDockerError(err) {
+		return nil, err
+	}
 	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {

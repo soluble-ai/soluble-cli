@@ -23,11 +23,13 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := tools.CreateCommand(&cfnpythonlint.Tool{})
+	c := tools.CreateCommand(&checkov.Tool{
+		Framework: "cloudformation",
+	})
 	c.Use = "cloudformation-scan"
 	c.Aliases = []string{"cfn-scan"}
 	c.Short = "Scan cloudformation templates"
-	c.Long = `Scan cloudformation templates with cfn-python-lint by default.
+	c.Long = `Scan cloudformation templates.
 
 Use the sub-commands to explicitly choose a scanner to use.`
 	c.AddCommand(
