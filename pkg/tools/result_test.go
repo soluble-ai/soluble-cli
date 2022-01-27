@@ -93,5 +93,6 @@ func TestIsMultiDocument(t *testing.T) {
 	assert := assert.New(t)
 	r := &Result{Directory: "."}
 	assert.True(r.isMultiDocument("testdata/multi_document.yaml"))
+	assert.True(r.isMultiDocument("testdata/multi_document2.yaml"))
 	assert.False(r.isMultiDocument("testdata/single_document.yaml"))
 }

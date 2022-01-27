@@ -169,20 +169,22 @@ func (r *Result) isMultiDocument(path string) bool {
 		path = filepath.Join(r.Directory, path)
 	}
 	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") {
-		var dash3Count int
+		var (
+			multiDocument bool
+			lineNo        int
+		)
 		err := util.ForEachLine(path, func(line string) bool {
-			if line == "---" {
-				dash3Count++
-				if dash3Count > 1 {
-					return false
-				}
+			lineNo++
+			if lineNo > 1 && line == "---" {
+				multiDocument = true
+				return false
 			}
 			return true
 		})
 		if err != nil {
 			log.Warnf("{warning:%s}", err)
 		}
-		return dash3Count > 1
+		return multiDocument
 	}
 	return false
 }
