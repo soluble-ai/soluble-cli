@@ -15,6 +15,7 @@
 package tools
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -23,6 +24,8 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
+
+type DockerError string
 
 type DockerTool struct {
 	Name                string
@@ -36,21 +39,40 @@ type DockerTool struct {
 	Directory           string
 }
 
-func hasDocker() error {
+func (d DockerError) Error() string {
+	return string(d)
+}
+
+func (d DockerError) Is(err error) bool {
+	_, ok := err.(DockerError)
+	return ok
+}
+
+func IsDockerError(err error) bool {
+	return errors.Is(err, DockerError(""))
+}
+
+func hasDocker(options ...func(*exec.Cmd)) error {
 	// "The operating-system independent way to check whether Docker is running
 	// is to ask Docker, using the docker info command."
 	// ref: https://docs.docker.com/config/daemon/#check-whether-docker-is-running
 	c := exec.Command("docker", "info")
+	for _, opt := range options {
+		opt(c)
+	}
 	err := c.Run()
 	switch c.ProcessState.ExitCode() {
 	case 0:
 		return nil
 	case 1:
-		return fmt.Errorf("the docker server is not available: %w", err)
+		log.Errorf("This command requires {primary:docker} but {danger:docker is not running}")
+		return DockerError("the docker server is not running")
 	case 127:
-		return fmt.Errorf("the docker executable is not present, or is not in the PATH: %w", err)
+		log.Errorf("This command requires {primary:docker} but {danger:the docker command is not found}")
+		return DockerError("the docker executable is not present, or is not in the PATH")
 	default:
-		return fmt.Errorf("unknown error checking docker availability: %w", err)
+		log.Errorf("This command requires {primary:docker} but {danger:%s}", err)
+		return DockerError("unknown error checking docker availability")
 	}
 }
 

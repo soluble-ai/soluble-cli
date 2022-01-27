@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatters(t *testing.T) {
@@ -112,4 +113,22 @@ func makeNode(val string, path ...string) *jnode.Node {
 	}
 	x.Put(path[len(path)-1], val)
 	return n
+}
+
+func TestTruncateFormatters(t *testing.T) {
+	var testCases = []struct {
+		fmt       Formatter
+		w         int
+		text, exp string
+	}{
+		{TruncateFormatter(10, false), 10, "hello world", "hello w..."},
+		{TruncateFormatter(10, true), 10, "hello world", "...o world"},
+		{TruncateFormatter(10, true), 10, "hello world and more", "...nd more"},
+	}
+	for _, c := range testCases {
+		n := jnode.NewObjectNode().Put("text", c.text)
+		exp := c.fmt(n.Path("text"))
+		assert.Equal(t, c.exp, exp, c.text)
+		assert.LessOrEqual(t, len(exp), c.w)
+	}
 }

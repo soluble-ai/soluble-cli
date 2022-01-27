@@ -35,13 +35,16 @@ func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{
 		"check", "--quiet", "--format", "json", ".",
 	}
-	d, _ := t.RunDocker(&tools.DockerTool{
+	d, err := t.RunDocker(&tools.DockerTool{
 		Name:                "bundler-audit",
 		Image:               "gcr.io/soluble-repo/soluble-bundler-audit:latest",
 		DefaultNoDockerName: "bundler-audit",
 		Directory:           t.GetDirectory(),
 		Args:                args,
 	})
+	if err != nil && tools.IsDockerError(err) {
+		return nil, err
+	}
 	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {

@@ -19,6 +19,7 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
 )
 
@@ -79,6 +80,10 @@ func runTool(tool Interface) error {
 		// accumulate all the findings across the assessments.  So for the default
 		// or table output format we do that accumulation in code here.
 		if opts.OutputFormat == "" || opts.OutputFormat == "table" {
+			if !opts.Wide {
+				opts.SetFormatter("title", print.TruncateFormatter(70, false))
+				opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
+			}
 			n, err = results.getFindingsJNode()
 		} else {
 			n, err = results.getAssessmentsJNode()

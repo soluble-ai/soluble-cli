@@ -36,13 +36,16 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// This might be a problem if we have multiple dockerfiles and they have extensions like Dockerfile.xyz
 	dockerFilePath := "./Dockerfile"
 	args := []string{"hadolint", "-f", "json", "-", dockerFilePath}
-	d, _ := t.RunDocker(&tools.DockerTool{
+	d, err := t.RunDocker(&tools.DockerTool{
 		Name:                "hadolint",
 		Image:               "ghcr.io/hadolint/hadolint:latest",
 		DefaultNoDockerName: "hadolint",
 		Directory:           t.GetDirectory(),
 		Args:                args,
 	})
+	if err != nil && tools.IsDockerError(err) {
+		return nil, err
+	}
 	results, err := jnode.FromJSON(d)
 	if err != nil {
 		if d != nil {

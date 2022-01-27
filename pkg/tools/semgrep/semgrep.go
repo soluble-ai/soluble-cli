@@ -91,7 +91,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		PolicyDirectory: customPoliciesDir,
 		Args:            args,
 	})
-	if err != nil && util.ExitCode(err) != 1 {
+	if err != nil && (tools.IsDockerError(err) || util.ExitCode(err) != 1) {
 		// semgrep exits 1 if it finds issues
 		return nil, err
 	}
