@@ -52,7 +52,7 @@ func Command() *cobra.Command {
 			resp, err := flow.Run()
 			if err != nil {
 				log.Errorf("Authentication did not complete: {danger:%s}", err)
-				log.Infof("See {primary:https://docs.soluble.ai/cli/} for more information")
+				log.Infof("See {primary:https://github.com/soluble-ai/soluble-cli} for more information")
 				return fmt.Errorf("failed")
 			}
 			config.Config.APIServer = resp.APIServer
