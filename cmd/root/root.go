@@ -41,11 +41,11 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/tfplan"
 	"github.com/soluble-ai/soluble-cli/cmd/tfscan"
 	"github.com/soluble-ai/soluble-cli/cmd/version"
-	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
+	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
@@ -83,7 +83,7 @@ func Command() *cobra.Command {
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if config.Config.GetAPIToken() == "" {
 				if cmd.Use != "version" {
-					blurb.SignupBlurb(nil, "Finding {primary:soluble} useful?", "")
+					options.SignupBlurb(nil, "Finding {primary:soluble} useful?", "")
 				}
 			}
 			if exit.Code != 0 {
@@ -100,7 +100,7 @@ func Command() *cobra.Command {
 	flags.StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
 	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
 	log.AddFlags(flags)
-	flags.BoolVar(&blurb.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
+	flags.BoolVar(&options.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
 
 	config.Load()
 	addBuiltinCommands(rootCmd)
@@ -143,6 +143,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		tfplan.Command(),
 		cdkscan.Command(),
 		fingerprint.Command(),
+		earlyAccessCommand(),
 	)
 }
 

@@ -37,6 +37,7 @@ type DockerTool struct {
 	Stdout              io.Writer
 	Stderr              io.Writer
 	Directory           string
+	Quiet               bool
 }
 
 func (d DockerError) Error() string {
@@ -91,7 +92,9 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 	}
 	args := t.getArgs(os.Getenv)
 	run := exec.Command("docker", args...)
-	log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
+	if !t.Quiet {
+		log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
+	}
 	run.Stdin = os.Stdin
 	run.Stderr = os.Stderr
 	if t.Stderr != nil {

@@ -36,6 +36,7 @@ type RunOpts struct {
 	ExtraDockerArgs []string
 	NoDocker        bool
 	Internal        bool
+	Quiet           bool
 }
 
 var _ options.Interface = &RunOpts{}
@@ -86,6 +87,7 @@ func (o *RunOpts) RunDocker(d *DockerTool) ([]byte, error) {
 		d.Image = image.AsText()
 	}
 	d.DockerArgs = append(d.DockerArgs, o.ExtraDockerArgs...)
+	d.Quiet = o.Quiet
 	return d.run(o.SkipDockerPull)
 }
 
@@ -122,6 +124,9 @@ func (o *RunOpts) getToolVersion(name string) *jnode.Node {
 }
 
 func (o *RunOpts) LogCommand(c *exec.Cmd) {
+	if o.Quiet {
+		return
+	}
 	if c.Dir != "" {
 		log.Infof("Running {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), c.Dir)
 		return

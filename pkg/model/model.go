@@ -55,7 +55,6 @@ type CommandModel struct {
 	Parameters        []*ParameterModel `hcl:"parameter,block"`
 	ParameterNames    *[]string         `hcl:"parameters"`
 	ClusterIDOptional *bool             `hcl:"cluster_id_optional"`
-	AuthNotRequired   *bool             `hcl:"auth_not_required"`
 	Unauthenticated   *bool             `hcl:"unauthenticated"`
 	DefaultTimeout    *int              `hcl:"default_timeout"`
 	Result            *ResultModel      `hcl:"result,block"`
