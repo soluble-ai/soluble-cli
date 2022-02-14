@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/blurb"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -50,6 +49,8 @@ type ToolOpts struct {
 	PrintFingerprints     bool
 	SaveFingerprints      string
 	ConfigFile            string
+	CustomPoliciesDir     string
+	TestCustomPolicies    bool
 
 	customPoliciesDir *string
 	config            *Config
@@ -99,6 +100,8 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 		Long: "Options for running tools",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", false, "Don't use custom policies")
+			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use custom policies from `dir`.")
+			flags.BoolVar(&o.TestCustomPolicies, "test-custom-policies", false, "Test custom polices")
 			flags.BoolVar(&o.PrintResultOpt, "print-result", false, "Print the JSON result from the tool on stderr")
 			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON reesult from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")
@@ -115,7 +118,6 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 	// if not uploaded these columns will be empty, so make that a little easier to see
 	o.SetFormatter("sid", MissingFormatter)
 	o.SetFormatter("severity", MissingFormatter)
-	o.AuthNotRequired = true
 	o.RunOpts.Register(c)
 	flags := c.Flags()
 	flags.BoolVar(&o.UploadEnabled, "upload", true, "Upload report to Soluble.  Use --upload=false to disable.")
@@ -123,9 +125,10 @@ func (o *ToolOpts) Register(c *cobra.Command) {
 }
 
 func (o *ToolOpts) Validate() error {
-	if o.UploadEnabled && o.GetAPIClientConfig().APIToken == "" {
-		blurb.SignupBlurb(o, "This command requires signing up with {primary:Soluble} (unless --upload=false).", "")
-		return fmt.Errorf("not authenticated with Soluble")
+	if o.UploadEnabled {
+		if err := o.RequireAPIToken(); err != nil {
+			return err
+		}
 	}
 	if o.RepoRoot == "" && !o.repoRootSet {
 		r, err := inventory.FindRepoRoot(".")
@@ -250,6 +253,9 @@ func writeResultValues(w io.Writer, result *Result) {
 func (o *ToolOpts) GetCustomPoliciesDir() (string, error) {
 	if o.DisableCustomPolicies {
 		return "", nil
+	}
+	if o.CustomPoliciesDir != "" {
+		return o.CustomPoliciesDir, nil
 	}
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil

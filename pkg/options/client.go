@@ -15,6 +15,7 @@
 package options
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
@@ -25,8 +26,7 @@ import (
 
 type ClientOpts struct {
 	api.Config
-	AuthNotRequired bool
-	DefaultTimeout  int
+	DefaultTimeout int
 
 	client       *api.Client
 	unauthClient *api.Client
@@ -112,4 +112,12 @@ func (opts *ClientOpts) GetUnauthenticatedAPIClient() *api.Client {
 
 func (opts *ClientOpts) IsAuthenticated() bool {
 	return opts.GetAPIClientConfig().APIToken != ""
+}
+
+func (opts *ClientOpts) RequireAPIToken() error {
+	if opts.GetAPIClientConfig().APIToken == "" {
+		SignupBlurb(opts, "This command requires signing up with {primary:Soluble} (unless --upload=false).", "")
+		return fmt.Errorf("not authenticated with Soluble")
+	}
+	return nil
 }

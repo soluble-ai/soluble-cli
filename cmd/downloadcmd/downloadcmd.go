@@ -69,11 +69,7 @@ func installCommand() *cobra.Command {
 		spec      download.Spec
 		reinstall bool
 	)
-	opts := options.PrintClientOpts{
-		ClientOpts: options.ClientOpts{
-			AuthNotRequired: true,
-		},
-	}
+	var opts options.PrintClientOpts
 	c := &cobra.Command{
 		Use:     "install",
 		Short:   "Install a downloadable component",

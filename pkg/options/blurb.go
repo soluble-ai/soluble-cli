@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package blurb
+package options
 
 import (
 	"bytes"
@@ -20,7 +20,6 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 )
 
 var Blurbed = false
@@ -33,7 +32,7 @@ func cap(s string) string {
 	return strings.ToUpper(s[0:1]) + s[1:]
 }
 
-func SignupBlurb(opts options.Interface, first, use string) {
+func SignupBlurb(opts Interface, first, use string) {
 	if Blurbed {
 		return
 	}
