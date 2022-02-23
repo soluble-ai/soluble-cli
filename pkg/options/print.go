@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -42,12 +41,11 @@ type PrintOpts struct {
 	SortBy              []string
 	DefaultSortBy       []string
 	Limit               int
-	Filter              string
+	Filter              []string
 	Template            string
 	Formatters          map[string]print.Formatter
 	ComputedColumns     map[string]print.ColumnFunction
 	DiffContextSize     int
-	ExitErrorNotEmtpy   bool
 	outputSource        func() io.Writer
 }
 
@@ -66,17 +64,15 @@ func (p *PrintOpts) GetPrintOptionsGroup() *HiddenOptionsGroup {
 			flags.StringVar(&p.Template, "print-template", "",
 				"The go `template` to print with.  If the template begins with @, then read the template from a file.")
 			flags.StringVar(&p.OutputFormat, "format", "",
-				"Use this output `format` where format is one of: table, yaml, json, none, csv, template, or value(name).")
+				"Use this output `format` where format is one of: table, yaml, json, none, csv, template, count, or value(name).")
 			flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
-			flags.StringVar(&p.Filter, "filter", "", "Print results that match a `filter`.")
+			flags.StringSliceVar(&p.Filter, "filter", nil, "Print results that match a `filter`.  May be repeated.")
 			flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
 			flags.StringSliceVar(&p.SortBy, "sort-by", p.DefaultSortBy,
 				"Sort by these `columns`")
 			flags.IntVar(&p.Limit, "print-limit", 0, "Print no more than this `number` of rows")
 			flags.IntVar(&p.DiffContextSize, "diff-context", 3,
 				"When printing diffs, the number of `lines` to print before and after a a diff.")
-			flags.BoolVar(&p.ExitErrorNotEmtpy, "error-not-empty", false,
-				"Exit with exit code 2 if the results (after filtering) are not empty")
 		},
 		Example: `
 Output formats:
@@ -87,6 +83,8 @@ output format is "table"; otherwise the default is "yaml".
 
 The "value(name)" format prints only the "name" attribute from the results (from each row
 if printing tabular data.)
+
+The "count" format prints the number of rows in the result.
 
 Sorting:
 
@@ -130,15 +128,6 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 	case p.Path != nil && outputFormat == "":
 		// and this is the default if there is a Path
 		outputFormatType = "table"
-	}
-	if p.ExitErrorNotEmtpy {
-		switch outputFormatType {
-		case "table", "csv", "value", "vertical", "template":
-			// supported
-			break
-		default:
-			return nil, fmt.Errorf("the output format %s cannot be used with --exit-not-empty", outputFormat)
-		}
 	}
 	switch outputFormatType {
 	case "none":
@@ -189,6 +178,13 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			PathSupport: p.getPathSupport(),
 			Formatters:  p.Formatters,
 		}, nil
+	case "count":
+		if p.Path == nil {
+			return nil, fmt.Errorf("this command does not support --format count")
+		}
+		return &print.CountPrinter{
+			PathSupport: p.getPathSupport(),
+		}, nil
 	case "diff":
 		if p.Path == nil || p.DiffColumn == "" {
 			return nil, fmt.Errorf("this command does not support --format diff")
@@ -217,7 +213,7 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 
 func (p *PrintOpts) getPathSupport() print.PathSupport {
 	return print.PathSupport{
-		Filter:          print.NewFilter(p.Filter),
+		Filter:          print.NewAndFilter(p.Filter),
 		Path:            p.Path,
 		SortBy:          p.SortBy,
 		ComputedColumns: p.ComputedColumns,
@@ -237,13 +233,7 @@ func (p *PrintOpts) PrintResult(result *jnode.Node) {
 		log.Errorf("Cannot print results: {warning:%s}", err.Error())
 		os.Exit(1)
 	}
-	n := printer.PrintResult(w, result)
-	if p.ExitErrorNotEmtpy && n > 0 {
-		exit.Func = func() {
-			log.Errorf("Exiting with error code because there are {danger:%d} results", n)
-		}
-		exit.Code = 2
-	}
+	_ = printer.PrintResult(w, result)
 }
 
 // Returns all the columns that should be included in the result,

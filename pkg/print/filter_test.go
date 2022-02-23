@@ -22,25 +22,31 @@ import (
 
 func TestFilter(t *testing.T) {
 	row := jnode.NewObjectNode().Put("name", "value").Put("greeting", "hello")
-	if n := NewFilter("hello"); n.name != "" || n.g == nil || !n.matches(row) {
+	if n := NewSingleFilter("hello").(*singleFilter); n.name != "" || n.g == nil || !n.Matches(row) {
 		t.Error(n)
 	}
-	if n := NewFilter("name="); n.name != "name" || !n.matches(row) {
+	if n := NewSingleFilter("name=").(*singleFilter); n.name != "name" || !n.Matches(row) {
 		t.Error(n)
 	}
-	if n := NewFilter(""); !n.matches(row) {
+	if n := NewSingleFilter(""); !n.Matches(row) {
 		t.Error(n)
 	}
-	if n := NewFilter("world"); n.matches(row) {
+	if n := NewSingleFilter("world"); n.Matches(row) {
 		t.Error(n)
 	}
-	if n := NewFilter("name=joe*"); n.matches(row) {
+	if n := NewSingleFilter("name=joe*"); n.Matches(row) {
 		t.Error(n)
 	}
-	if n := NewFilter("name=v*"); !n.matches(row) {
+	if n := NewSingleFilter("name=v*"); !n.Matches(row) {
 		t.Error(n)
 	}
-	if n := NewFilter("name!=value"); n.matches(row) {
+	if n := NewSingleFilter("name!=value"); n.Matches(row) {
+		t.Error(n)
+	}
+	if n := NewAndFilter(nil); !n.Matches(row) {
+		t.Error(n)
+	}
+	if n := NewAndFilter([]string{"name=value", "greeting=hello"}); !n.Matches(row) {
 		t.Error(n)
 	}
 }

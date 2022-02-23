@@ -79,7 +79,7 @@ func runTool(tool Interface) error {
 		// But the printer doesn't support a splat-like path i.e. *.findings to
 		// accumulate all the findings across the assessments.  So for the default
 		// or table output format we do that accumulation in code here.
-		if opts.OutputFormat == "" || opts.OutputFormat == "table" {
+		if opts.OutputFormat == "" || opts.OutputFormat == "table" || opts.OutputFormat == "count" {
 			if !opts.Wide {
 				opts.SetFormatter("title", print.TruncateFormatter(70, false))
 				opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
@@ -91,7 +91,7 @@ func runTool(tool Interface) error {
 		if err != nil {
 			return err
 		}
-		if toolErr == nil || n.Size() > 0 {
+		if toolErr == nil {
 			opts.PrintResult(n)
 		}
 	}

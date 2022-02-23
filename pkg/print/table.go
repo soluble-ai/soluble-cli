@@ -35,15 +35,15 @@ var _ Interface = &TablePrinter{}
 
 func (p *TablePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	tw := tabwriter.NewWriter(w, 5, 0, 1, ' ', 0)
-	if !p.NoHeaders {
-		p.PrintHeader(tw)
-	}
 	defer tw.Flush()
 	return p.PrintRows(tw, result)
 }
 
 func (p *TablePrinter) PrintRows(w io.Writer, result *jnode.Node) int {
 	rows := p.GetRows(result)
+	if len(rows) > 0 && !p.NoHeaders {
+		p.PrintHeader(w)
+	}
 	for _, row := range rows {
 		for i, c := range p.Columns {
 			if i > 0 {
