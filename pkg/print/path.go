@@ -32,7 +32,7 @@ func (p *PathSupport) GetRows(result *jnode.Node) []*jnode.Node {
 	r := Nav(result, p.Path)
 	rows := []*jnode.Node{}
 	for _, row := range r.Elements() {
-		if !p.matches(row) {
+		if p.Filter != nil && !p.Matches(row) {
 			continue
 		}
 		for name, f := range p.ComputedColumns {

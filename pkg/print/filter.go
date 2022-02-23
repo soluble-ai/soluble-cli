@@ -23,17 +23,42 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
-type Filter struct {
+type Filter interface {
+	Matches(*jnode.Node) bool
+}
+
+type singleFilter struct {
 	name string
 	g    glob.Glob
 	not  bool
 }
 
+type andFilter struct {
+	filters []Filter
+}
+
 var nvRegexp = regexp.MustCompile("([^!=]+!?=)?(.*)")
 
-func NewFilter(s string) Filter {
+func NewAndFilter(s []string) Filter {
+	f := &andFilter{}
+	for _, s := range s {
+		f.filters = append(f.filters, NewSingleFilter(s))
+	}
+	return f
+}
+
+func (f *andFilter) Matches(n *jnode.Node) bool {
+	for _, f := range f.filters {
+		if !f.Matches(n) {
+			return false
+		}
+	}
+	return true
+}
+
+func NewSingleFilter(s string) Filter {
 	m := nvRegexp.FindStringSubmatch(s)
-	f := Filter{}
+	f := &singleFilter{}
 	if m[1] != "" {
 		f.name = m[1]
 		if strings.HasSuffix(f.name, "!=") {
@@ -49,13 +74,13 @@ func NewFilter(s string) Filter {
 		f.g, err = glob.Compile(pat)
 		if err != nil {
 			log.Warnf("Ignoring invalid filter {info:%s} - {danger:%s}", pat, err.Error())
-			return Filter{}
+			return &singleFilter{}
 		}
 	}
 	return f
 }
 
-func (f Filter) matches(row *jnode.Node) bool {
+func (f *singleFilter) Matches(row *jnode.Node) bool {
 	if f.name != "" {
 		// should fix - print columns supports paths a.b but filtering does not
 		n := row.Path(f.name)
