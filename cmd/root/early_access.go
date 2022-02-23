@@ -2,6 +2,7 @@ package root
 
 import (
 	"github.com/soluble-ai/soluble-cli/cmd/policy"
+	"github.com/soluble-ai/soluble-cli/cmd/tfplan"
 	"github.com/spf13/cobra"
 )
 
@@ -12,6 +13,9 @@ func earlyAccessCommand() *cobra.Command {
 		Short:   "Alpha/pre-release commands subject to change",
 		Hidden:  true,
 	}
-	c.AddCommand(policy.Command())
+	c.AddCommand(
+		policy.Command(),
+		tfplan.Command(),
+	)
 	return c
 }
