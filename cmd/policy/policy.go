@@ -91,7 +91,7 @@ func uploadCommand() *cobra.Command {
 					xcp.WithCIEnv(dir), xcp.WithFileFromReader("tarball", "rules.tar.gz", f),
 				}
 				_, err = client.GetAPIClient().XCPPost(client.GetOrganization(),
-					"policies", nil, nil, options...)
+					"custom/policy", nil, nil, options...)
 				if err != nil {
 					return err
 				}

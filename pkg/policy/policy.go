@@ -96,10 +96,12 @@ func (m *Manager) LoadRules(ruleType RuleType) error {
 			continue
 		}
 		_, err := m.LoadRule(ruleType, filepath.Join(ruleTypeDir, dirName))
-		if errors.Is(err, os.ErrNotExist) {
-			continue
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return err
 		}
-		return err
 	}
 	return nil
 }
@@ -154,22 +156,32 @@ func (m *Manager) ValidateRules() error {
 }
 
 func (m *Manager) CreateTarBall(path string) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	w := tar.NewWriter(f)
-	err = filepath.Walk("", func(path string, info fs.FileInfo, err error) error {
+	err = filepath.Walk(m.Dir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rpath, err := filepath.Rel(m.Dir, path)
 		if err != nil {
 			return err
 		}
 		h := &tar.Header{
 			Typeflag: tar.TypeReg,
-			Name:     path,
+			Name:     rpath,
 			Size:     info.Size(),
 			ModTime:  info.ModTime(),
 			Mode:     0644,
+		}
+		if base := filepath.Base(path); base[0] == '.' {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if info.IsDir() {
 			h.Typeflag = tar.TypeDir
@@ -178,10 +190,14 @@ func (m *Manager) CreateTarBall(path string) error {
 		if err := w.WriteHeader(h); err != nil {
 			return err
 		}
+		if info.IsDir() {
+			return nil
+		}
 		f, err := os.Open(path)
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		if _, err := io.Copy(w, f); err != nil {
 			return err
 		}
