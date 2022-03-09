@@ -51,5 +51,7 @@ func PartialDecode(name string, buf []byte) map[string]string {
 		return PartialDecodeJSON(buf)
 	case strings.HasSuffix(name, ".yaml"):
 		return PartialDecodeYAML(buf)
+	case strings.HasSuffix(name, ".yml"):
+		return PartialDecodeYAML(buf)
 	}
 }

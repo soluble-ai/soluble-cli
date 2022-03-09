@@ -23,6 +23,8 @@ func TestCloudformationDetector(t *testing.T) {
 	}{
 		{"foo.yaml", `---
 AWSTemplateFormatVersion: '2010-09-09'`, true},
+		{"foo.yml", `---
+AWSTemplateFormatVersion: '2010-09-09'`, true},
 		{"foo.yaml", "#AWSTemplateFormatVersion: '2010-09-09", false},
 		{"foo.json", `{ "AWSTemplateFormatVersion" :
 		"2010-09-09", "bar": 1`, true},

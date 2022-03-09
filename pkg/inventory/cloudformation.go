@@ -23,7 +23,7 @@ type cloudformationDetector int
 var _ FileDetector = cloudformationDetector(0)
 
 func (cloudformationDetector) DetectFileName(m *Manifest, path string) ContentDetector {
-	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".json") {
+	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".json") {
 		return cloudformationDetector(0)
 	}
 	return nil
