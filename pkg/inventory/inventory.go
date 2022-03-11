@@ -71,7 +71,6 @@ func (m *Manifest) getDetectors(detectors []interface{}) (fds []FileDetector, dd
 }
 
 func (m *Manifest) scan(root string, detectors ...interface{}) {
-	buf := make([]byte, 4096)
 	root, _ = filepath.Abs(root)
 	fileDetectors, dirDetectors := m.getDetectors(detectors)
 	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -101,15 +100,14 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 				}
 			}
 			if len(cds) > 0 {
-				// read the first 4k of the file
-				n, err := readFileStart(path, buf)
+				buf, err := readFile(path)
 				if err != nil && !errors.Is(err, io.EOF) {
 					log.Warnf("Could not read {info:%s}: {warning:%s}", path, err)
 					return nil
 				}
-				if n > 0 {
+				if len(buf) > 0 {
 					for _, d := range cds {
-						d.DetectContent(m, relpath, buf[0:n])
+						d.DetectContent(m, relpath, buf)
 					}
 				}
 			}
@@ -123,13 +121,12 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 	}
 }
 
-func readFileStart(path string, buf []byte) (int, error) {
-	f, err := os.Open(path)
+func readFile(path string) ([]byte, error) {
+	dat, err := os.ReadFile(path)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	defer f.Close()
-	return f.Read(buf)
+	return dat, nil
 }
 
 func Do(root string) *Manifest {
