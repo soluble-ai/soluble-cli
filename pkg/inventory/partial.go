@@ -49,9 +49,7 @@ func Decode(name string, buf []byte) map[string]string {
 	switch {
 	default:
 		return DecodeJSON(buf)
-	case strings.HasSuffix(name, ".yaml"):
-		return DecodeYAML(buf)
-	case strings.HasSuffix(name, ".yml"):
+	case strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml"):
 		return DecodeYAML(buf)
 	}
 }
