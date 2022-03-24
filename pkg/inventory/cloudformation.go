@@ -30,7 +30,7 @@ func (cloudformationDetector) DetectFileName(m *Manifest, path string) ContentDe
 }
 
 func (cloudformationDetector) DetectContent(m *Manifest, path string, buf []byte) {
-	d := Decode(path, buf)
+	d := decodeDocument(path, buf)
 	if _, ok := d["AWSTemplateFormatVersion"]; ok {
 		m.CloudformationFiles.Add(path)
 	}

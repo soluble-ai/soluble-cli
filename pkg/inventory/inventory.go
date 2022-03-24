@@ -15,8 +15,6 @@
 package inventory
 
 import (
-	"errors"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -100,8 +98,8 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 				}
 			}
 			if len(cds) > 0 {
-				buf, err := readFile(path)
-				if err != nil && !errors.Is(err, io.EOF) {
+				buf, err := os.ReadFile(path)
+				if err != nil {
 					log.Warnf("Could not read {info:%s}: {warning:%s}", path, err)
 					return nil
 				}
@@ -119,14 +117,6 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 			fd.FinalizeDetection(m)
 		}
 	}
-}
-
-func readFile(path string) ([]byte, error) {
-	dat, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return dat, nil
 }
 
 func Do(root string) *Manifest {

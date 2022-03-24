@@ -21,7 +21,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func DecodeJSON(buf []byte) map[string]string {
+func decodeJSON(buf []byte) map[string]string {
 	r := map[string]string{}
 	// gjson doesn't require valid JSON
 	for k, v := range gjson.ParseBytes(buf).Map() {
@@ -32,7 +32,7 @@ func DecodeJSON(buf []byte) map[string]string {
 	return r
 }
 
-func DecodeYAML(buf []byte) map[string]string {
+func decodeYAML(buf []byte) map[string]string {
 	var m map[string]interface{}
 	// truncated yaml is still mostly yaml, but we'll just ignore errors
 	_ = yaml.Unmarshal(buf, &m)
@@ -45,11 +45,11 @@ func DecodeYAML(buf []byte) map[string]string {
 	return r
 }
 
-func Decode(name string, buf []byte) map[string]string {
+func decodeDocument(name string, buf []byte) map[string]string {
 	switch {
-	default:
-		return DecodeJSON(buf)
 	case strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml"):
-		return DecodeYAML(buf)
+		return decodeYAML(buf)
+	default:
+		return decodeJSON(buf)
 	}
 }
