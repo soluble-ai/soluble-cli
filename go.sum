@@ -228,8 +228,8 @@ github.com/soluble-ai/go-colorize v0.1.2 h1:rq8M9o6FgnDi6F0q68jYycNIYJKaDSOLetmU
 github.com/soluble-ai/go-colorize v0.1.2/go.mod h1:4u95vimNk2IOaCcs0rwf9J8tM3rSAqedtmNPbMAinFk=
 github.com/soluble-ai/go-jnode v0.1.11 h1:To9h6zWI6qr5Vphz0XO4JtCRlkhfilH2EDNwtAZkZT4=
 github.com/soluble-ai/go-jnode v0.1.11/go.mod h1:mKFUM7xxXMBVOygZeE8od2Qls1f3E3NHY1ZhMlzwx/U=
-github.com/spf13/afero v1.8.1 h1:izYHOT71f9iZ7iq37Uqjael60/vYC6vMtzedudZ0zEk=
-github.com/spf13/afero v1.8.1/go.mod h1:CtAatgMJh6bJEIs48Ay/FOnkljP3WeGUG0MC1RfAqwo=
+github.com/spf13/afero v1.8.2 h1:xehSyVa0YnHWsJ49JFljMpg1HX19V6NDZ1fkm1Xznbo=
+github.com/spf13/afero v1.8.2/go.mod h1:CtAatgMJh6bJEIs48Ay/FOnkljP3WeGUG0MC1RfAqwo=
 github.com/spf13/cobra v1.4.0 h1:y+wJpx64xcgO1V+RcnwW0LEHxTKRi2ZDPSBjWnrg88Q=
 github.com/spf13/cobra v1.4.0/go.mod h1:Wo4iy3BUC+X2Fybo0PDqwJIv3dNRiZLHQymsfxlB84g=
 github.com/spf13/pflag v1.0.2/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
