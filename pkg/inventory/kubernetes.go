@@ -32,7 +32,7 @@ func (kubernetesDetector) DetectFileName(m *Manifest, path string) ContentDetect
 }
 
 func (kubernetesDetector) DetectContent(m *Manifest, path string, content []byte) {
-	d := PartialDecode(path, content)
+	d := Decode(path, content)
 	if filepath.Base(path) == "Chart.yaml" && d["apiVersion"] != "" {
 		// assume this is a helm chart
 		m.HelmCharts.Add(filepath.Dir(path))
