@@ -25,7 +25,9 @@ import (
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
+	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -51,10 +53,12 @@ type ToolOpts struct {
 	ConfigFile            string
 	CustomPoliciesDir     string
 	TestCustomPolicies    bool
+	FailThresholds        []string
 
-	customPoliciesDir *string
-	config            *Config
-	repoRootSet       bool
+	parsedFailThresholds map[string]int
+	customPoliciesDir    *string
+	config               *Config
+	repoRootSet          bool
 }
 
 var _ options.Interface = &ToolOpts{}
@@ -98,6 +102,16 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 	return &options.HiddenOptionsGroup{
 		Name: "tool-options",
 		Long: "Options for running tools",
+		Example: `
+A tool run can optionally exit with exit code 2 if the assessment contains
+failed findings.  For example:
+		
+# Fail if 1 or more high or critical severity findings in this build:
+soluble ... --fail high=1
+# Or shorter:
+soluble ... --fail high
+
+The severity levels are critical, high, medium, low, and info in that order.`,
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", false, "Don't use custom policies")
 			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use custom policies from `dir`.")
@@ -109,6 +123,8 @@ func (o *ToolOpts) GetToolHiddenOptions() *options.HiddenOptionsGroup {
 			flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
 			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
 			flags.StringVar(&o.ConfigFile, "config-file", "", "Read tool configuration from `file`, overriding the default config file search.")
+			flags.StringSliceVar(&o.FailThresholds, "fail", nil,
+				`Set failure thresholds in the form 'severity=count'.  The command will exit with exit code 2 if the assessments generated during this build have count or more failed findings of the specified severity.`)
 		},
 	}
 }
@@ -137,6 +153,11 @@ func (o *ToolOpts) Validate() error {
 		}
 		o.RepoRoot = r
 	}
+	parsedFailThresholds, err := assessments.ParseFailThresholds(o.FailThresholds)
+	if err != nil {
+		return err
+	}
+	o.parsedFailThresholds = parsedFailThresholds
 	return nil
 }
 
@@ -239,6 +260,17 @@ func (o *ToolOpts) processResult(result *Result) error {
 	if o.UploadEnabled {
 		if err := result.Upload(o.GetAPIClient(), o.GetOrganization(), o.Tool.Name()); err != nil {
 			return err
+		}
+		if result.Assessment != nil && len(o.parsedFailThresholds) > 0 {
+			result.Assessment.EvaluateFailures(o.parsedFailThresholds)
+			if result.Assessment.Failed {
+				exit.Code = 2
+				a := result.Assessment
+				exit.AddFunc(func() {
+					log.Errorf("{warning:%s} has {danger:%d %s findings}",
+						a.Title, a.FailedCount, a.FailedSeverity)
+				})
+			}
 		}
 	}
 	return nil

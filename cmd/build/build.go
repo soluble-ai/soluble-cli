@@ -16,7 +16,6 @@ package build
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -26,39 +25,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
 )
-
-type BuildOpts struct {
-	options.PrintClientOpts
-	FailThresholds []string
-
-	parsedFailThresholds map[string]int
-}
-
-func (opts *BuildOpts) Register(c *cobra.Command) {
-	opts.PrintClientOpts.Register(c)
-	flags := c.Flags()
-	flags.StringSliceVar(&opts.FailThresholds, "fail", nil, "")
-}
-
-func (opts *BuildOpts) validate() error {
-	parsedFailThresholds, err := assessments.ParseFailThresholds(opts.FailThresholds)
-	if err != nil {
-		return err
-	}
-	opts.parsedFailThresholds = parsedFailThresholds
-	return nil
-}
-
-func (opts *BuildOpts) getAssessments() (assessments.Assessments, error) {
-	as, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
-	if err != nil {
-		return nil, err
-	}
-	for _, a := range as {
-		a.EvaluateFailures(opts.parsedFailThresholds)
-	}
-	return as, nil
-}
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
@@ -73,32 +39,19 @@ func Command() *cobra.Command {
 }
 
 func buildReportCommand() *cobra.Command {
-	opts := &BuildOpts{
-		PrintClientOpts: options.PrintClientOpts{
-			PrintOpts: options.PrintOpts{
-				Path:    []string{"findings"},
-				Columns: []string{"module", "pass", "severity", "sid", "file:line", "title"},
-			},
+	opts := &options.PrintClientOpts{
+		PrintOpts: options.PrintOpts{
+			Path:    []string{"findings"},
+			Columns: []string{"module", "pass", "severity", "sid", "file:line", "title"},
 		},
 	}
 	opts.SetFormatter("pass", tools.PassFormatter)
 	c := &cobra.Command{
 		Use:   "report",
-		Short: "List any assessments generated during this build",
-		Example: `
-The severity levels are critical, high, medium, low, and info in that
-order.
-
-# Fail if 1 or more high or critical severity findings in this build:
-soluble build report --fail high=1
-# Or shorter:
-soluble build report --fail high`,
-		Args: cobra.NoArgs,
+		Short: "Display any assessments generated during this build",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := opts.validate(); err != nil {
-				return err
-			}
-			assessments, err := opts.getAssessments()
+			assessments, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
 			if err != nil {
 				return err
 			}
@@ -131,25 +84,18 @@ soluble build report --fail high`,
 		},
 	}
 	opts.Register(c)
-	c.Flag("fail").Usage = longUsage(`
-Set failure thresholds in the form 'severity=count'.  The command will exit with exit code 2
-if the assessments generated during this build have count or more failed findings of the
-specified severity.`)
 	return c
 }
 
 func updatePRCommand() *cobra.Command {
-	opts := &BuildOpts{}
+	opts := &options.PrintClientOpts{}
 	c := &cobra.Command{
 		Use:    "update-pr",
 		Short:  "Update this build's pull-request with the results of any assessments generated during the build",
 		Args:   cobra.NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := opts.validate(); err != nil {
-				return err
-			}
-			assessments, err := opts.getAssessments()
+			assessments, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
 			if err != nil {
 				return err
 			}
@@ -157,13 +103,5 @@ func updatePRCommand() *cobra.Command {
 		},
 	}
 	opts.Register(c)
-	c.Flag("fail").Usage = longUsage(`
-Set failure thresholds in the form 'severity=count'.  The checks that this command creates
-will be marked as failed if the corresponding assessment has count or more failed findings
-of the specified severity.`)
 	return c
-}
-
-func longUsage(s string) string {
-	return strings.ReplaceAll(strings.TrimSpace(strings.ReplaceAll(s, "'", "`")), "\n", " ")
 }

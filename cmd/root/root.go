@@ -56,6 +56,7 @@ import (
 var (
 	profile    string
 	setProfile string
+	ExitFunc   = os.Exit
 )
 
 func Command() *cobra.Command {
@@ -89,7 +90,7 @@ func Command() *cobra.Command {
 				if exit.Func != nil {
 					exit.Func()
 				}
-				os.Exit(exit.Code)
+				ExitFunc(exit.Code)
 			}
 		},
 		Version: v.Version,
