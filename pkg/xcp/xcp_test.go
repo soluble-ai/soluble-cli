@@ -21,6 +21,13 @@ import (
 )
 
 func TestGetCIEnv(t *testing.T) {
+	saveEnv := os.Environ()
+	defer func() {
+		for _, kv := range saveEnv {
+			eq := strings.Index(kv, "=")
+			os.Setenv(kv[0:eq], kv[eq+1:])
+		}
+	}()
 	// xxx must not be included, yyy must be included
 	os.Setenv("PASSWORD", "xxx")
 	os.Setenv("GITHUB_TOKEN", "xxx")
@@ -28,6 +35,8 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("BUILDKITE_AGENT_ACCESS_TOKEN", "xxx")
 	os.Setenv("BUILDKITE_COMMAND", "xxx")
 	os.Setenv("BUILDKITE_S3_ACCESS_URL", "xxx")
+	os.Setenv("BITBUCKET_BUILD_NUMBER", "yyy")
+	os.Setenv("BITBUCKET_STEP_OIDC_TOKEN", "xxx")
 	env := GetCIEnv(".")
 	for k, v := range env {
 		if v == "xxx" {

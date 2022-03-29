@@ -63,6 +63,7 @@ var (
 		"CI_REGISTRY_USER",               // Gitlab
 		"CI_REGISTRY_PASSWORD",           // Gitlab
 		"CI_REGISTRY_USER",               // Gitlab
+		"BITBUCKET_STEP_OIDC_TOKEN",      // Bitbucket
 	}
 )
 
@@ -126,7 +127,8 @@ envLoop:
 			strings.HasPrefix(k, "GITLAB_") ||
 			strings.HasPrefix(k, "CI_") ||
 			strings.HasPrefix(k, "BUILDKITE_") ||
-			strings.HasPrefix(k, "ZODIAC_") {
+			strings.HasPrefix(k, "ZODIAC_") ||
+			strings.HasPrefix(k, "BITBUCKET_") {
 			values[k] = v
 
 			// and if we haven't set a CI system yet, set it
