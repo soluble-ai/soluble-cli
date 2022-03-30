@@ -69,31 +69,46 @@ var (
 
 // Include CI-related environment variables in the request.
 func WithCIEnv(dir string) api.Option {
-	return func(req *resty.Request) {
+	return api.OptionFunc(func(req *resty.Request) {
 		if req.Method == "GET" {
 			req.SetQueryParams(GetCIEnv(dir))
 		} else {
 			req.SetMultipartFormData(GetCIEnv(dir))
 		}
-	}
+	})
 }
 
 // Include CI-related information in the body of a request
 func WithCIEnvBody(dir string) api.Option {
-	return func(r *resty.Request) {
+	return api.OptionFunc(func(r *resty.Request) {
 		body := jnode.NewObjectNode()
 		for k, v := range GetCIEnv(dir) {
 			body.Put(k, v)
 		}
 		r.SetBody(body)
-	}
+	})
 }
 
 // For XCPPost, include a file from a reader.
 func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
-	return func(req *resty.Request) {
+	closer, _ := reader.(io.Closer)
+	return api.CloseableOptionFunc(func(req *resty.Request) {
 		req.SetFileReader(param, filename, reader)
+	}, func() error {
+		if closer != nil {
+			return closer.Close()
+		}
+		return nil
+	})
+}
+
+func WithFile(path string) (api.Option, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
+	filename := filepath.Base(path)
+	return WithFileFromReader(filename, filename, f), nil
 }
 
 func GetCIEnv(dir string) map[string]string {

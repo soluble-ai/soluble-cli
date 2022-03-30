@@ -24,12 +24,12 @@ var terraformVersions []byte
 
 type providerConfigFile struct {
 	TerraformSettings []*TerraformSettings `hcl:"terraform,block"`
-	Other             hcl.Body             `hcl:",remain"`
+	Remain            hcl.Body             `hcl:",remain"`
 }
 
 type TerraformSettings struct {
 	RequiredVersion *string  `hcl:"required_version"`
-	Other           hcl.Body `hcl:",remain"`
+	Remain          hcl.Body `hcl:",remain"`
 }
 
 func Read(dir string) *TerraformSettings {

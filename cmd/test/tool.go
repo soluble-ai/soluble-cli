@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory"
+	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
@@ -34,7 +34,7 @@ func (t *Tool) WithUpload(enable bool) *Tool {
 
 func (t *Tool) WithRepoRootDir() *Tool {
 	t.T.Helper()
-	dir, err := inventory.FindRepoRoot(".")
+	dir, err := repotree.FindRepoRoot(".")
 	if err != nil {
 		t.T.Fatal(err)
 	}

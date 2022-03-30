@@ -17,6 +17,7 @@ package api
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,7 +46,9 @@ type Config struct {
 	Headers          []string
 }
 
-type Option func(*resty.Request)
+type Option interface {
+	Apply(*resty.Request)
+}
 
 type httpError string
 
@@ -130,7 +133,7 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 	// depending on the method
 	r.Method = method
 	for _, opt := range options {
-		opt(r)
+		opt.Apply(r)
 	}
 	if strings.Contains(path, orgToken) {
 		if c.Organization == "" {
@@ -143,6 +146,11 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 		path = fmt.Sprintf("%s/%s", c.APIPrefix, path)
 	}
 	_, err := r.Execute(method, path)
+	for _, opt := range options {
+		if c, ok := opt.(io.Closer); ok {
+			_ = c.Close()
+		}
+	}
 	return err
 }
 
@@ -224,4 +232,32 @@ func (c *Client) GetHostURL() string {
 
 func (c *Client) GetAuthToken() string {
 	return c.APIToken
+}
+
+type optionFunc struct {
+	f func(*resty.Request)
+}
+
+func (f optionFunc) Apply(req *resty.Request) {
+	f.f(req)
+}
+
+func OptionFunc(f func(*resty.Request)) Option {
+	return optionFunc{f}
+}
+
+type closeableOptionFunc struct {
+	optionFunc
+	close func() error
+}
+
+func (c closeableOptionFunc) Close() error {
+	return c.close()
+}
+
+func CloseableOptionFunc(f func(req *resty.Request), close func() error) Option {
+	return closeableOptionFunc{
+		optionFunc: optionFunc{f},
+		close:      close,
+	}
 }

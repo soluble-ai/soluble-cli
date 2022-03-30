@@ -11,6 +11,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/root"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"gopkg.in/yaml.v3"
 )
 
 type Command struct {
@@ -45,6 +46,15 @@ func (c *Command) JSON() *jnode.Node {
 		log.Errorf("{primary:%s} did not return JSON - {danger:%s}", c.Args[0], jerr)
 	}
 	return n
+}
+
+func (c *Command) YAML() map[string]interface{} {
+	var m map[string]interface{}
+	err := yaml.Unmarshal(c.Out.Bytes(), &m)
+	if err != nil {
+		log.Errorf("{primary:%s} did not return JSON - {danger:%s}", c.Args[0], err)
+	}
+	return m
 }
 
 func (c *Command) Must(err error) {

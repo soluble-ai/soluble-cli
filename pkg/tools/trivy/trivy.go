@@ -28,7 +28,7 @@ import (
 )
 
 type Tool struct {
-	tools.ToolOpts
+	tools.AssessmentOpts
 	Image      string
 	ClearCache bool
 }
@@ -40,7 +40,7 @@ func (t *Tool) Name() string {
 }
 
 func (t *Tool) Register(cmd *cobra.Command) {
-	t.ToolOpts.Register(cmd)
+	t.AssessmentOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringVarP(&t.Image, "image", "i", "", "The image to scan")
 	flags.BoolVarP(&t.ClearCache, "clear-cache", "c", false, "clear image caches and then start scanning")

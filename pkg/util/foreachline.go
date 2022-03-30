@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"io"
 	"os"
 )
 
@@ -11,7 +12,11 @@ func ForEachLine(path string, fn func(line string) bool) error {
 		return err
 	}
 	defer f.Close()
-	sc := bufio.NewScanner(f)
+	return ForEachReaderLine(f, fn)
+}
+
+func ForEachReaderLine(r io.Reader, fn func(line string) bool) error {
+	sc := bufio.NewScanner(r)
 	for sc.Scan() {
 		line := sc.Text()
 		if !fn(line) {

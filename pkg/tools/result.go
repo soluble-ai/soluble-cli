@@ -26,19 +26,20 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
 type Result struct {
+	Tool             Single
 	Data             *jnode.Node
 	Findings         assessments.Findings
 	Values           map[string]string
 	Directory        string
-	Files            *util.StringSet
 	FileFingerprints []*FileFingerprint
+	UploadOptions    []api.Option
 
 	Assessment    *assessments.Assessment
 	AssessmentRaw *jnode.Node
@@ -62,14 +63,6 @@ var repoFiles = []string{
 	".github/CODEOWNERS",
 }
 
-func (r *Result) AddFile(path string) *Result {
-	if r.Files == nil {
-		r.Files = util.NewStringSet()
-	}
-	r.Files.Add(path)
-	return r
-}
-
 func (r *Result) AddValue(name, value string) *Result {
 	if r.Values == nil {
 		r.Values = map[string]string{}
@@ -78,13 +71,26 @@ func (r *Result) AddValue(name, value string) *Result {
 	return r
 }
 
+func (r *Result) AddValues(values map[string]string) *Result {
+	for k, v := range values {
+		r.AddValue(k, v)
+	}
+	return r
+}
+
+func (r *Result) AddUploadOption(options ...api.Option) {
+	r.UploadOptions = append(r.UploadOptions, options...)
+}
+
 func (r *Result) Upload(client *api.Client, org, name string) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
 	log.Infof("Uploading results of {primary:%s}", name)
-	options := []api.Option{
-		xcp.WithCIEnv(r.Directory), xcp.WithFileFromReader("results_json", "results.json", rr),
-	}
-	dir, _ := inventory.FindRepoRoot(r.Directory)
+	options := r.UploadOptions
+	options = append(options,
+		xcp.WithCIEnv(r.Directory),
+		xcp.WithFileFromReader("results_json", "results.json", rr),
+	)
+	dir, _ := repotree.FindRepoRoot(r.Directory)
 	if dir != "" {
 		// include various repo files if they exist
 		names := &util.StringSet{}

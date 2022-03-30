@@ -97,6 +97,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	dt.Directory = t.GetDirectory()
 	if t.RepoRoot != "" {
+		// We want to run in the repo root and target a relative directory under
+		// that so the module references to peer or sibling directories
+		// resolve correctly.
 		dir, _ := filepath.Rel(t.RepoRoot, dt.Directory)
 		dt.Directory = t.RepoRoot
 		dt.AppendArgs("-d", dir)

@@ -74,7 +74,7 @@ Some options have been hidden, use "{{ helpPath $ }} -a" to display all options{
 		options.GetClientOptionsGroupHelpCommand(),
 		options.GetPrintOptionsGroupHelpCommand(),
 		globalOptionsHelp,
-		(&tools.ToolOpts{}).GetToolHiddenOptions().GetHelpCommand(),
+		(&tools.AssessmentOpts{}).GetAssessmentHiddenOptions().GetHelpCommand(),
 		(&tools.RunOpts{}).GetRunHiddenOptions().GetHelpCommand(),
 	)
 }

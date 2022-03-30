@@ -123,20 +123,17 @@ func (t *Tool) RunAll() (tools.Results, error) {
 			continue
 		}
 		count++
-		opts := st.GetToolOptions()
+		opts := st.GetAssessmentOptions()
 		opts.Tool = st
 		opts.UploadEnabled = t.UploadEnabled
 		opts.ToolPath = t.ToolPaths[st.Name()]
 		opts.NoDocker = t.NoDocker
-		if dopts := st.GetDirectoryBasedToolOptions(); dopts != nil {
-			dopts.Exclude = t.Exclude
-		}
+		// Note - we don't propagate --exclude down, consider instead
+		// removing the --exclude flag since that should be done server-side
 		log.Infof("Running {info:%s}", opts.Tool.Name())
-		toolResults, toolErr := opts.RunTool()
-		for _, res := range toolResults {
-			if res != nil {
-				results = append(results, res)
-			}
+		toolResult, toolErr := tools.RunSingleAssessment(st)
+		if toolResult != nil {
+			results = append(results, toolResult)
 		}
 		if toolErr != nil {
 			errs = multierror.Append(errs, fmt.Errorf("%s failed - %w", st.Name(), toolErr))
@@ -148,6 +145,6 @@ func (t *Tool) RunAll() (tools.Results, error) {
 
 func (t *Tool) getDirectoryOpts() tools.DirectoryBasedToolOpts {
 	return tools.DirectoryBasedToolOpts{
-		Directory: t.GetDirectory(),
+		DirectoryOpt: tools.DirectoryOpt{Directory: t.GetDirectory()},
 	}
 }

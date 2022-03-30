@@ -26,6 +26,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
 	github.com/tidwall/gjson v1.14.0
+	github.com/zclconf/go-cty v1.8.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
@@ -54,7 +55,6 @@ require (
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/zclconf/go-cty v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
 	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect

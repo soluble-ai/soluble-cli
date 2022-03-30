@@ -25,8 +25,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments/fingerprint"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
@@ -91,7 +91,7 @@ func (a *Assessment) EvaluateFailures(thresholds map[string]int) {
 
 func (findings Findings) ComputePartialFingerprints(dir string) {
 	findingsForFiles := map[string][]*Finding{}
-	repoRoot, _ := inventory.FindRepoRoot(dir)
+	repoRoot, _ := repotree.FindRepoRoot(dir)
 	var relDir string
 	if repoRoot != "" {
 		relDir, _ = filepath.Rel(repoRoot, dir)
@@ -145,10 +145,10 @@ func (f *Finding) GetTitle() string {
 
 func FindCIEnvAssessments(client *api.Client) (Assessments, error) {
 	n, err := client.Get("/api/v1/org/{org}/assessments",
-		func(r *resty.Request) {
+		api.OptionFunc(func(r *resty.Request) {
 			r.SetQueryParam("detail", "true")
 			r.SetQueryParam("searchType", "ci")
-		},
+		}),
 		xcp.WithCIEnv(""))
 	if err != nil {
 		return nil, err
