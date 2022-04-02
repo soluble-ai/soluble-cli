@@ -30,6 +30,7 @@ type Filter interface {
 type singleFilter struct {
 	name string
 	g    glob.Glob
+	pat  string
 	not  bool
 }
 
@@ -68,12 +69,12 @@ func NewSingleFilter(s string) Filter {
 			f.name = f.name[:len(f.name)-1]
 		}
 	}
-	pat := m[2]
-	if pat != "" {
+	f.pat = m[2]
+	if f.pat != "" {
 		var err error
-		f.g, err = glob.Compile(pat)
+		f.g, err = glob.Compile(f.pat)
 		if err != nil {
-			log.Warnf("Ignoring invalid filter {info:%s} - {danger:%s}", pat, err.Error())
+			log.Warnf("Ignoring invalid filter {info:%s} - {danger:%s}", f.pat, err.Error())
 			return &singleFilter{}
 		}
 	}
@@ -94,6 +95,10 @@ func (f *singleFilter) Matches(row *jnode.Node) bool {
 			}
 		}
 		if n.IsMissing() {
+			// special case - if comparing with "false", then invert
+			if f.pat == "false" {
+				return !f.not
+			}
 			return f.not
 		}
 		if f.g != nil && !f.g.Match(n.AsText()) {

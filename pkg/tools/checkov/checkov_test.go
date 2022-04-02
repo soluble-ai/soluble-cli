@@ -17,6 +17,7 @@ package checkov
 import (
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,4 +53,10 @@ func TestParseResults2(t *testing.T) {
 	assert.NoError(err)
 	result := tool.processResults(results)
 	assert.Equal("6", result.Values["RESOURCE_COUNT"])
+}
+
+func TestPropagateTfvarsEnv(t *testing.T) {
+	d := &tools.DockerTool{}
+	propagateTfVarsEnv(d, []string{"TF_VAR_foo=foo", "TF_VAR_bar=bar", "PATH=/bin;/usr/bin"})
+	assert.ElementsMatch(t, []string{"TF_VAR_foo", "TF_VAR_bar"}, d.PropagateEnvironmentVars)
 }

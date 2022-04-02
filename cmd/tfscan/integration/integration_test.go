@@ -34,3 +34,13 @@ func TestScanUploadJSON(t *testing.T) {
 	assert.NotEmpty(assmt.Path("assessmentId").AsText())
 	assert.Greater(assmt.Path("findings").Size(), 1)
 }
+
+func TestCheckovVarFile(t *testing.T) {
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--var-file", "testdata/pass.tfvars")
+	tool.ExtraArgs = []string{"--check", "CKV_AWS_20"}
+	tool.Must(tool.Run())
+	lines := strings.Split(tool.Out.String(), "\n")
+	if assert.Len(t, lines, 3) {
+		assert.Contains(t, lines[1], "PASS")
+	}
+}

@@ -34,6 +34,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 	Framework            string
 	EnableModuleDownload bool
+	VarFiles             []string
 
 	extraArgs tools.ExtraArgs
 }
@@ -50,6 +51,31 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&t.EnableModuleDownload, "enable-module-download", !iacbot,
 		"Enable module download.  Use --enable-module-download=false to disable.")
+	flags.StringSliceVar(&t.VarFiles, "var-file", nil, "Pass additional variable `files` to checkov")
+}
+
+func (t *Tool) Validate() error {
+	if err := t.DirectoryBasedToolOpts.Validate(); err != nil {
+		return err
+	}
+	if t.Framework == "" || t.Framework == "terraform" {
+		for _, name := range t.VarFiles {
+			if !strings.Contains(name, ".tfvars") {
+				// This bug is present in at least 2.0.1021.  Strange but true.
+				return fmt.Errorf("checkov only supports variable files with names that contain \".tfvars\"")
+			}
+			abs := name
+			if !filepath.IsAbs(name) {
+				abs, _ = filepath.Abs(name)
+			}
+			r, err := filepath.Rel(t.GetDirectory(), abs)
+			if err != nil || strings.ContainsRune(r, os.PathSeparator) {
+				// This is also a limitation of checkov
+				return fmt.Errorf("variable files must be in the same directory as the target terraform")
+			}
+		}
+	}
+	return nil
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {
@@ -61,14 +87,27 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{
-		"-o", "json", "-s",
+	dt := &tools.DockerTool{
+		Name:                "checkov",
+		Image:               "bridgecrew/checkov:latest",
+		DefaultNoDockerName: "checkov",
+		Args: []string{
+			"-o", "json", "-s",
+		},
+	}
+	dt.Directory = t.GetDirectory()
+	if t.RepoRoot != "" {
+		dir, _ := filepath.Rel(t.RepoRoot, dt.Directory)
+		dt.Directory = t.RepoRoot
+		dt.AppendArgs("-d", dir)
+	} else {
+		dt.AppendArgs("-d", ".")
 	}
 	if t.Framework != "" {
-		args = append(args, "--framework", t.Framework)
+		dt.AppendArgs("--framework", t.Framework)
 	}
 	if t.Framework == "terraform" && t.EnableModuleDownload {
-		args = append(args, "--download-external-modules", "true")
+		dt.AppendArgs("--download-external-modules", "true")
 	}
 	if t.Framework == "helm" && (t.NoDocker || t.ToolPath != "") {
 		if err := t.makeHelmAvailable(); err != nil {
@@ -80,25 +119,21 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	if customPoliciesDir != "" {
-		args = append(args, "--external-checks-dir", customPoliciesDir)
+		dt.AppendArgs("--external-checks-dir", customPoliciesDir)
+		dt.Mount(customPoliciesDir, "/policy")
 	}
-	args = append(args, t.extraArgs...)
-	toolDir := t.GetDirectory()
-	if t.RepoRoot != "" {
-		dir, _ := filepath.Rel(t.RepoRoot, toolDir)
-		toolDir = t.RepoRoot
-		args = append(args, "-d", dir)
-	} else {
-		args = append(args, "-d", ".")
+	for _, varFile := range t.VarFiles {
+		if !filepath.IsAbs(varFile) {
+			varFile, _ = filepath.Abs(varFile)
+		}
+		rv, _ := filepath.Rel(dt.Directory, varFile)
+		dt.AppendArgs("--var-file", rv)
 	}
-	dat, err := t.RunDocker(&tools.DockerTool{
-		Name:                "checkov",
-		Image:               "bridgecrew/checkov:latest",
-		DefaultNoDockerName: "checkov",
-		Directory:           toolDir,
-		PolicyDirectory:     customPoliciesDir,
-		Args:                args,
-	})
+	dt.AppendArgs(t.extraArgs...)
+	if t.Framework == "" || t.Framework == "terraform" {
+		propagateTfVarsEnv(dt, os.Environ())
+	}
+	dat, err := t.RunDocker(dt)
 	if err != nil {
 		if dat != nil {
 			_, _ = os.Stderr.Write(dat)
@@ -228,4 +263,17 @@ func (t *Tool) isGeneratedFile(path string) bool {
 		return strings.HasPrefix(filepath.ToSlash(path), ".external_modules/")
 	}
 	return false
+}
+
+func propagateTfVarsEnv(d *tools.DockerTool, env []string) {
+	// checkov (as of 2.0.1021) has support for TF_VAR_ environment
+	// variables but it does not work properly.  We'll pass them
+	// along so that when checkov fixes the issue it will work.
+	for _, ev := range env {
+		eq := strings.IndexRune(ev, '=')
+		name := ev[0:eq]
+		if strings.HasPrefix(name, "TF_VAR_") {
+			d.PropagateEnvironmentVars = append(d.PropagateEnvironmentVars, name)
+		}
+	}
 }

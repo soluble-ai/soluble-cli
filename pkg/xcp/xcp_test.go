@@ -23,6 +23,7 @@ import (
 func TestGetCIEnv(t *testing.T) {
 	saveEnv := os.Environ()
 	defer func() {
+		os.Clearenv()
 		for _, kv := range saveEnv {
 			eq := strings.Index(kv, "=")
 			os.Setenv(kv[0:eq], kv[eq+1:])

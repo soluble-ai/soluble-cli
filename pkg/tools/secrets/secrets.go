@@ -48,28 +48,27 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 func (t *Tool) Run() (*tools.Result, error) {
 	// --all-files includes files not checked into git
 	// --no-verify avoids making network calls to check credentials
-	var args []string
+	dt := &tools.DockerTool{
+		Name:                "soluble-secrets",
+		DefaultNoDockerName: "detect-secrets",
+		Image:               "gcr.io/soluble-repo/soluble-secrets:latest",
+		Directory:           t.GetDirectory(),
+	}
 	if t.NoDocker || t.ToolPath != "" {
 		// the image entrypoint sticks scan in the args
-		args = append(args, "scan")
+		dt.AppendArgs("scan")
 	}
-	args = append(args, "--all-files", "--no-verify")
-	args = append(args, t.args...)
+	dt.AppendArgs("--all-files", "--no-verify")
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
 		return nil, err
 	}
 	if customPoliciesDir != "" {
-		args = append(args, "--custom-plugins", customPoliciesDir)
+		dt.AppendArgs("--custom-plugins", customPoliciesDir)
+		dt.Mount(customPoliciesDir, "/policy")
 	}
-	d, err := t.RunDocker(&tools.DockerTool{
-		Name:                "soluble-secrets",
-		DefaultNoDockerName: "detect-secrets",
-		Image:               "gcr.io/soluble-repo/soluble-secrets:latest",
-		Directory:           t.GetDirectory(),
-		PolicyDirectory:     customPoliciesDir,
-		Args:                args,
-	})
+	dt.AppendArgs(t.args...)
+	d, err := t.RunDocker(dt)
 	if err != nil && tools.IsDockerError(err) {
 		return nil, err
 	}
