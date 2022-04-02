@@ -3,9 +3,11 @@
 package integration
 
 import (
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/cmd/root"
 	"github.com/soluble-ai/soluble-cli/cmd/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -43,4 +45,16 @@ func TestCheckovVarFile(t *testing.T) {
 	if assert.Len(t, lines, 3) {
 		assert.Contains(t, lines[1], "PASS")
 	}
+}
+
+func TestFail(t *testing.T) {
+	assert := assert.New(t)
+	test.RequireAPIToken(t)
+	var exitCode int
+	root.ExitFunc = func(code int) { exitCode = code }
+	defer func() { root.ExitFunc = os.Exit }()
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--config-file", "/dev/null", "--fail", "high").
+		WithUpload(true)
+	tool.Must(tool.Run())
+	assert.Equal(2, exitCode)
 }
