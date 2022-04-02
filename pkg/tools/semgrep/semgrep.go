@@ -65,32 +65,32 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
-	args := []string{"--json"}
+	dt := &tools.DockerTool{
+		Name:      "semgrep",
+		Image:     "returntocorp/semgrep:latest",
+		Directory: t.GetDirectory(),
+	}
+	dt.AppendArgs("--json")
 	if t.Pattern != "" {
-		args = append(args, "-e", t.Pattern)
+		dt.AppendArgs("-e", t.Pattern)
 	}
 	if t.Lang != "" {
-		args = append(args, "-l", t.Lang)
+		dt.AppendArgs("-l", t.Lang)
 	}
 	if t.Config != "" {
-		args = append(args, "-f", t.Config)
+		dt.AppendArgs("-f", t.Config)
 	}
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
 		return nil, err
 	}
 	if customPoliciesDir != "" {
-		args = append(args, "-f", customPoliciesDir)
+		dt.AppendArgs("-f", customPoliciesDir)
+		dt.Mount(customPoliciesDir, "/policy")
 	}
-	args = append(args, t.extraArgs...)
-	args = append(args, ".")
-	d, err := t.RunDocker(&tools.DockerTool{
-		Name:            "semgrep",
-		Image:           "returntocorp/semgrep:latest",
-		Directory:       t.GetDirectory(),
-		PolicyDirectory: customPoliciesDir,
-		Args:            args,
-	})
+	dt.AppendArgs(t.extraArgs...)
+	dt.AppendArgs(".")
+	d, err := t.RunDocker(dt)
 	if err != nil && (tools.IsDockerError(err) || util.ExitCode(err) != 1) {
 		// semgrep exits 1 if it finds issues
 		return nil, err

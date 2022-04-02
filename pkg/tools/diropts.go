@@ -128,7 +128,7 @@ func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 	o.ToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringVarP(&o.Directory, "directory", "d", "", "The directory to run in.")
-	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob pattern (path/**/foo.txt syntax supported.)  May be repeated.")
+	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob `pattern` (path/**/foo.txt syntax supported.)  May be repeated.")
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {

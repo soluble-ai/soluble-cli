@@ -12,6 +12,7 @@ import (
 type Tool struct {
 	Command
 	Fingerprints     *jnode.Node
+	ExtraArgs        []string
 	fingerprintsFile string
 	upload           bool
 	dir              string
@@ -63,6 +64,10 @@ func (t *Tool) Run() error {
 	t.Args = append(t.Args, "--no-color", "--disable-custom-policies")
 	if t.dir != "" {
 		t.Args = append(t.Args, "-d", t.dir)
+	}
+	if len(t.ExtraArgs) > 0 {
+		t.Args = append(t.Args, "--")
+		t.Args = append(t.Args, t.ExtraArgs...)
 	}
 	if err := t.Command.Run(); err != nil {
 		return err

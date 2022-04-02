@@ -28,16 +28,17 @@ import (
 type DockerError string
 
 type DockerTool struct {
-	Name                string
-	Image               string
-	DockerArgs          []string
-	Args                []string
-	DefaultNoDockerName string
-	PolicyDirectory     string
-	Stdout              io.Writer
-	Stderr              io.Writer
-	Directory           string
-	Quiet               bool
+	Name                     string
+	Image                    string
+	DockerArgs               []string
+	Args                     []string
+	DefaultNoDockerName      string
+	ExtraMounts              map[string]string
+	Stdout                   io.Writer
+	Stderr                   io.Writer
+	Directory                string
+	Quiet                    bool
+	PropagateEnvironmentVars []string
 }
 
 func (d DockerError) Error() string {
@@ -113,20 +114,36 @@ func (t *DockerTool) getArgs(getenv func(string) string) []string {
 		args = append(args, "-v", fmt.Sprintf("%s:/src", t.Directory),
 			"-w", "/src")
 	}
-	if t.PolicyDirectory != "" {
-		// mount the policy directory and rewrite args
-		args = append(args, "-v", fmt.Sprintf("%s:/policy", t.PolicyDirectory))
-		for i := range t.Args {
-			if t.Args[i] == t.PolicyDirectory {
-				t.Args[i] = "/policy"
+	actualArgs := make([]string, len(t.Args))
+	copy(actualArgs, t.Args)
+	for name, mountpoint := range t.ExtraMounts {
+		// mount the name and rewrite args
+		args = append(args, "-v", fmt.Sprintf("%s:%s", name, mountpoint))
+		for i := range actualArgs {
+			if actualArgs[i] == name {
+				actualArgs[i] = mountpoint
 			}
 		}
 	}
 	args = append(args, t.DockerArgs...)
 	args = appendProxyEnv(getenv, args)
+	for _, n := range t.PropagateEnvironmentVars {
+		args = append(args, "-e", n)
+	}
 	args = append(args, t.Image)
-	args = append(args, t.Args...)
+	args = append(args, actualArgs...)
 	return args
+}
+
+func (t *DockerTool) AppendArgs(args ...string) {
+	t.Args = append(t.Args, args...)
+}
+
+func (t *DockerTool) Mount(name, mountpoint string) {
+	if t.ExtraMounts == nil {
+		t.ExtraMounts = make(map[string]string)
+	}
+	t.ExtraMounts[name] = mountpoint
 }
 
 func appendProxyEnv(getenv func(string) string, args []string) []string {

@@ -21,7 +21,7 @@ import (
 )
 
 func TestFilter(t *testing.T) {
-	row := jnode.NewObjectNode().Put("name", "value").Put("greeting", "hello")
+	row := jnode.NewObjectNode().Put("name", "value").Put("greeting", "hello").Put("fail", true)
 	if n := NewSingleFilter("hello").(*singleFilter); n.name != "" || n.g == nil || !n.Matches(row) {
 		t.Error(n)
 	}
@@ -47,6 +47,12 @@ func TestFilter(t *testing.T) {
 		t.Error(n)
 	}
 	if n := NewAndFilter([]string{"name=value", "greeting=hello"}); !n.Matches(row) {
+		t.Error(n)
+	}
+	if n := NewSingleFilter("pass=false"); !n.Matches(row) {
+		t.Error(n)
+	}
+	if n := NewSingleFilter("fail=true"); !n.Matches(row) {
 		t.Error(n)
 	}
 }
