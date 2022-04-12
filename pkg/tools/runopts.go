@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
@@ -121,6 +122,17 @@ func (o *RunOpts) getToolVersion(name string) *jnode.Node {
 		return jnode.MissingNode
 	}
 	return n
+}
+
+func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Download, error) {
+	apiClient := o.GetAPIClient()
+	m := download.NewManager()
+	return m.Install(&download.Spec{
+		Name:                       name,
+		APIServerArtifact:          urlPath,
+		APIServer:                  apiClient,
+		LatestReleaseCacheDuration: 1 * time.Minute,
+	})
 }
 
 func (o *RunOpts) LogCommand(c *exec.Cmd) {

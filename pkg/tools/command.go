@@ -45,20 +45,33 @@ func CreateCommand(tool Interface) *cobra.Command {
 		return runTool(tool)
 	}
 	tool.Register(c)
-	if !tool.IsNonAssessment() {
-		o := tool.GetToolOptions()
-		o.Path = []string{}
-		o.Columns = []string{
-			"sid", "severity", "pass", "title", "filePath", "line",
-		}
-	}
 	return c
 }
 
 func runTool(tool Interface) error {
 	opts := tool.GetToolOptions()
 	opts.Tool = tool
-	results, toolErr := opts.RunTool()
+	var (
+		results Results
+		toolErr error
+	)
+	switch t := tool.(type) {
+	case Simple:
+		if err := t.Validate(); err != nil {
+			return err
+		}
+		return t.Run()
+	case Single:
+		var r *Result
+		r, toolErr = RunSingleAssessment(t)
+		if r != nil {
+			results = Results{r}
+		}
+	case Consolidated:
+		results, toolErr = RunConsoliatedAssessments(t)
+	default:
+		panic("tools must implement Simple, Single or Conslidated")
+	}
 	// even if the tool had an error we may have partial
 	// results that can be displayed
 	for _, result := range results {
@@ -66,40 +79,31 @@ func runTool(tool Interface) error {
 			log.Infof("Asessment uploaded, see {primary:%s} for more information", result.Assessment.URL)
 		}
 	}
-	if len(results) == 1 && tool.IsNonAssessment() {
-		result := results[0]
-		// for non-asessment tools just print the data
-		opts.PrintResult(result.Data)
+	var (
+		n   *jnode.Node
+		err error
+	)
+	// What we really want to work off here is a list of all the assessments.
+	// But the printer doesn't support a splat-like path i.e. *.findings to
+	// accumulate all the findings across the assessments.  So for the default
+	// or table output format we do that accumulation in code here.
+	if opts.OutputFormat == "" || opts.OutputFormat == "table" || opts.OutputFormat == "count" {
+		if !opts.Wide {
+			opts.SetFormatter("title", print.TruncateFormatter(70, false))
+			opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
+		}
+		n, err = results.getFindingsJNode()
 	} else {
-		var (
-			n   *jnode.Node
-			err error
-		)
-		// What we really want to work off here is a list of all the assessments.
-		// But the printer doesn't support a splat-like path i.e. *.findings to
-		// accumulate all the findings across the assessments.  So for the default
-		// or table output format we do that accumulation in code here.
-		if opts.OutputFormat == "" || opts.OutputFormat == "table" || opts.OutputFormat == "count" {
-			if !opts.Wide {
-				opts.SetFormatter("title", print.TruncateFormatter(70, false))
-				opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
-			}
-			n, err = results.getFindingsJNode()
-		} else {
-			n, err = results.getAssessmentsJNode()
-		}
-		if err != nil {
-			return err
-		}
-		if toolErr == nil {
-			opts.PrintResult(n)
-		}
+		n, err = results.getAssessmentsJNode()
+	}
+	if err != nil {
+		return err
+	}
+	if toolErr == nil {
+		opts.PrintResult(n)
 	}
 	if toolErr != nil {
 		return toolErr
-	}
-	if !opts.UploadEnabled {
-		log.Infof("Scan results not uploaded")
 	}
 	return nil
 }

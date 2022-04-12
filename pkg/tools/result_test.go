@@ -24,7 +24,9 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,8 +53,11 @@ func TestUpload(t *testing.T) {
 	result := &Result{
 		Data:      jnode.NewObjectNode(),
 		Directory: tempdir,
-		Files:     util.NewStringSetWithValues([]string{"README", "empty.txt"}),
 	}
+	result.AddUploadOption(
+		mustWithFile(assert, filepath.Join(tempdir, "README")),
+		mustWithFile(assert, filepath.Join(tempdir, "empty.txt")),
+	)
 	result.AddValue("FOO", "hello")
 	opts := &ToolOpts{}
 	opts.APIServer = "https://api.example.com"
@@ -69,12 +74,20 @@ func TestUpload(t *testing.T) {
 			checkFile(assert, h, "CODEOWNERS", nil)
 			checkFile(assert, h, "config.yml", nil)
 			_, _, e := h.FormFile("empty.txt")
-			assert.NotNil(e)
+			assert.Nil(e) // the client does not upload empty files
 			assert.Equal(h.FormValue("FOO"), "hello")
 			return resp, err
 		})
 	assert.Nil(result.Upload(opts.GetAPIClient(), "", "test"))
 	assert.Equal("http://app.example.com/A1", result.Assessment.URL)
+}
+
+func mustWithFile(assert *assert.Assertions, file string) api.Option {
+	opt, err := xcp.WithFile(file)
+	if !assert.NoError(err) {
+		assert.FailNow("could not open file")
+	}
+	return opt
 }
 
 func checkFile(assert *assert.Assertions, h *http.Request, name string, fn func(*assert.Assertions, multipart.File)) {

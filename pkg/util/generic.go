@@ -31,7 +31,11 @@ func GenericGet(m map[string]interface{}, path string) interface{} {
 	pathElements := strings.Split(path, "/")
 	for len(pathElements) > 1 {
 		name := pathElements[0]
-		m = m[name].(map[string]interface{})
+		var ok bool
+		m, ok = m[name].(map[string]interface{})
+		if !ok {
+			return nil
+		}
 		pathElements = pathElements[1:]
 	}
 	return m[pathElements[0]]

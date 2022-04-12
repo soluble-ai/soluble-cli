@@ -37,14 +37,14 @@ func (h *Helm) RunAll() (tools.Results, error) {
 		if err := checkov.Validate(); err != nil {
 			return nil, err
 		}
-		toolResults, toolErr := checkov.RunTool()
+		toolResult, toolErr := tools.RunSingleAssessment(checkov)
 		if toolErr != nil {
 			// checkov crashes if the chart is malformed, so just
 			// accumulate the errors but keep going with other charts
 			errs = multierror.Append(errs,
 				fmt.Errorf("checkov failed on %s - %w", checkov.Directory, toolErr))
 		} else {
-			results = append(results, toolResults...)
+			results = append(results, toolResult)
 		}
 	}
 	return results, errs

@@ -19,20 +19,25 @@ import "github.com/soluble-ai/soluble-cli/pkg/options"
 type Interface interface {
 	options.Interface
 	GetToolOptions() *ToolOpts
-	GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts
 	Validate() error
 	Name() string
-	IsNonAssessment() bool
 }
 
-// A Single tool runs and returns a single result
+// A Simple tool is a tool that does not generate findings
+type Simple interface {
+	Interface
+	Run() error
+}
+
+// A Single tool runs and returns a single assessment result
 type Single interface {
 	Interface
+	GetAssessmentOptions() *AssessmentOpts
 	Run() (*Result, error)
 }
 
-// A Consolidated tool runs and returns multiple results (typically by invoking
-// other tools)
+// A Consolidated tool runs and returns multiple asessment results
+// (typically by invoking other tools)
 type Consolidated interface {
 	Interface
 	RunAll() (Results, error)

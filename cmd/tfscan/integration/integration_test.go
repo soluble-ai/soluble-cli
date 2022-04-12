@@ -38,7 +38,7 @@ func TestScanUploadJSON(t *testing.T) {
 }
 
 func TestCheckovVarFile(t *testing.T) {
-	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--var-file", "testdata/pass.tfvars")
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata/withvars", "--var-file", "testdata/withvars/pass.tfvars")
 	tool.ExtraArgs = []string{"--check", "CKV_AWS_20"}
 	tool.Must(tool.Run())
 	lines := strings.Split(tool.Out.String(), "\n")

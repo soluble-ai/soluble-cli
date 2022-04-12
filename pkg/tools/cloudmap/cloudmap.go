@@ -1,30 +1,31 @@
 package cloudmap
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
 
 type Tool struct {
-	tools.DirectoryBasedToolOpts
+	tools.ToolOpts
+	tools.DirectoryOpt
+	tools.UploadOpt
 	StateFile string
 
 	extraArgs tools.ExtraArgs
 }
 
-var _ tools.Single = (*Tool)(nil)
+var _ tools.Simple = (*Tool)(nil)
 
 func (*Tool) Name() string {
 	return "cloud-map"
-}
-
-func (*Tool) IsNonAssessment() bool {
-	return true
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {
@@ -36,17 +37,29 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 	}
 }
 
+func (t *Tool) Validate() error {
+	if err := t.DirectoryOpt.Validate(&t.ToolOpts); err != nil {
+		return err
+	}
+	if err := t.ToolOpts.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (t *Tool) Register(cmd *cobra.Command) {
-	t.DirectoryBasedToolOpts.Register(cmd)
+	t.ToolOpts.Register(cmd)
+	t.DirectoryOpt.Register(cmd)
+	t.UploadOpt.Register(cmd)
 	cmd.Flags().StringVar(&t.StateFile, "state-file", "", "Map resources from terraform state `file`")
 	t.Path = []string{"managed_resources"}
 	t.Columns = []string{"source_location.file", "source_location.line", "cloud_id"}
 }
 
-func (t *Tool) Run() (*tools.Result, error) {
+func (t *Tool) Run() error {
 	d, err := t.InstallTool(&download.Spec{Name: "tfscore"})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	args := []string{"cloud-map", "-d", t.GetDirectory()}
 	if t.StateFile != "" {
@@ -59,15 +72,24 @@ func (t *Tool) Run() (*tools.Result, error) {
 	t.LogCommand(c)
 	dat, err := c.Output()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	n, err := jnode.FromJSON(dat)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	result := &tools.Result{
-		Data: n,
+	t.PrintResult(n)
+	if t.UploadEnabled {
+		values := t.GetStandardXCPValues()
+		values["TFSCORE_VERSION"] = d.Version
+		options := []api.Option{
+			xcp.WithCIEnv(t.GetDirectory()),
+			xcp.WithFileFromReader("cloudmap", "cloudmap.json", bytes.NewReader(dat)),
+		}
+		_, err := t.GetAPIClient().XCPPost(t.GetOrganization(), "cloudmap", nil, values, options...)
+		if err != nil {
+			return err
+		}
 	}
-	result.AddValue("TFSCORE_VERSION", d.Version)
-	return result, nil
+	return nil
 }

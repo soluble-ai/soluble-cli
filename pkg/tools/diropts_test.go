@@ -46,7 +46,7 @@ func TestNoRepo(t *testing.T) {
 	assert.NoError(err)
 	defer os.RemoveAll(dir)
 	o := &DirectoryBasedToolOpts{
-		Directory: dir,
+		DirectoryOpt: DirectoryOpt{Directory: dir},
 	}
 	assert.Equal("", o.RepoRoot)
 	assert.False(o.IsExcluded("foo.txt"))

@@ -44,11 +44,15 @@ var allTargets = []Target{
 
 type PassFail *bool
 
+type TestRunner interface {
+	tools.Interface
+}
+
 type RuleType interface {
 	GetCode() string
 	Prepare(rule *Rule, target Target, dest string) error
 	Validate(rule *Rule) error
-	GetTestRunner(target Target) tools.Interface
+	GetTestRunner(target Target) tools.Single
 	FindRuleResult(findings assessments.Findings, id string) PassFail
 }
 
@@ -259,35 +263,35 @@ tests:
 			continue
 		}
 		tool := rule.Type.GetTestRunner(target)
-		opts := tool.GetDirectoryBasedToolOptions()
+		opts := tool.GetAssessmentOptions()
 		opts.Tool = tool
 		opts.CustomPoliciesDir = dir
 		opts.UploadEnabled = false
-		opts.Directory = testDir
+		if dir, ok := tool.(tools.HasDirectory); ok {
+			dir.SetDirectory(testDir)
+		}
 		opts.Quiet = true
-		results, err := opts.RunTool()
+		result, err := tools.RunSingleAssessment(tool)
 		if err != nil {
 			return err
 		}
-		for _, result := range results {
-			passFailResult := rule.Type.FindRuleResult(result.Findings, rule.ID)
-			if passFailResult != nil {
-				ok := *passFailResult
-				if passFailName == "fail" {
-					ok = !ok
-				}
-				p := rule.Path
-				if rp, err := filepath.Rel(m.Dir, rule.Path); err == nil {
-					p = rp
-				}
-				if ok {
-					log.Infof("{primary:%s} %s %s - {info:OK}", p, passFailName, target)
-				} else {
-					log.Errorf("{primary:%s} %s %s - {danger:FAILED}", p, passFailName, target)
-					failures = true
-				}
-				continue tests
+		passFailResult := rule.Type.FindRuleResult(result.Findings, rule.ID)
+		if passFailResult != nil {
+			ok := *passFailResult
+			if passFailName == "fail" {
+				ok = !ok
 			}
+			p := rule.Path
+			if rp, err := filepath.Rel(m.Dir, rule.Path); err == nil {
+				p = rp
+			}
+			if ok {
+				log.Infof("{primary:%s} %s %s - {info:OK}", p, passFailName, target)
+			} else {
+				log.Errorf("{primary:%s} %s %s - {danger:FAILED}", p, passFailName, target)
+				failures = true
+			}
+			continue tests
 		}
 		log.Errorf("{primary:%s} - {danger:NOT FOUND}", testDir)
 		failures = true

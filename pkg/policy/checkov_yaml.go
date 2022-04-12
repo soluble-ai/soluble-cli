@@ -57,7 +57,7 @@ func (h checkovYAMLType) Validate(rule *Rule) error {
 	return err
 }
 
-func (checkovYAMLType) GetTestRunner(target Target) tools.Interface {
+func (checkovYAMLType) GetTestRunner(target Target) tools.Single {
 	return &checkov.Tool{
 		Framework: string(target),
 	}

@@ -20,13 +20,13 @@ import (
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/pkg/config"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory"
+	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGitSource(t *testing.T) {
-	root, err := inventory.FindRepoRoot(".")
+	root, err := repotree.FindRepoRoot(".")
 	util.Must(err)
 	saveDir := config.ConfigDir
 	config.ConfigDir, err = ioutil.TempDir("", "test-git-source*")

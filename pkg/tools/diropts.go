@@ -26,33 +26,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Options for assessment tools that run in a directory
 type DirectoryBasedToolOpts struct {
-	ToolOpts
-	Directory string
-	Exclude   []string
-
-	absDirectory string
-	ignore       *ignore.GitIgnore
-}
-
-func (o *DirectoryBasedToolOpts) GetDirectoryBasedToolOptions() *DirectoryBasedToolOpts {
-	return o
-}
-
-func (o *DirectoryBasedToolOpts) GetDirectory() string {
-	if o.absDirectory == "" {
-		dir := o.Directory
-		if dir == "" {
-			dir = "."
-		}
-		dir, err := filepath.Abs(dir)
-		if err != nil {
-			log.Errorf("Cannot determine current directory: {danger:%s}", err)
-			panic(err)
-		}
-		o.absDirectory = dir
-	}
-	return o.absDirectory
+	AssessmentOpts
+	DirectoryOpt
+	Exclude []string
+	ignore  *ignore.GitIgnore
 }
 
 func (o *DirectoryBasedToolOpts) GetInventory() *inventory.Manifest {
@@ -125,23 +104,17 @@ func (o *DirectoryBasedToolOpts) GetDockerRunDirectory() string {
 }
 
 func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
-	o.ToolOpts.Register(cmd)
+	o.AssessmentOpts.Register(cmd)
+	o.DirectoryOpt.Register(cmd)
 	flags := cmd.Flags()
-	flags.StringVarP(&o.Directory, "directory", "d", "", "The directory to run in.")
 	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob `pattern` (path/**/foo.txt syntax supported.)  May be repeated.")
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {
-	o.absDirectory = ""
-	if o.RepoRoot == "" {
-		var err error
-		o.RepoRoot, err = inventory.FindRepoRoot(o.GetDirectory())
-		if err != nil {
-			return err
-		}
-		o.repoRootSet = true
+	if err := o.DirectoryOpt.Validate(&o.ToolOpts); err != nil {
+		return err
 	}
-	if err := o.ToolOpts.Validate(); err != nil {
+	if err := o.AssessmentOpts.Validate(); err != nil {
 		return err
 	}
 	if len(o.Exclude) > 0 {

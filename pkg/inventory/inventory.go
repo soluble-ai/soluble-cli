@@ -23,6 +23,7 @@ import (
 )
 
 type Manifest struct {
+	root                          string
 	TerraformRootModules          util.StringSet `json:"terraform_root_modules"`
 	TerraformModules              util.StringSet `json:"terraform_modules"`
 	CloudformationFiles           util.StringSet `json:"cloudformation_files"`
@@ -121,7 +122,9 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 
 func Do(root string) *Manifest {
 	return cache.Get(root, func(dir string) interface{} {
-		m := &Manifest{}
+		m := &Manifest{
+			root: root,
+		}
 		m.scan(root,
 			cloudformationDetector(0),
 			kubernetesDetector(0),
