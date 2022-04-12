@@ -2,13 +2,17 @@ package iacinventory
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
@@ -24,10 +28,6 @@ var _ tools.Simple = (*Repo)(nil)
 
 func (*Repo) Name() string {
 	return "repo-inventory"
-}
-
-func (*Repo) IsNonAssessment() bool {
-	return true
 }
 
 func (r *Repo) Register(cmd *cobra.Command) {
@@ -67,6 +67,26 @@ func (r *Repo) Run() error {
 		}
 		treeDat = buf.Bytes()
 	}
+	if r.UploadEnabled {
+		values := r.GetStandardXCPValues()
+		gzdat := &bytes.Buffer{}
+		gz := gzip.NewWriter(gzdat)
+		if _, err := io.Copy(gz, bytes.NewReader(treeDat)); err != nil {
+			return err
+		}
+		if err := gz.Flush(); err != nil {
+			return err
+		}
+		options := []api.Option{
+			xcp.WithCIEnv(r.GetDirectory()),
+			xcp.WithFileFromReader("tree", "tree.json.gz", gzdat),
+		}
+		log.Infof("Uploading {info:%s} of compressed tree data", util.Size(uint64(gzdat.Len())))
+		_, err := r.GetAPIClient().XCPPost(r.GetOrganization(), "repo-tree", nil, values, options...)
+		if err != nil {
+			return err
+		}
+	}
 	if !r.Details {
 		tree.Files = nil
 	}
@@ -75,15 +95,5 @@ func (r *Repo) Run() error {
 		return err
 	}
 	r.PrintResult(n)
-	if r.UploadEnabled {
-		values := r.GetStandardXCPValues()
-		options := []api.Option{
-			xcp.WithFileFromReader("tree", "tree.json", bytes.NewReader(treeDat)),
-		}
-		_, err := r.GetAPIClient().XCPPost(r.GetOrganization(), "repo-tree", nil, values, options...)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
