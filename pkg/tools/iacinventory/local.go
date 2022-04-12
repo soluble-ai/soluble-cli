@@ -25,14 +25,12 @@ type Local struct {
 	tools.DirectoryBasedToolOpts
 }
 
+// This isn't an assessment tool but for historical reasons it's treated as
+// such.  The newer repo-tree command will replace this.
 var _ tools.Single = &Local{}
 
 func (t *Local) Name() string {
 	return "local-inventory"
-}
-
-func (t *Local) IsNonAssessment() bool {
-	return true
 }
 
 func (t *Local) Register(cmd *cobra.Command) {

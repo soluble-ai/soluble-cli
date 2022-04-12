@@ -88,7 +88,8 @@ func uploadCommand() *cobra.Command {
 				}
 				defer f.Close()
 				options := []api.Option{
-					xcp.WithCIEnv(dir), xcp.WithFileFromReader("tarball", "rules.tar.gz", f),
+					xcp.WithCIEnv(dir),
+					xcp.WithFileFromReader("tarball", "rules.tar.gz", f),
 				}
 				_, err = client.GetAPIClient().XCPPost(client.GetOrganization(),
 					"custom/policy", nil, nil, options...)

@@ -18,8 +18,8 @@ type Tree struct {
 	TerraformTopLevelModules     []string                              `json:"terraform_top_level_modules,omitempty"`
 	TerraformBackends            []string                              `json:"terraform_backends,omitempty"`
 	TerraformExternalModules     map[string]TerraformExternalModuleUse `json:"terraform_external_modules,omitempty"`
-	CDKDirectories               []string                              `json:"cdk_directories,omitempty"`
-	Files                        map[string]*File                      `json:"tree,omitempty"`
+	CDKDirectories               []string                              `json:"-"` // omit for now
+	Files                        map[string]*File                      `json:"files,omitempty"`
 }
 
 type TerraformExternalModuleUse struct {
@@ -111,6 +111,9 @@ func (tree *Tree) summarize() {
 
 func (tree *Tree) summarizeCDK() {
 	for _, f := range tree.Files {
+		if f.Deleted {
+			continue
+		}
 		if filepath.Base(f.Path) == "cdk.json" {
 			tree.CDKDirectories = append(tree.CDKDirectories, filepath.Dir(f.Path))
 		}
@@ -124,6 +127,9 @@ func (tree *Tree) summarizeTerraform() {
 	backends := map[string]bool{}
 	externalModules := map[terraform.ModuleUse]int{}
 	for _, f := range tree.Files {
+		if f.Deleted {
+			continue
+		}
 		if f.Terraform != nil {
 			dir := filepath.Dir(f.Path)
 			for _, mod := range f.Terraform.ModulesUsed {

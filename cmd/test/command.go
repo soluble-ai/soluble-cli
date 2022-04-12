@@ -20,6 +20,10 @@ type Command struct {
 	Out  *bytes.Buffer
 }
 
+// Create an integration test command, which when Run() is very nearly the same
+// as invoking a CLI command from a shell except that the command runs w/o forking
+// and we capture the output in a buffer.  The output can be parsed as JSON or YAML
+// using the corresponding functions.
 func NewCommand(t *testing.T, args ...string) *Command {
 	return &Command{T: t, Args: args}
 }

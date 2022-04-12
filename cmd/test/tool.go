@@ -18,6 +18,7 @@ type Tool struct {
 	dir              string
 }
 
+// Create a new integration test command for an assessment tool.
 func NewTool(t *testing.T, args ...string) *Tool {
 	return &Tool{
 		Command: Command{
