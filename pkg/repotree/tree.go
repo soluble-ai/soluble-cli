@@ -30,7 +30,6 @@ type TerraformExternalModuleUse struct {
 type File struct {
 	Path      string              `json:"-"`
 	Modified  bool                `json:"modified,omitempty"`
-	Deleted   bool                `json:"deleted,omitempty"`
 	Terraform *terraform.Metadata `json:"terraform,omitempty"`
 }
 
@@ -45,11 +44,6 @@ func Do(dir string) (*Tree, error) {
 	if err := tree.addLsFiles(dir, func(f *File) {
 		f.Modified = true
 	}, "-m"); err != nil {
-		return nil, err
-	}
-	if err := tree.addLsFiles(dir, func(f *File) {
-		f.Deleted = true
-	}, "-d"); err != nil {
 		return nil, err
 	}
 	for _, f := range tree.Files {
@@ -111,9 +105,6 @@ func (tree *Tree) summarize() {
 
 func (tree *Tree) summarizeCDK() {
 	for _, f := range tree.Files {
-		if f.Deleted {
-			continue
-		}
 		if filepath.Base(f.Path) == "cdk.json" {
 			tree.CDKDirectories = append(tree.CDKDirectories, filepath.Dir(f.Path))
 		}
@@ -127,9 +118,6 @@ func (tree *Tree) summarizeTerraform() {
 	backends := map[string]bool{}
 	externalModules := map[terraform.ModuleUse]int{}
 	for _, f := range tree.Files {
-		if f.Deleted {
-			continue
-		}
 		if f.Terraform != nil {
 			dir := filepath.Dir(f.Path)
 			for _, mod := range f.Terraform.ModulesUsed {
@@ -138,7 +126,7 @@ func (tree *Tree) summarizeTerraform() {
 						localSource := filepath.Join(dir, mod.Source)
 						usedModules[localSource] = true
 					} else {
-						externalModules[*mod] += 1
+						externalModules[*mod] += mod.UsageCount
 					}
 				}
 			}

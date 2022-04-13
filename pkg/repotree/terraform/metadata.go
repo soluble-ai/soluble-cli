@@ -11,7 +11,7 @@ type Metadata struct {
 	Providers      []*Provider    `json:"providers,omitempty"`
 	Settings       *Settings      `json:"settings,omitempty"`
 	ModulesUsed    []*ModuleUse   `json:"modules_used,omitempty"`
-	ResourceCounts map[string]int `json:"resources"`
+	ResourceCounts map[string]int `json:"resources,omitempty"`
 }
 
 type Provider struct {
@@ -32,8 +32,9 @@ type RequiredProvider struct {
 }
 
 type ModuleUse struct {
-	Source  string `json:"source"`
-	Version string `json:"version,omitempty"`
+	Source     string `json:"source"`
+	Version    string `json:"version,omitempty"`
+	UsageCount int    `json:"usage_count"`
 }
 
 func Read(path string) (*Metadata, error) {
@@ -59,16 +60,19 @@ func Read(path string) (*Metadata, error) {
 		for _, p := range tf.Providers {
 			m.Providers = append(m.Providers, &Provider{Name: p.Name, Alias: p.Alias})
 		}
-		modules := map[string]bool{}
+		modules := map[string]*ModuleUse{}
 		for _, mod := range tf.Modules {
 			key := fmt.Sprintf("%s:%s", mod.Source, mod.Version)
-			if !modules[key] {
-				modules[key] = true
-				m.ModulesUsed = append(m.ModulesUsed, &ModuleUse{
+			use := modules[key]
+			if use == nil {
+				use = &ModuleUse{
 					Source:  mod.Source,
 					Version: mod.Version,
-				})
+				}
+				modules[key] = use
+				m.ModulesUsed = append(m.ModulesUsed, use)
 			}
+			use.UsageCount++
 		}
 		sort.Slice(m.ModulesUsed, func(i, j int) bool {
 			return strings.Compare(m.ModulesUsed[i].Source, m.ModulesUsed[j].Source) < 0
