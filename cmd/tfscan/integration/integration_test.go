@@ -58,3 +58,12 @@ func TestFail(t *testing.T) {
 	tool.Must(tool.Run())
 	assert.Equal(2, exitCode)
 }
+
+func TestTfsec(t *testing.T) {
+	assert := assert.New(t)
+	tool := test.NewTool(t, "tf-scan", "tfsec", "-d", "testdata", "--config-file", "/dev/null",
+		"--format", "json")
+	tool.Must(tool.Run())
+	n := tool.JSON()
+	assert.Greater(n.Get(0).Path("findings").Size(), 1)
+}
