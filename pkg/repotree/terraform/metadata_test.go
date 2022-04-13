@@ -23,8 +23,9 @@ func TestRead(t *testing.T) {
 			})
 		}
 		assert.Contains(m.ModulesUsed, &ModuleUse{
-			Source:  "terraform-aws-modules/vpc/aws",
-			Version: "3.14.0",
+			Source:     "terraform-aws-modules/vpc/aws",
+			Version:    "3.14.0",
+			UsageCount: 1,
 		})
 	}
 }
