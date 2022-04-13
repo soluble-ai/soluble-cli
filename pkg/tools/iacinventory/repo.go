@@ -30,6 +30,13 @@ func (*Repo) Name() string {
 	return "repo-inventory"
 }
 
+func (*Repo) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "repo-inventory",
+		Short: "Inventory a git repository and extract infrastructure-as-code metadata",
+	}
+}
+
 func (r *Repo) Register(cmd *cobra.Command) {
 	r.ToolOpts.Register(cmd)
 	r.DirectoryOpt.Register(cmd)
