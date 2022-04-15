@@ -68,31 +68,31 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(program, args...)
 	c.Stderr = os.Stderr
 	c.Stdout = os.Stderr
-	t.LogCommand(c)
-	if err := c.Run(); err != nil {
-		return nil, err
+	exec := t.ExecuteCommand(c)
+	result := exec.ToResult("")
+	if !exec.ExpectExitCode(0) {
+		return result, nil
 	}
-
 	dat, err := ioutil.ReadFile(outfile)
 	if err != nil {
-		return nil, err
+		exec.FailureType = tools.GarbledResultFailure
+		exec.FailureMessage = err.Error()
+		return result, nil
 	}
 	n, err := jnode.FromJSON(dat)
 	if err != nil {
-		return nil, err
+		exec.FailureType = tools.GarbledResultFailure
+		exec.FailureMessage = err.Error()
+		return result, nil
 	}
 	n = util.RemoveJNodeElementsIf(n, func(e *jnode.Node) bool {
 		return t.IsExcluded(e.Path("Target").AsText())
 	})
-
-	result := &tools.Result{
-		Data: n,
-		Values: map[string]string{
-			"TRIVY_VERSION": d.Version,
-		},
-		Findings: parseResults(n),
+	result.Data = n
+	result.Values = map[string]string{
+		"TRIVY_VERSION": d.Version,
 	}
-
+	result.Findings = parseResults(n)
 	return result, nil
 }
 

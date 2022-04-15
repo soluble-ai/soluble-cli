@@ -16,7 +16,6 @@ package cfnpythonlint
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -54,29 +53,26 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no cloudformation templates found")
 	}
-	d, err := t.RunDocker(&tools.DockerTool{
+	exec, err := t.RunDocker(&tools.DockerTool{
 		Name:                "cfn-python-lint",
 		DefaultNoDockerName: "cfn-lint",
 		Image:               "gcr.io/soluble-repo/soluble-cfn-lint:latest",
 		Directory:           t.GetDirectory(),
 		Args:                append([]string{"-f", "json"}, files...),
 	})
-	if err != nil && tools.IsDockerError(err) {
-		return nil, err
-	}
-	results, err := jnode.FromJSON(d)
 	if err != nil {
-		if d != nil {
-			os.Stderr.Write(d)
-		}
 		return nil, err
 	}
-	result := parseResults(results)
-	result.Directory = t.GetDirectory()
+	result := exec.ToResult(t.GetDirectory())
+	results, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
+	}
+	parseResults(result, results)
 	return result, nil
 }
 
-func parseResults(results *jnode.Node) *tools.Result {
+func parseResults(result *tools.Result, results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
 	for _, r := range results.Elements() {
 		findings = append(findings, &assessments.Finding{
@@ -89,10 +85,8 @@ func parseResults(results *jnode.Node) *tools.Result {
 			},
 		})
 	}
-	result := &tools.Result{
-		Data:     results,
-		Findings: findings,
-	}
+	result.Data = results
+	result.Findings = findings
 	return result
 }
 

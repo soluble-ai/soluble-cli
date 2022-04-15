@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/cmd/root"
 	"github.com/soluble-ai/soluble-cli/cmd/test"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
@@ -36,7 +37,20 @@ func TestScanUploadJSON(t *testing.T) {
 	assert.NotEmpty(assmt.Path("appUrl").AsText())
 	assert.NotEmpty(assmt.Path("assessmentId").AsText())
 	assert.Greater(assmt.Path("findings").Size(), 1)
-	assert.Equal("cmd/tfscan/integration/testdata", assmt.Path("params").Path("ASSESSMENT_DIRECTORY").AsText())
+	params := assmt.Path("params")
+	assert.Equal("cmd/tfscan/integration/testdata", params.Path("ASSESSMENT_DIRECTORY").AsText())
+	assert.Equal("0", params.Path("EXIT_CODE").AsText())
+	assert.Equal("true", params.Path("SUCCESS").AsText())
+	var files []string
+	for _, e := range assmt.Path("files").Elements() {
+		assert.Equal(jnode.Text, e.GetType())
+		f := e.AsText()
+		slash := strings.LastIndexByte(f, '/')
+		files = append(files, f[slash+1:])
+	}
+	assert.ElementsMatch(files, []string{
+		"config.yml", "results.json", "tool.log", "findings.json", "fingerprints.json",
+	})
 }
 
 func TestCheckovVarFile(t *testing.T) {

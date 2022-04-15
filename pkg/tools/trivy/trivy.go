@@ -122,12 +122,11 @@ func getData(ver string, n *jnode.Node) *jnode.Node {
 
 func (t *Tool) runCommand(program string, args ...string) error {
 	scan := exec.Command(program, args...)
-	t.LogCommand(scan)
 	scan.Stderr = os.Stderr
 	scan.Stdout = os.Stdout
-	err := scan.Run()
-	if err != nil {
-		return err
+	exec := t.ExecuteCommand(scan)
+	if !exec.ExpectExitCode(0) {
+		return exec.ToError()
 	}
 	return nil
 }

@@ -17,6 +17,7 @@ package bandit
 import (
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +29,8 @@ func TestParseResults(t *testing.T) {
 	tool := &Tool{}
 	tool.Exclude = []string{"**/test_local_path_*.py"}
 	assert.NoError(tool.Validate())
-	result := tool.parseResults(results)
+	result := &tools.Result{}
+	tool.parseResults(result, results)
 	assert.Equal(16, len(result.Findings))
 	assert.Equal(16, result.Data.Path("results").Size())
 	f := result.Findings[0]

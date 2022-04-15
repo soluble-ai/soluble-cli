@@ -45,9 +45,10 @@ func TestDocker(t *testing.T) {
 		dt := &DockerTool{
 			Image: "hello-world",
 		}
-		d, err := dt.run(true)
-		assert.Nil(err)
-		assert.Contains(string(d), "Hello from Docker!")
+		res, err := dt.run(true)
+		assert.NoError(err)
+		assert.Contains(string(res.Output), "Hello from Docker!")
+		assert.Contains(res.CombinedOutput, "Hello from Docker!")
 	}
 }
 

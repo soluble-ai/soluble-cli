@@ -32,7 +32,7 @@ func TestParseResults(t *testing.T) {
 		},
 	}
 	assert.Nil(tool.Validate())
-	result := tool.parseResults(results)
+	result := tool.parseResults(&tools.Result{}, results)
 	assert.Equal(4, len(result.Findings))
 	f := result.Findings[0]
 	assert.Equal("infrastructure.tf", f.FilePath)

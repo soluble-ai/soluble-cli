@@ -15,8 +15,6 @@
 package bandit
 
 import (
-	"os"
-
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -38,28 +36,28 @@ func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{
 		"--exit-zero", "-f", "json", "-r", ".",
 	}
-	dat, err := t.RunDocker(&tools.DockerTool{
+	exec, err := t.RunDocker(&tools.DockerTool{
 		Name:      "bandit",
 		Image:     "gcr.io/soluble-repo/soluble-bandit:latest",
 		Directory: t.GetDirectory(),
 		Args:      args,
 	})
 	if err != nil {
-		if dat != nil {
-			_, _ = os.Stderr.Write(dat)
-		}
 		return nil, err
 	}
-	n, err := jnode.FromJSON(dat)
-	if err != nil {
-		_, _ = os.Stderr.Write(dat)
-		return nil, err
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0) {
+		return result, nil
 	}
-	result := t.parseResults(n)
+	n, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
+	}
+	t.parseResults(result, n)
 	return result, nil
 }
 
-func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, results *jnode.Node) {
 	findings := assessments.Findings{}
 	for _, r := range results.Path("results").Elements() {
 		file := r.Path("filename").AsText()
@@ -81,11 +79,8 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		return t.IsExcluded(n.Path("filename").AsText())
 	})
 	results.Put("results", resultsArray)
-	result := &tools.Result{
-		Data:     results,
-		Findings: findings,
-	}
-	return result
+	result.Data = results
+	result.Findings = findings
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {

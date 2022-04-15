@@ -73,10 +73,10 @@ func (cdk *CDK) Run() (*tools.Result, error) {
 		synth.Dir = cdk.GetDirectory()
 		synth.Stderr = os.Stderr
 		synth.Stdout = os.Stderr
-		cdk.LogCommand(synth)
-		if err := synth.Run(); err != nil {
+		exec := cdk.ExecuteCommand(synth)
+		if !exec.ExpectExitCode(0) {
 			log.Errorf("{primary:cdk synth} failed.  Run cdk synth manually and use {primary:--cdk-synth=false}.")
-			return nil, err
+			return exec.ToResult(cdk.GetDirectory()), nil
 		}
 	}
 	checkov := &Tool{

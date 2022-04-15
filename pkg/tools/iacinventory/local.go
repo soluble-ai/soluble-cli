@@ -78,9 +78,7 @@ func (t *Local) Run() error {
 			xcp.WithCIEnv(t.GetDirectory()),
 			xcp.WithFileFromReader("results_json", "results.json", bytes.NewReader(dat)),
 		}
-		if diff := t.GetPRDiffUploadOption(t.GetDirectory()); diff != nil {
-			options = append(options, diff)
-		}
+		options = t.AppendUploadOptions(t.GetDirectory(), options)
 		_, err = t.GetAPIClient().XCPPost(t.GetOrganization(), "local-inventory", nil, values, options...)
 		if err != nil {
 			return err

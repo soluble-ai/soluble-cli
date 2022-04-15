@@ -63,7 +63,10 @@ func (o *RunOpts) Register(cmd *cobra.Command) {
 	}
 }
 
-func (o *RunOpts) RunDocker(d *DockerTool) ([]byte, error) {
+// Run a docker tool.  If the tool cannot be run because docker isn't running or
+// the tool path isn't known then returns an error.  Otherwise returns an ExecuteResult
+// that holds the output, log and exit code of the command.
+func (o *RunOpts) RunDocker(d *DockerTool) (*ExecuteResult, error) {
 	if o.ToolPath != "" || o.NoDocker {
 		path := o.ToolPath
 		if path == "" {
@@ -80,8 +83,7 @@ func (o *RunOpts) RunDocker(d *DockerTool) ([]byte, error) {
 		c := exec.Command(path, d.Args...)
 		c.Dir = d.Directory
 		c.Stderr = os.Stderr
-		o.LogCommand(c)
-		return c.Output()
+		return o.ExecuteCommand(c), nil
 	}
 	n := o.getToolVersion(d.Name)
 	if image := n.Path("image"); !image.IsMissing() {
@@ -133,6 +135,11 @@ func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Down
 		APIServer:                  apiClient,
 		LatestReleaseCacheDuration: 1 * time.Minute,
 	})
+}
+
+func (o *RunOpts) ExecuteCommand(c *exec.Cmd) *ExecuteResult {
+	o.LogCommand(c)
+	return executeCommand(c)
 }
 
 func (o *RunOpts) LogCommand(c *exec.Cmd) {

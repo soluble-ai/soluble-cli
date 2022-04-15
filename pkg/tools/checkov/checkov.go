@@ -137,19 +137,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.Framework == "" || t.Framework == "terraform" {
 		propagateTfVarsEnv(dt, os.Environ())
 	}
-	dat, err := t.RunDocker(dt)
+	exec, err := t.RunDocker(dt)
 	if err != nil {
-		if dat != nil {
-			_, _ = os.Stderr.Write(dat)
-		}
 		return nil, err
 	}
-	n, err := jnode.FromJSON(dat)
-	if err != nil {
-		_, _ = os.Stderr.Write(dat)
-		return nil, err
+	result := exec.ToResult(t.RepoRoot)
+	if !exec.ExpectExitCode(0) {
+		return result, nil
 	}
-	result := t.processResults(n)
+	n, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
+	}
+	t.processResults(result, n)
 	result.AddValue(tools.AssessmentDirectoryValue, targetDir)
 	return result, nil
 }
@@ -179,11 +179,8 @@ func (t *Tool) makeHelmAvailable() error {
 	return nil
 }
 
-func (t *Tool) processResults(data *jnode.Node) *tools.Result {
-	result := &tools.Result{
-		Directory: t.RepoRoot,
-		Data:      data,
-	}
+func (t *Tool) processResults(result *tools.Result, data *jnode.Node) *tools.Result {
+	result.Data = data
 	if data.IsArray() {
 		// checkov returns an array if it runs more than one check type at a go
 		for _, n := range data.Elements() {

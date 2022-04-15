@@ -17,6 +17,7 @@ package gosec
 import (
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func TestParseResults(t *testing.T) {
 	results, err := util.ReadJSONFile("testdata/results.json.gz")
 	assert.Nil(err)
 	tool := &Tool{}
-	result := tool.parseResults(results)
+	result := tool.parseResults(&tools.Result{}, results)
 	assert.Equal(1, len(result.Findings))
 	assert.Equal(1, result.Data.Path("Issues").Size())
 	f := result.Findings[0].Tool
