@@ -88,6 +88,9 @@ func (r *Repo) Run() error {
 			xcp.WithCIEnv(r.GetDirectory()),
 			xcp.WithFileFromReader("tree", "tree.json.gz", gzdat),
 		}
+		if diff := r.GetPRDiffUploadOption(r.GetDirectory()); diff != nil {
+			options = append(options, diff)
+		}
 		log.Infof("Uploading {info:%s} of compressed tree data", util.Size(uint64(gzdat.Len())))
 		_, err := r.GetAPIClient().XCPPost(r.GetOrganization(), "repo-tree", nil, values, options...)
 		if err != nil {

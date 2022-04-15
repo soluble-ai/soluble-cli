@@ -138,6 +138,7 @@ envLoop:
 		// If the key has made it through the filtering above and is
 		// from a CI system, we include it.
 		if strings.HasPrefix(k, "GITHUB_") ||
+			strings.HasPrefix(k, "GIT_PR_") || // iacbot
 			strings.HasPrefix(k, "CIRCLE_") ||
 			strings.HasPrefix(k, "GITLAB_") ||
 			strings.HasPrefix(k, "CI_") ||

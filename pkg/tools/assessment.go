@@ -110,6 +110,7 @@ func processResult(result *Result) error {
 		_ = f.Close()
 	}
 	if o.UploadEnabled {
+		o.AddPRDiffsUpload(result)
 		if err := result.Upload(o.GetAPIClient(), o.GetOrganization(), o.Tool.Name()); err != nil {
 			return err
 		}

@@ -86,6 +86,9 @@ func (t *Tool) Run() error {
 			xcp.WithCIEnv(t.GetDirectory()),
 			xcp.WithFileFromReader("cloudmap", "cloudmap.json", bytes.NewReader(dat)),
 		}
+		if diff := t.GetPRDiffUploadOption(t.GetDirectory()); diff != nil {
+			options = append(options, diff)
+		}
 		_, err := t.GetAPIClient().XCPPost(t.GetOrganization(), "cloudmap", nil, values, options...)
 		if err != nil {
 			return err
