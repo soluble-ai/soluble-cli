@@ -15,6 +15,8 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
+const AssessmentDirectoryValue = "ASSESSMENT_DIRECTORY"
+
 func RunSingleAssessment(tool Single) (*Result, error) {
 	if err := tool.Validate(); err != nil {
 		return nil, err
@@ -54,10 +56,12 @@ func processResult(result *Result) error {
 	result.AddValues(result.Tool.GetToolOptions().GetStandardXCPValues())
 	if result.Directory != "" {
 		result.UpdateFileFingerprints()
-		if o.RepoRoot != "" {
-			reldir, err := filepath.Rel(o.RepoRoot, result.Directory)
-			if err == nil && !strings.HasPrefix(reldir, "..") {
-				result.AddValue("ASSESSMENT_DIRECTORY", reldir)
+		if result.Values[AssessmentDirectoryValue] == "" {
+			if o.RepoRoot != "" {
+				reldir, err := filepath.Rel(o.RepoRoot, result.Directory)
+				if err == nil && !strings.HasPrefix(reldir, "..") {
+					result.AddValue(AssessmentDirectoryValue, reldir)
+				}
 			}
 		}
 	}
