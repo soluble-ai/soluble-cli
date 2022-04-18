@@ -138,6 +138,7 @@ func setOrgCommand() *cobra.Command {
 		},
 	}
 	opts.Register(c)
+	c.Flags().Lookup("organization").Hidden = false
 	_ = c.MarkFlagRequired("organization")
 	return c
 }
