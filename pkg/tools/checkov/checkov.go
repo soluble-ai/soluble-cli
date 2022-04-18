@@ -96,16 +96,17 @@ func (t *Tool) Run() (*tools.Result, error) {
 		},
 	}
 	dt.Directory = t.GetDirectory()
+	var targetDir string
 	if t.RepoRoot != "" {
 		// We want to run in the repo root and target a relative directory under
 		// that so the module references to peer or sibling directories
 		// resolve correctly.
-		dir, _ := filepath.Rel(t.RepoRoot, dt.Directory)
+		targetDir, _ = filepath.Rel(t.RepoRoot, dt.Directory)
 		dt.Directory = t.RepoRoot
-		dt.AppendArgs("-d", dir)
 	} else {
-		dt.AppendArgs("-d", ".")
+		targetDir = "."
 	}
+	dt.AppendArgs("-d", targetDir)
 	if t.Framework != "" {
 		dt.AppendArgs("--framework", t.Framework)
 	}
@@ -149,6 +150,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	result := t.processResults(n)
+	result.AddValue(tools.AssessmentDirectoryValue, targetDir)
 	return result, nil
 }
 
@@ -181,9 +183,6 @@ func (t *Tool) processResults(data *jnode.Node) *tools.Result {
 	result := &tools.Result{
 		Directory: t.RepoRoot,
 		Data:      data,
-	}
-	if result.Directory == "" {
-		result.Directory = t.GetDirectory()
 	}
 	if data.IsArray() {
 		// checkov returns an array if it runs more than one check type at a go
