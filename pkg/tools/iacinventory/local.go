@@ -15,6 +15,7 @@
 package iacinventory
 
 import (
+	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -22,12 +23,11 @@ import (
 )
 
 type Local struct {
-	tools.DirectoryBasedToolOpts
+	tools.ToolOpts
+	tools.DirectoryOpt
 }
 
-// This isn't an assessment tool but for historical reasons it's treated as
-// such.  The newer repo-tree command will replace this.
-var _ tools.Single = &Local{}
+var _ tools.Simple = &Local{}
 
 func (t *Local) Name() string {
 	return "local-inventory"
@@ -35,7 +35,18 @@ func (t *Local) Name() string {
 
 func (t *Local) Register(cmd *cobra.Command) {
 	t.Internal = true
-	t.DirectoryBasedToolOpts.Register(cmd)
+	t.ToolOpts.Register(cmd)
+	t.DirectoryOpt.Register(cmd)
+}
+
+func (t *Local) Validate() error {
+	if err := t.ToolOpts.Validate(); err != nil {
+		return err
+	}
+	if err := t.DirectoryOpt.Validate(&t.ToolOpts); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *Local) CommandTemplate() *cobra.Command {
@@ -45,12 +56,10 @@ func (t *Local) CommandTemplate() *cobra.Command {
 	}
 }
 
-func (t *Local) Run() (*tools.Result, error) {
+func (t *Local) Run() error {
 	log.Infof("Finding local infrastructure-as-code inventory under {primary:%s}", t.GetDirectory())
-	m := t.GetInventory()
+	m := inventory.Do(t.GetDirectory())
 	n, _ := print.ToResult(m)
-	r := &tools.Result{
-		Data: n,
-	}
-	return r, nil
+	t.PrintResult(n)
+	return nil
 }

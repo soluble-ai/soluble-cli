@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -48,6 +49,7 @@ func (c *Command) JSON() *jnode.Node {
 	n, jerr := jnode.FromJSON(c.Out.Bytes())
 	if jerr != nil {
 		log.Errorf("{primary:%s} did not return JSON - {danger:%s}", c.Args[0], jerr)
+		fmt.Fprintln(os.Stderr, c.Out.String())
 	}
 	return n
 }
