@@ -29,10 +29,10 @@ func Command() *cobra.Command {
 	c.Long = `Scan Azure resource management templates.
 
 Use the sub-commands to explicitly choose a scanner to use.`
-	c.AddCommand(
-		tools.CreateCommand(&checkov.Tool{
-			Framework: "arm",
-		}),
-	)
+	ckv := tools.CreateCommand(&checkov.Tool{
+		Framework: "arm",
+	})
+	ckv.Short = "Scan ARM templates with checkov"
+	c.AddCommand(ckv)
 	return c
 }

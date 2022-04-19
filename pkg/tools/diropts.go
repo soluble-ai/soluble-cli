@@ -108,6 +108,9 @@ func (o *DirectoryBasedToolOpts) Register(cmd *cobra.Command) {
 	o.DirectoryOpt.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringSliceVar(&o.Exclude, "exclude", nil, "Exclude results from file that match this glob `pattern` (path/**/foo.txt syntax supported.)  May be repeated.")
+	f := flags.Lookup("exclude")
+	f.Deprecated = "Use .lacework/config.yml to exclude results"
+	f.Hidden = true
 }
 
 func (o *DirectoryBasedToolOpts) Validate() error {
