@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/soluble-ai/soluble-cli/cmd/armscan"
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
@@ -119,6 +120,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 	checkovCommand.Hidden = true
 	rootCmd.AddCommand(
 		auth.Command(),
+		armscan.Command(),
 		aws.Command(),
 		configcmd.Command(),
 		modelcmd.Command(),
