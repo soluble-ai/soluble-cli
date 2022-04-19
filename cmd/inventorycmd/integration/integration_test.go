@@ -10,6 +10,7 @@ import (
 )
 
 func TestInventoryCommand(t *testing.T) {
+	test.RequireAPIToken(t)
 	inv := test.NewCommand(t, "inventory", "--format", "json", "--no-color", "-d", "../../..")
 	inv.Must(inv.Run())
 	n := inv.JSON()

@@ -35,15 +35,12 @@ func (o *AssessmentOpts) GetAssessmentOptions() *AssessmentOpts {
 
 func (o *AssessmentOpts) Register(c *cobra.Command) {
 	o.ToolOpts.Register(c)
+	o.DefaultUploadEnabled = true
 	o.UploadOpt.Register(c)
 	o.SetFormatter("pass", PassFormatter)
 	// if not uploaded these columns will be empty, so make that a little easier to see
 	o.SetFormatter("sid", MissingFormatter)
 	o.SetFormatter("severity", MissingFormatter)
-	flags := c.Flags()
-	uploadFlag := flags.Lookup("upload")
-	_ = uploadFlag.Value.Set("true")
-	uploadFlag.Usage = "Upload report to Soluble.  Use --upload=false to disable."
 	o.GetAssessmentHiddenOptions().Register(c)
 	o.Path = []string{}
 	o.Columns = []string{
