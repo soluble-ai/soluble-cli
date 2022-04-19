@@ -13,14 +13,19 @@ import (
 )
 
 type UploadOpt struct {
-	UploadEnabled bool
-	GitPRBaseRef  string
+	DefaultUploadEnabled bool
+	UploadEnabled        bool
+	GitPRBaseRef         string
 }
 
 func (o *UploadOpt) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	flags.BoolVar(&o.UploadEnabled, "upload", false, "Upload results")
-	flags.StringVar(&o.GitPRBaseRef, "git-pr-base-ref", "", "The pull request base `ref` for diffs.")
+	uploadUsage := "Upload results to lacework"
+	if o.DefaultUploadEnabled {
+		uploadUsage = fmt.Sprintf("%s.  Use --upload=false to disable.", uploadUsage)
+	}
+	flags.BoolVar(&o.UploadEnabled, "upload", o.DefaultUploadEnabled, uploadUsage)
+	flags.StringVar(&o.GitPRBaseRef, "git-pr-base-ref", "", "Include in the upload a summary of the diffs from `ref` to HEAD.")
 }
 
 func (o *UploadOpt) AddPRDiffsUpload(result *Result) {

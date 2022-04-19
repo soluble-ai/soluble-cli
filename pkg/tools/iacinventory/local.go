@@ -15,16 +15,22 @@
 package iacinventory
 
 import (
+	"bytes"
+	"encoding/json"
+
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 )
 
 type Local struct {
 	tools.ToolOpts
 	tools.DirectoryOpt
+	tools.UploadOpt
 }
 
 var _ tools.Simple = &Local{}
@@ -37,6 +43,8 @@ func (t *Local) Register(cmd *cobra.Command) {
 	t.Internal = true
 	t.ToolOpts.Register(cmd)
 	t.DirectoryOpt.Register(cmd)
+	t.DefaultUploadEnabled = true
+	t.UploadOpt.Register(cmd)
 }
 
 func (t *Local) Validate() error {
@@ -60,6 +68,24 @@ func (t *Local) Run() error {
 	log.Infof("Finding local infrastructure-as-code inventory under {primary:%s}", t.GetDirectory())
 	m := inventory.Do(t.GetDirectory())
 	n, _ := print.ToResult(m)
+	if t.UploadEnabled {
+		values := t.GetStandardXCPValues()
+		dat, err := json.Marshal(n)
+		if err != nil {
+			return err
+		}
+		options := []api.Option{
+			xcp.WithCIEnv(t.GetDirectory()),
+			xcp.WithFileFromReader("results_json", "results.json", bytes.NewReader(dat)),
+		}
+		if diff := t.GetPRDiffUploadOption(t.GetDirectory()); diff != nil {
+			options = append(options, diff)
+		}
+		_, err = t.GetAPIClient().XCPPost(t.GetOrganization(), "local-inventory", nil, values, options...)
+		if err != nil {
+			return err
+		}
+	}
 	t.PrintResult(n)
 	return nil
 }
