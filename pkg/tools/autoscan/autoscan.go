@@ -23,7 +23,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/iacinventory"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/secrets"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/trivy"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -82,11 +81,6 @@ In addition, images can be scanned with trivy.
 func (t *Tool) RunAll() (tools.Results, error) {
 	m := inventory.Do(t.GetDirectory())
 	subTools := []SubordinateTool{
-		{
-			Single: &iacinventory.Local{
-				DirectoryBasedToolOpts: t.getDirectoryOpts(),
-			},
-		},
 		{
 			Single: &checkov.Tool{
 				DirectoryBasedToolOpts: t.getDirectoryOpts(),
