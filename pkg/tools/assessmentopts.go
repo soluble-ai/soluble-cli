@@ -76,7 +76,7 @@ The severity levels are critical, high, medium, low, and info in that order.`,
 			flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
 			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
 			flags.StringSliceVar(&o.FailThresholds, "fail", nil,
-				`Set failure thresholds in the form 'severity=count'.  The command will exit with exit code 2 if the assessments generated during this build have count or more failed findings of the specified severity.`)
+				"Set failure thresholds in the form `severity=count`.  The command will exit with exit code 2 if the assessment has count or more failed findings of the specified severity.")
 		},
 	}
 }
