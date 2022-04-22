@@ -15,8 +15,6 @@
 package yarnaudit
 
 import (
-	"os"
-
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -35,28 +33,29 @@ func (t *Tool) Name() string {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{"audit", "-s", "--json"}
-	d, err := t.RunDocker(&tools.DockerTool{
+	exec, err := t.RunDocker(&tools.DockerTool{
 		Name:                "yarn-audit",
 		Image:               "gcr.io/soluble-repo/soluble-yarn:latest",
 		DefaultNoDockerName: "yarn",
 		Directory:           t.GetDirectory(),
 		Args:                args,
 	})
-	if err != nil && tools.IsDockerError(err) {
-		return nil, err
-	}
-	results, err := jnode.FromJSON(d)
 	if err != nil {
-		if d != nil {
-			os.Stderr.Write(d)
-		}
 		return nil, err
 	}
-	result := t.parseResults(results)
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0) {
+		return result, nil
+	}
+	results, ok := exec.ParseJSON()
+	if !ok {
+		return nil, err
+	}
+	t.parseResults(result, results)
 	return result, nil
 }
 
-func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
 	for _, data := range results.Elements() {
 		if data.Path("type").AsText() == "auditAdvisory" {
@@ -72,11 +71,8 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 			})
 		}
 	}
-	result := &tools.Result{
-		Directory: t.GetDirectory(),
-		Data:      results,
-		Findings:  findings,
-	}
+	result.Data = results
+	result.Findings = findings
 	return result
 }
 

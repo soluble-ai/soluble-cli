@@ -40,6 +40,7 @@ type Result struct {
 	Directory        string
 	FileFingerprints []*FileFingerprint
 	UploadOptions    []api.Option
+	ExecuteResult    *ExecuteResult
 
 	Assessment    *assessments.Assessment
 	AssessmentRaw *jnode.Node
@@ -84,12 +85,12 @@ func (r *Result) AddUploadOption(options ...api.Option) {
 
 func (r *Result) Upload(client *api.Client, org, name string) error {
 	rr := bytes.NewReader([]byte(r.Data.String()))
-	log.Infof("Uploading results of {primary:%s}", name)
 	options := r.UploadOptions
 	options = append(options,
 		xcp.WithCIEnv(r.Directory),
 		xcp.WithFileFromReader("results_json", "results.json", rr),
 	)
+	values := r.Values
 	dir, _ := repotree.FindRepoRoot(r.Directory)
 	if dir != "" {
 		// include various repo files if they exist
@@ -111,6 +112,10 @@ func (r *Result) Upload(client *api.Client, org, name string) error {
 			}
 		}
 	}
+	if r.ExecuteResult != nil {
+		options = r.ExecuteResult.AppendUploadOptions(options)
+		r.ExecuteResult.SetUploadValues(values)
+	}
 	if r.Findings != nil {
 		if rf := r.attachFindings(); rf != nil {
 			options = append(options, xcp.WithFileFromReader("findings_json", "findings.json", rf))
@@ -119,7 +124,14 @@ func (r *Result) Upload(client *api.Client, org, name string) error {
 			options = append(options, xcp.WithFileFromReader("fingerprints_json", "fingerprints.json", rf))
 		}
 	}
-	n, err := client.XCPPost(org, name, nil, r.Values, options...)
+	moduleName := name
+	if r.ExecuteResult != nil && r.ExecuteResult.FailureType != "" {
+		moduleName = "failed-assessment"
+		log.Infof("Uploading failed assessment logs for {primary:%s}", name)
+	} else {
+		log.Infof("Uploading results of {primary:%s}", name)
+	}
+	n, err := client.XCPPost(org, moduleName, nil, values, options...)
 	if err != nil {
 		return err
 	}
@@ -131,7 +143,7 @@ func (r *Result) Upload(client *api.Client, org, name string) error {
 			r.Assessment = nil
 		}
 	}
-	if r.Assessment == nil {
+	if moduleName == name && r.Assessment == nil {
 		log.Infof("No assessment for {warning:%s} was returned", name)
 	}
 	return nil

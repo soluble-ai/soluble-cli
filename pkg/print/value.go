@@ -15,6 +15,7 @@
 package print
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -43,8 +44,7 @@ func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 	name := strings.Split(m[1], ".")
 	if p.Path == nil {
 		n := Nav(result, name)
-		if !n.IsMissing() {
-			fmt.Fprintln(w, n.AsText())
+		if p.print(w, n) {
 			return 1
 		}
 		return 0
@@ -52,10 +52,24 @@ func (p *ValuePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
 		rows := p.GetRows(result)
 		for _, row := range rows {
 			n := Nav(row, name)
-			if !n.IsMissing() {
-				fmt.Fprintln(w, n.AsText())
-			}
+			p.print(w, n)
 		}
 		return len(rows)
 	}
+}
+
+func (p *ValuePrinter) print(w io.Writer, n *jnode.Node) bool {
+	if n.IsMissing() {
+		return false
+	}
+	switch {
+	case n.IsObject() || n.IsArray():
+		enc := json.NewEncoder(w)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(n)
+	default:
+		fmt.Fprintln(w, n.AsText())
+	}
+	return true
 }

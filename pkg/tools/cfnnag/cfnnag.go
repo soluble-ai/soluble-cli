@@ -16,7 +16,6 @@ package cfnnag
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -56,27 +55,22 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no cloudformation templates found")
 	}
-	d, err := t.RunDocker(&tools.DockerTool{
+	exec, err := t.RunDocker(&tools.DockerTool{
 		Name:      "cfn_nag",
 		Image:     "stelligent/cfn_nag:latest",
 		Directory: t.GetDirectory(),
 		Args:      append([]string{"--output-format=json"}, files...),
 	})
-	if err != nil && tools.IsDockerError(err) {
-		return nil, err
-	}
-	results, err := jnode.FromJSON(d)
 	if err != nil {
-		if d != nil {
-			os.Stderr.Write(d)
-		}
 		return nil, err
 	}
-	result := &tools.Result{
-		Directory: t.GetDirectory(),
-		Data:      results,
-		Findings:  parseResults(results),
+	result := exec.ToResult(t.GetDirectory())
+	results, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
 	}
+	result.Data = results
+	result.Findings = parseResults(results)
 	return result, nil
 }
 

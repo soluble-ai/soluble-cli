@@ -47,26 +47,21 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// #nosec G204
 	c := exec.Command(d.GetExePath("gosec"), args...)
 	c.Stderr = os.Stderr
-	t.LogCommand(c)
-	output, err := c.Output()
-	if util.ExitCode(err) == 1 {
-		err = nil
+	exec := t.ExecuteCommand(c)
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0, 1) {
+		return result, nil
 	}
-	if err != nil {
-		return nil, err
+	n, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
 	}
-
-	n, err := jnode.FromJSON(output)
-	if err != nil {
-		return nil, err
-	}
-
-	result := t.parseResults(n)
+	t.parseResults(result, n)
 	result.AddValue("GOSEC_VERSION", d.Version)
 	return result, nil
 }
 
-func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, results *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
 	for _, data := range results.Path("Issues").Elements() {
 		file := data.Path("file").AsText()
@@ -90,11 +85,8 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		return t.IsExcluded(n.Path("file").AsText())
 	})
 	results.Put("Issues", resultsArray)
-	result := &tools.Result{
-		Directory: t.GetDirectory(),
-		Data:      results,
-		Findings:  findings,
-	}
+	result.Data = results
+	result.Findings = findings
 	return result
 }
 

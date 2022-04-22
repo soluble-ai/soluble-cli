@@ -78,7 +78,7 @@ func hasDocker(options ...func(*exec.Cmd)) error {
 	}
 }
 
-func (t *DockerTool) run(skipPull bool) ([]byte, error) {
+func (t *DockerTool) run(skipPull bool) (*ExecuteResult, error) {
 	if err := hasDocker(); err != nil {
 		return nil, err
 	}
@@ -103,9 +103,8 @@ func (t *DockerTool) run(skipPull bool) ([]byte, error) {
 	}
 	if t.Stdout != nil {
 		run.Stdout = t.Stdout
-		return nil, run.Run()
 	}
-	return run.Output()
+	return executeCommand(run), nil
 }
 
 func (t *DockerTool) getArgs(getenv func(string) string) []string {

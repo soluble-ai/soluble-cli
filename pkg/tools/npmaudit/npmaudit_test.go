@@ -17,6 +17,7 @@ package npmaudit
 import (
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func TestParseResults(t *testing.T) {
 	results, err := util.ReadJSONFile("testdata/results.json.gz")
 	assert.Nil(err)
 	tool := &Tool{}
-	result := tool.parseResults(results)
+	result := tool.parseResults(&tools.Result{}, results)
 	assert.Equal(11, len(result.Findings))
 	assert.Equal(11, result.Data.Path("advisories").Size())
 	assert.Equal(results.Unwrap(), result.Data.Unwrap())

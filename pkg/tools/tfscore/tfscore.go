@@ -79,19 +79,23 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(d.GetExePath("tfscore"), args...)
 	c.Stderr = os.Stderr
 	c.Stdout = os.Stderr
-	t.LogCommand(c)
-	if err := c.Run(); err != nil {
-		return nil, err
+	exec := t.ExecuteCommand(c)
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0) {
+		return result, nil
 	}
-	var result *tools.Result
 	if scorePath != "" {
 		dat, err := os.ReadFile(scorePath)
 		if err != nil {
-			return nil, err
+			exec.FailureType = tools.GarbledResultFailure
+			exec.FailureMessage = err.Error()
+			return result, nil
 		}
 		n, err := jnode.FromJSON(dat)
 		if err != nil {
-			return nil, err
+			exec.FailureType = tools.GarbledResultFailure
+			exec.FailureMessage = err.Error()
+			return result, nil
 		}
 		findings := assessments.Findings{}
 		for _, f := range n.Path("risks").Elements() {
@@ -105,11 +109,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 				},
 			)
 		}
-		result = &tools.Result{
-			Data:      n,
-			Directory: t.GetDirectory(),
-			Findings:  findings,
-		}
+		result.Data = n
+		result.Findings = findings
 		result.AddValue("TFSCORE_VERSION", d.Version)
 	}
 	return result, nil

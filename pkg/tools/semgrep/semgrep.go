@@ -15,8 +15,6 @@
 package semgrep
 
 import (
-	"fmt"
-
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -90,24 +88,23 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	dt.AppendArgs(t.extraArgs...)
 	dt.AppendArgs(".")
-	d, err := t.RunDocker(dt)
-	if err != nil && (tools.IsDockerError(err) || util.ExitCode(err) != 1) {
-		// semgrep exits 1 if it finds issues
+	exec, err := t.RunDocker(dt)
+	if err != nil {
 		return nil, err
 	}
-	n, err := jnode.FromJSON(d)
-	if err != nil {
-		fmt.Println(string(d))
-		if util.StringSliceContains(t.extraArgs, "--help") {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("could not parse JSON: %w", err)
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0, 1) {
+		return result, nil
 	}
-	result := t.parseResults(n)
+	n, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
+	}
+	t.parseResults(result, n)
 	return result, nil
 }
 
-func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) *tools.Result {
 	results := n.Path("results")
 	if results.Size() > 0 {
 		n.Put("results", util.RemoveJNodeElementsIf(results, func(e *jnode.Node) bool {
@@ -126,9 +123,7 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 			},
 		})
 	}
-	result := &tools.Result{
-		Data:     n,
-		Findings: findings,
-	}
+	result.Data = n
+	result.Findings = findings
 	return result
 }

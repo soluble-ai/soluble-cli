@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,8 @@ func TestParseResults(t *testing.T) {
 	tool := &Tool{}
 	tool.Directory = "/x/work/solublegoat/terraform/aws"
 	tool.RepoRoot = "/x/work/solublegoat"
-	result := tool.parseResults(results)
+	result := &tools.Result{}
+	tool.parseResults(result, results)
 	assert.Equal(9, len(result.Findings))
 	f := result.Findings[8]
 	assert.Equal(16, f.Line)

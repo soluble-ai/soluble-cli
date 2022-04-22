@@ -68,25 +68,25 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	program := filepath.Join(d.Dir, "terrascan")
 	scan := exec.Command(program, args...)
-	t.LogCommand(scan)
 	scan.Stderr = os.Stderr
-	output, err := scan.Output()
-	if err != nil && util.ExitCode(err) != 3 {
-		// terrascan exits with exit code 3 if violations were found
-		return nil, err
+	exec := t.ExecuteCommand(scan)
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0, 3) {
+		// terrascan exits with exit code 3 if violations are found
+		return result, nil
 	}
-	n, err := jnode.FromJSON(output)
-	if err != nil {
-		return nil, err
+	n, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
 	}
-	result := t.parseResults(n)
+	t.parseResults(result, n)
 	if d.Version != "" {
 		result.AddValue("TERRASCAN_VERSION", d.Version)
 	}
 	return result, nil
 }
 
-func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) *tools.Result {
 	findings := assessments.Findings{}
 	violations := n.Path("results").Path("violations")
 	if violations.Size() > 0 {
@@ -107,10 +107,7 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 			})
 		}
 	}
-	result := &tools.Result{
-		Data:      n,
-		Directory: t.GetDirectory(),
-		Findings:  findings,
-	}
+	result.Data = n
+	result.Findings = findings
 	return result
 }

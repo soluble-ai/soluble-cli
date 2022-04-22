@@ -24,6 +24,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
 var metadataCommands = map[string]string{
@@ -94,6 +95,7 @@ func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 	closer, _ := reader.(io.Closer)
 	return api.CloseableOptionFunc(func(req *resty.Request) {
 		req.SetFileReader(param, filename, reader)
+		log.Infof("...including {secondary:%s}", filename)
 	}, func() error {
 		if closer != nil {
 			return closer.Close()

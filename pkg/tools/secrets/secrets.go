@@ -15,8 +15,6 @@
 package secrets
 
 import (
-	"os"
-
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -68,20 +66,16 @@ func (t *Tool) Run() (*tools.Result, error) {
 		dt.Mount(customPoliciesDir, "/policy")
 	}
 	dt.AppendArgs(t.args...)
-	d, err := t.RunDocker(dt)
-	if err != nil && tools.IsDockerError(err) {
-		return nil, err
-	}
-	results, err := jnode.FromJSON(d)
+	exec, err := t.RunDocker(dt)
 	if err != nil {
-		if d != nil {
-			os.Stderr.Write(d)
-		}
 		return nil, err
 	}
-
-	result := t.parseResults(results)
-
+	result := exec.ToResult(t.GetDirectory())
+	results, ok := result.ExecuteResult.ParseJSON()
+	if !ok {
+		return result, nil
+	}
+	t.parseResults(result, results)
 	return result, nil
 }
 
@@ -94,7 +88,7 @@ func (t *Tool) excludeResults(results *jnode.Node) {
 	}
 }
 
-func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, results *jnode.Node) *tools.Result {
 	t.excludeResults(results)
 	findings := []*assessments.Finding{}
 	for k, v := range results.Path("results").Entries() {
@@ -109,10 +103,7 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 			}
 		}
 	}
-	result := &tools.Result{
-		Directory: t.GetDirectory(),
-		Data:      results,
-		Findings:  findings,
-	}
+	result.Data = results
+	result.Findings = findings
 	return result
 }

@@ -15,8 +15,6 @@
 package hadolint
 
 import (
-	"os"
-
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -36,28 +34,29 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// This might be a problem if we have multiple dockerfiles and they have extensions like Dockerfile.xyz
 	dockerFilePath := "./Dockerfile"
 	args := []string{"hadolint", "-f", "json", "-", dockerFilePath}
-	d, err := t.RunDocker(&tools.DockerTool{
+	exec, err := t.RunDocker(&tools.DockerTool{
 		Name:                "hadolint",
 		Image:               "ghcr.io/hadolint/hadolint:latest",
 		DefaultNoDockerName: "hadolint",
 		Directory:           t.GetDirectory(),
 		Args:                args,
 	})
-	if err != nil && tools.IsDockerError(err) {
-		return nil, err
-	}
-	results, err := jnode.FromJSON(d)
 	if err != nil {
-		if d != nil {
-			os.Stderr.Write(d)
-		}
 		return nil, err
 	}
-	result := t.parseResults(results)
+	result := exec.ToResult(t.GetDirectory())
+	if !exec.ExpectExitCode(0) {
+		return result, nil
+	}
+	results, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
+	}
+	t.parseResults(result, results)
 	return result, nil
 }
 
-func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, results *jnode.Node) {
 	findings := assessments.Findings{}
 	for _, data := range results.Elements() {
 		file := data.Path("file").AsText()
@@ -80,12 +79,8 @@ func (t *Tool) parseResults(results *jnode.Node) *tools.Result {
 		return t.IsExcluded(n.Path("file").AsText())
 	})
 	results = resultsArray
-	result := &tools.Result{
-		Directory: t.GetDirectory(),
-		Data:      results,
-		Findings:  findings,
-	}
-	return result
+	result.Data = results
+	result.Findings = findings
 }
 
 func (t *Tool) CommandTemplate() *cobra.Command {

@@ -69,11 +69,12 @@ func (t *Tool) Run() error {
 	// #nosec G204
 	c := exec.Command(d.GetExePath("tfscore"), args...)
 	c.Stderr = os.Stderr
-	t.LogCommand(c)
-	dat, err := c.Output()
-	if err != nil {
-		return err
+	exec := t.ExecuteCommand(c)
+	if !exec.ExpectExitCode(0) {
+		// Future: upload error
+		return exec.ToError()
 	}
+	dat := exec.Output
 	n, err := jnode.FromJSON(dat)
 	if err != nil {
 		return err
@@ -82,13 +83,12 @@ func (t *Tool) Run() error {
 	if t.UploadEnabled {
 		values := t.GetStandardXCPValues()
 		values["TFSCORE_VERSION"] = d.Version
+		exec.SetUploadValues(values)
 		options := []api.Option{
 			xcp.WithCIEnv(t.GetDirectory()),
 			xcp.WithFileFromReader("cloudmap", "cloudmap.json", bytes.NewReader(dat)),
 		}
-		if diff := t.GetPRDiffUploadOption(t.GetDirectory()); diff != nil {
-			options = append(options, diff)
-		}
+		options = exec.AppendUploadOptions(options)
 		_, err := t.GetAPIClient().XCPPost(t.GetOrganization(), "cloudmap", nil, values, options...)
 		if err != nil {
 			return err

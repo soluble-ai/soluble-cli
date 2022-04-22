@@ -20,7 +20,7 @@ func TestMultiDocument(t *testing.T) {
 		assert.True(strings.HasSuffix(n.Path("filePath").AsText(), "k8s.yaml"), n)
 		repoPath := n.Path("repoPath").AsText()
 		assert.Equal("cmd/k8sscan/integration/testdata/k/k8s.yaml", repoPath)
-		assert.True(n.Path("multiDocumentFile").AsBool(), n)
-		assert.NotEmpty(n.Path("partialFingerprint").AsText(), n)
+		assert.True(n.Path("multiDocumentFile").AsBool(), "should be multi-document - %s", n)
+		assert.NotEmpty(n.Path("partialFingerprint").AsText(), "fingeprint should not be empty - %s", n)
 	}
 }

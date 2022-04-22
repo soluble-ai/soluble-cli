@@ -36,23 +36,24 @@ func RunConsoliatedAssessments(tool Consolidated) (Results, error) {
 	if err := tool.Validate(); err != nil {
 		return nil, err
 	}
-	results, err := tool.RunAll()
-	if err != nil {
-		return nil, err
-	}
-	for _, result := range results {
-		rerr := processResult(result)
-		if rerr != nil {
-			// processResult only fails if the upload failed, and if that
-			// fais then it's likely that nothing is going to work
-			return nil, rerr
-		}
-	}
-	return results, err
+	return tool.RunAll()
 }
 
 func processResult(result *Result) error {
 	o := result.Tool.GetAssessmentOptions()
+	if result.ExecuteResult != nil && result.ExecuteResult.FailureType != "" {
+		// The tool has failed, so print the tool log and arrange to
+		// exit with error
+		exit.Code = 2
+		exit.AddFunc(func() {
+			log.Errorf("{primary:%s} has failed - {danger:%s}", o.Tool.Name(), result.ExecuteResult.FailureMessage)
+		})
+		fmt.Fprintln(os.Stderr, result.ExecuteResult.CombinedOutput)
+		if !o.UploadErrors {
+			// If we're not going to upload the errors, then we're done
+			return nil
+		}
+	}
 	result.AddValues(result.Tool.GetToolOptions().GetStandardXCPValues())
 	if result.Directory != "" {
 		result.UpdateFileFingerprints()
@@ -110,7 +111,7 @@ func processResult(result *Result) error {
 		_ = f.Close()
 	}
 	if o.UploadEnabled {
-		o.AddPRDiffsUpload(result)
+		result.UploadOptions = o.AppendUploadOptions(result.Directory, result.UploadOptions)
 		if err := result.Upload(o.GetAPIClient(), o.GetOrganization(), o.Tool.Name()); err != nil {
 			return err
 		}

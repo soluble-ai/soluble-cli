@@ -51,10 +51,14 @@ func (t *Tool) Register(cmd *cobra.Command) {
 }
 
 func (t *Tool) Run() (*tools.Result, error) {
+	result := &tools.Result{
+		Directory: t.GetDirectory(),
+	}
 	if !t.NoInit {
 		tfInit, err := t.runTerraformInit()
 		if err != nil {
 			log.Warnf("{warning:terraform init} failed ")
+			result.AddValue("TERRAFORM_INIT_FAILED", "true")
 		} else {
 			defer tfInit.restore()
 		}
@@ -65,6 +69,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	result.AddValue("TFSEC_VERSION", d.Version)
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
 		return nil, err
@@ -81,22 +86,17 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
-	t.LogCommand(c)
-	output, err := c.Output()
-	if util.ExitCode(err) == 1 {
-		err = nil
+	exec := t.ExecuteCommand(c)
+	result.ExecuteResult = exec
+	if !exec.ExpectExitCode(0, 1) {
+		return result, nil
 	}
-	if err != nil {
-		return nil, err
+	exec.Output = trimOutput(exec.Output)
+	n, ok := exec.ParseJSON()
+	if !ok {
+		return result, nil
 	}
-	output = trimOutput(output)
-	n, err := jnode.FromJSON(output)
-	if err != nil {
-		return nil, err
-	}
-
-	result := t.parseResults(n)
-	result.AddValue("TFSEC_VERSION", d.Version)
+	t.parseResults(result, n)
 	return result, nil
 }
 
@@ -141,7 +141,7 @@ func trimOutput(output []byte) []byte {
 	return output
 }
 
-func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
+func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
 	dir := t.GetDirectory()
 	results := n.Path("results")
 	var findings []*assessments.Finding
@@ -175,9 +175,6 @@ func (t *Tool) parseResults(n *jnode.Node) *tools.Result {
 		})
 		n.Put("results", results)
 	}
-	return &tools.Result{
-		Directory: t.GetDirectory(),
-		Data:      n,
-		Findings:  findings,
-	}
+	result.Data = n
+	result.Findings = findings
 }

@@ -16,6 +16,7 @@ type UploadOpt struct {
 	DefaultUploadEnabled bool
 	UploadEnabled        bool
 	GitPRBaseRef         string
+	UploadErrors         bool
 }
 
 func (o *UploadOpt) Register(cmd *cobra.Command) {
@@ -26,30 +27,21 @@ func (o *UploadOpt) Register(cmd *cobra.Command) {
 	}
 	flags.BoolVar(&o.UploadEnabled, "upload", o.DefaultUploadEnabled, uploadUsage)
 	flags.StringVar(&o.GitPRBaseRef, "git-pr-base-ref", "", "Include in the upload a summary of the diffs from `ref` to HEAD.")
+	flags.BoolVar(&o.UploadErrors, "upload-errors", false, "Upload tool logs and diagnostics on failures")
 }
 
-func (o *UploadOpt) AddPRDiffsUpload(result *Result) {
-	if result.Directory == "" {
-		return
+func (o *UploadOpt) AppendUploadOptions(dir string, options []api.Option) []api.Option {
+	if dir != "" && o.GitPRBaseRef != "" {
+		diff := o.getPRDIffText(dir)
+		if len(diff) > 0 {
+			options = append(options,
+				xcp.WithFileFromReader("git_pr_diffs", "git-pr-diffs.txt", bytes.NewReader(diff)))
+		}
 	}
-	opt := o.GetPRDiffUploadOption(result.Directory)
-	if opt != nil {
-		result.AddUploadOption(opt)
-	}
-}
-
-func (o *UploadOpt) GetPRDiffUploadOption(dir string) api.Option {
-	diff := o.getPRDIffText(dir)
-	if diff != nil {
-		return xcp.WithFileFromReader("git_pr_diffs", "git-pr-diffs.txt", bytes.NewReader(diff))
-	}
-	return nil
+	return options
 }
 
 func (o *UploadOpt) getPRDIffText(dir string) []byte {
-	if o.GitPRBaseRef == "" {
-		return nil
-	}
 	buf := &bytes.Buffer{}
 	// #nosec G204
 	diff := exec.Command("git", "diff", "--name-status", fmt.Sprintf("%s...HEAD", o.GitPRBaseRef))
