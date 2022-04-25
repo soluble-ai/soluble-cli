@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
@@ -35,9 +36,21 @@ type Tool struct {
 	NoInit           bool
 	TerraformVersion string
 	TerraformCommand string
+
+	extraArgs tools.ExtraArgs
 }
 
+var v0_39_38 = version.Must(version.NewVersion("0.39.38"))
+
 var _ tools.Single = &Tool{}
+
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:   "tfsec",
+		Short: "Scan terraform for security vulnerabilities",
+		Args:  t.extraArgs.ArgsValue(),
+	}
+}
 
 func (t *Tool) Name() string {
 	return "tfsec"
@@ -75,12 +88,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	args := []string{"--no-color", "-f", "json"}
+	if d.Version != "" {
+		v, err := version.NewSemver(d.Version)
+		if err == nil && v.GreaterThanOrEqual(v0_39_38) {
+			args = append(args, "--include-ignored")
+		}
+	}
 	if customPoliciesDir != "" {
 		args = append(args, "--custom-check-dir", customPoliciesDir)
 	}
 	args = t.addTfVarsFileArg(args, "terraform.tfvars")
 	args = t.addTfVarsFileArg(args, "terraform.tfvars.json")
 	args = t.addAutoTfVarsFiles(args)
+	args = append(args, t.extraArgs...)
 	args = append(args, ".")
 	// #nosec G204
 	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)

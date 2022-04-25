@@ -75,14 +75,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	dat, err := ioutil.ReadFile(outfile)
 	if err != nil {
-		exec.FailureType = tools.GarbledResultFailure
-		exec.FailureMessage = err.Error()
+		exec.SetFailureFromError(tools.GarbledResultFailure, err)
 		return result, nil
 	}
 	n, err := jnode.FromJSON(dat)
 	if err != nil {
-		exec.FailureType = tools.GarbledResultFailure
-		exec.FailureMessage = err.Error()
+		exec.SetFailureFromError(tools.GarbledResultFailure, err)
 		return result, nil
 	}
 	n = util.RemoveJNodeElementsIf(n, func(e *jnode.Node) bool {
