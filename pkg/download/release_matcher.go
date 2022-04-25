@@ -87,7 +87,8 @@ func DefaultReleasePriority(r string) ReleasePriority {
 		return ReleasePriority(100)
 	case strings.HasSuffix(r, ".zip"):
 		return ReleasePriority(99)
-	case strings.HasSuffix(r, ".deb") || strings.HasSuffix(r, ".rpm") || strings.HasSuffix(r, ".apk"):
+	case strings.HasSuffix(r, ".deb") || strings.HasSuffix(r, ".rpm") ||
+		strings.HasSuffix(r, ".apk") || strings.HasSuffix(r, ".sig"):
 		return NoMatch
 	default:
 		return ReleasePriority(1)

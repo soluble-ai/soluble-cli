@@ -94,11 +94,15 @@ func (r *ExecuteResult) ToResult(dir string) *Result {
 	}
 }
 
+func (r *ExecuteResult) SetFailureFromError(ft FailureType, err error) {
+	r.FailureType = ft
+	r.FailureMessage = err.Error()
+}
+
 func (r *ExecuteResult) ParseJSON() (*jnode.Node, bool) {
 	n, err := jnode.FromJSON(r.Output)
 	if err != nil {
-		r.FailureType = GarbledResultFailure
-		r.FailureMessage = err.Error()
+		r.SetFailureFromError(GarbledResultFailure, err)
 		return nil, false
 	}
 	return n, true

@@ -87,14 +87,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if scorePath != "" {
 		dat, err := os.ReadFile(scorePath)
 		if err != nil {
-			exec.FailureType = tools.GarbledResultFailure
-			exec.FailureMessage = err.Error()
+			exec.SetFailureFromError(tools.GarbledResultFailure, err)
 			return result, nil
 		}
 		n, err := jnode.FromJSON(dat)
 		if err != nil {
-			exec.FailureType = tools.GarbledResultFailure
-			exec.FailureMessage = err.Error()
+			exec.SetFailureFromError(tools.GarbledResultFailure, err)
 			return result, nil
 		}
 		findings := assessments.Findings{}
