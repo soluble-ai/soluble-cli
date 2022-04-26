@@ -80,6 +80,13 @@ func installCommand() *cobra.Command {
 			var d *download.Download
 			var err error
 			spec.APIServer = opts.GetAPIClient()
+			if spec.RequestedVersion == "" {
+				n, err := getDefaultVersion(&opts, spec.Name)
+				if err != nil {
+					return err
+				}
+				spec.RequestedVersion = n.Path("version").AsText()
+			}
 			if cmd.CalledAs() == "reinstall" || reinstall {
 				d, err = m.Reinstall(&spec)
 			} else {
@@ -198,15 +205,44 @@ func printDirCommand() *cobra.Command {
 	return c
 }
 
+func getDefaultVersion(opts *options.PrintClientOpts, name string) (*jnode.Node, error) {
+	defer log.SetTempLevel(log.Error - 1).Restore()
+	return opts.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
+}
+
+func getDefaultVersionCommand() *cobra.Command {
+	opts := &options.PrintClientOpts{}
+	var name string
+	c := &cobra.Command{
+		Use:   "get-default-version",
+		Short: "Print the default version of a tool",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			n, err := getDefaultVersion(opts, name)
+			if err != nil {
+				return err
+			}
+			opts.PrintResult(n)
+			return nil
+		},
+	}
+	opts.Register(c)
+	c.Flags().StringVar(&name, "name", "", "The name of the tool")
+	_ = c.MarkFlagRequired("name")
+	return c
+}
+
 func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "download",
 		Short: "Manage downloaded components",
 	}
-	c.AddCommand(listCommand())
-	c.AddCommand(installCommand())
-	c.AddCommand(removeCommand())
-	c.AddCommand(getCommand())
-	c.AddCommand(printDirCommand())
+	c.AddCommand(
+		listCommand(),
+		installCommand(),
+		removeCommand(),
+		getCommand(),
+		printDirCommand(),
+		getDefaultVersionCommand(),
+	)
 	return c
 }
