@@ -77,19 +77,23 @@ func (t *Tool) Run() (*tools.Result, error) {
 		}
 	}
 	d, err := t.InstallTool(&download.Spec{
-		URL: "github.com/tfsec/tfsec",
+		URL: "github.com/aquasecurity/tfsec",
 	})
 	if err != nil {
 		return nil, err
 	}
-	result.AddValue("TFSEC_VERSION", d.Version)
+	tfsecVersion := d.Version
+	if tfsecVersion == "" {
+		tfsecVersion = getTfsecVersion(d.GetExePath("aquasecurity-tfsec"))
+	}
+	result.AddValue("TFSEC_VERSION", tfsecVersion)
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
 		return nil, err
 	}
 	args := []string{"--no-color", "-f", "json"}
-	if d.Version != "" {
-		v, err := version.NewSemver(d.Version)
+	if tfsecVersion != "" {
+		v, err := version.NewSemver(tfsecVersion)
 		if err == nil && v.GreaterThanOrEqual(v0_39_38) {
 			args = append(args, "--include-ignored")
 			args = append(args, "--include-passed")
@@ -104,7 +108,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	args = append(args, t.extraArgs...)
 	args = append(args, ".")
 	// #nosec G204
-	c := exec.Command(d.GetExePath("tfsec-tfsec"), args...)
+	c := exec.Command(d.GetExePath("aquasecurity-tfsec"), args...)
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
 	exec := t.ExecuteCommand(c)
@@ -185,6 +189,7 @@ func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
 				Line:          r.Path("location").Path("start_line").AsInt(),
 				Description:   r.Path("description").AsText(),
 				GeneratedFile: strings.HasPrefix(filepath.ToSlash(filename), ".terraform/modules/"),
+				Pass:          r.Path("status").AsInt() == 1,
 				Tool: map[string]string{
 					"severity": r.Path("severity").AsText(),
 					"rule_id":  r.Path("rule_id").AsText(),
@@ -198,4 +203,19 @@ func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
 	}
 	result.Data = n
 	result.Findings = findings
+}
+
+func getTfsecVersion(tfsecPath string) string {
+	c := exec.Command(tfsecPath, "-v")
+	out, err := c.Output()
+	if err == nil {
+		var v *version.Version
+		v, err = version.NewVersion(strings.TrimSpace(string(out)))
+		if err == nil {
+			log.Infof("{primary:tfsec} is version {info:%s}", v.Original())
+			return v.Original()
+		}
+	}
+	log.Warnf("Could not determine {primary:tfsec} version - {warning:%s}", err)
+	return ""
 }
