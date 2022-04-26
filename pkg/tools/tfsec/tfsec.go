@@ -92,6 +92,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		v, err := version.NewSemver(d.Version)
 		if err == nil && v.GreaterThanOrEqual(v0_39_38) {
 			args = append(args, "--include-ignored")
+			args = append(args, "--include-passed")
 		}
 	}
 	if customPoliciesDir != "" {
