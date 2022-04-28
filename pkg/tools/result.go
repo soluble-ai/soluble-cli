@@ -58,6 +58,7 @@ type FileFingerprint struct {
 
 var repoFiles = []string{
 	".lacework/config.yml",
+	".lacework/config.yaml",
 	".soluble/config.yml",
 	"CODEOWNERS",
 	"docs/CODEOWNERS",
