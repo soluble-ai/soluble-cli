@@ -1,28 +1,29 @@
-package policy
+package checkov
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
 func TestCheckov(t *testing.T) {
-	m := NewManager("testdata")
-	err := m.LoadRules(CheckovYAML)
+	m, err := policy.DetectPolicy("testdata")
 	assert.NoError(t, err)
 	assert.Len(t, m.Rules[CheckovYAML], 1)
 	rule := m.Rules[CheckovYAML][0]
 	assert.NotNil(t, rule)
-	assert.Equal(t, "testdata/policies/checkov/team_tag", rule.Path)
+	assert.True(t, strings.HasSuffix(rule.Path, "testdata/policies/checkov/team_tag"), rule.Path)
 	assert.Equal(t, "c-ckv-team-tag", rule.ID)
 	tmp, err := os.MkdirTemp("", "test*")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmp)
-	assert.NoError(t, m.PrepareRules(tmp, CheckovYAML, Terraform))
+	assert.NoError(t, m.PrepareRules(tmp))
 	d, err := os.ReadFile(filepath.Join(tmp, "terraform-c-ckv-team-tag.yaml"))
 	assert.NoError(t, err)
 	fmt.Println(string(d))

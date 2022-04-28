@@ -19,7 +19,6 @@ import (
 )
 
 type Rule struct {
-	Type     RuleType
 	ID       string
 	Path     string
 	Metadata map[string]interface{}
@@ -36,37 +35,38 @@ const (
 	Helm           = Target("helm")
 	Docker         = Target("docker")
 	Secrets        = Target("secrets")
+	None           = Target("")
 )
-
-var allTargets = []Target{
-	Terraform, Cloudformation, Kubernetes, Helm, Docker, Secrets,
-}
 
 type PassFail *bool
 
-type TestRunner interface {
-	tools.Interface
-}
-
 type RuleType interface {
+	GetName() string
 	GetCode() string
-	Prepare(rule *Rule, target Target, dest string) error
+	PrepareRules(rules []*Rule, dest string) error
 	Validate(rule *Rule) error
 	GetTestRunner(target Target) tools.Single
 	FindRuleResult(findings assessments.Findings, id string) PassFail
 }
 
-var allRuleTypes = []RuleType{
-	CheckovYAML,
-}
+var allRuleTypes = map[string]RuleType{}
 
 type Manager struct {
 	Dir   string
 	Rules map[RuleType][]*Rule
 }
 
-func ruleTypeName(ruleType RuleType) string {
-	return fmt.Sprint(ruleType)
+type TestMetrics struct {
+	FailureCount int
+	TestCount    int
+}
+
+func RegisterRuleType(ruleType RuleType) {
+	allRuleTypes[ruleType.GetName()] = ruleType
+}
+
+func GetRuleType(ruleTypeName string) RuleType {
+	return allRuleTypes[ruleTypeName]
 }
 
 func NewManager(dir string) *Manager {
@@ -86,7 +86,7 @@ func (m *Manager) LoadAllRules() error {
 }
 
 func (m *Manager) LoadRules(ruleType RuleType) error {
-	ruleTypeDir := filepath.Join(m.Dir, "policies", ruleTypeName(ruleType))
+	ruleTypeDir := filepath.Join(m.Dir, "policies", ruleType.GetName())
 	dirs, err := os.ReadDir(ruleTypeDir)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -101,9 +101,6 @@ func (m *Manager) LoadRules(ruleType RuleType) error {
 		}
 		_, err := m.LoadRule(ruleType, filepath.Join(ruleTypeDir, dirName))
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				continue
-			}
 			return err
 		}
 	}
@@ -117,14 +114,8 @@ func (m *Manager) LoadRule(ruleType RuleType, path string) (*Rule, error) {
 		return nil, err
 	}
 	rule := &Rule{
-		Type: ruleType,
 		ID:   id,
 		Path: path,
-	}
-	for _, target := range allTargets {
-		if util.DirExists(filepath.Join(rule.Path, string(target))) {
-			rule.Targets = append(rule.Targets, target)
-		}
 	}
 	if err := yaml.Unmarshal(d, &rule.Metadata); err != nil {
 		return nil, fmt.Errorf("could not read %s - %w", rule.Path, err)
@@ -133,18 +124,19 @@ func (m *Manager) LoadRule(ruleType RuleType, path string) (*Rule, error) {
 		rule.Metadata = make(map[string]interface{})
 	}
 	rule.Metadata["id"] = rule.ID
-	m.Rules[ruleType] = append(m.Rules[ruleType], rule)
 	log.Debugf("Loaded %s from %s\n", rule.ID, rule.Path)
+	m.Rules[ruleType] = append(m.Rules[ruleType], rule)
 	return rule, nil
 }
 
-func (m *Manager) PrepareRules(dest string, ruleType RuleType, target Target) error {
-	for _, rule := range m.Rules[ruleType] {
-		if err := ruleType.Prepare(rule, target, dest); err != nil {
-			return err
+func (m *Manager) PrepareRules(dest string) error {
+	var err error
+	for ruleType, rules := range m.Rules {
+		if perr := ruleType.PrepareRules(rules, dest); perr != nil {
+			err = multierror.Append(err, perr)
 		}
 	}
-	return nil
+	return err
 }
 
 func (m *Manager) ValidateRules() error {
@@ -213,69 +205,53 @@ func (m *Manager) CreateTarBall(path string) error {
 	return w.Close()
 }
 
-func (m *Manager) TestRules() error {
-	var err error
-	for ruleType := range m.Rules {
-		terr := m.TestRuleType(ruleType)
-		if terr != nil {
-			err = multierror.Append(err, terr)
-		}
-	}
-	return err
-}
-
-func (m *Manager) TestRuleType(ruleType RuleType) error {
-	var err error
-	for _, rule := range m.Rules[ruleType] {
-		terr := m.TestRule(rule)
-		if terr != nil {
-			err = multierror.Append(err, terr)
-		}
-	}
-	return err
-}
-
-func (m *Manager) TestRule(rule *Rule) error {
-	var err error
-	for _, target := range rule.Targets {
-		terr := m.TestRuleTarget(rule, target)
-		if terr != nil {
-			err = multierror.Append(err, terr)
-		}
-	}
-	return err
-}
-
-func (m *Manager) TestRuleTarget(rule *Rule, target Target) error {
-	dir, err := os.MkdirTemp("", "test*")
+func (m *Manager) TestRules() (TestMetrics, error) {
+	metrics := TestMetrics{}
+	dest, err := os.MkdirTemp("", "testrules*")
 	if err != nil {
-		return err
+		return metrics, err
 	}
-	defer os.RemoveAll(dir)
-	if err := rule.Type.Prepare(rule, target, dir); err != nil {
-		return err
+	defer os.RemoveAll(dest)
+	for ruleType, rules := range m.Rules {
+		if err := ruleType.PrepareRules(rules, dest); err != nil {
+			return metrics, err
+		}
 	}
-	failures := false
+	err = nil
+	for ruleType, rules := range m.Rules {
+		for _, rule := range rules {
+			for _, target := range rule.Targets {
+				if terr := m.testRuleTarget(&metrics, ruleType, rule, target, dest); terr != nil {
+					err = multierror.Append(err, terr)
+				}
+			}
+		}
+	}
+	return metrics, err
+}
+
+func (m *Manager) testRuleTarget(metrics *TestMetrics, ruleType RuleType, rule *Rule, target Target, dest string) error {
+	failures := 0
 tests:
 	for _, passFailName := range []string{"pass", "fail"} {
-		testDir := filepath.Join(rule.Path, string(target), "tests", passFailName)
+		testDir := target.getTestsDir(rule, passFailName)
 		if !util.DirExists(testDir) {
 			continue
 		}
-		tool := rule.Type.GetTestRunner(target)
+		metrics.TestCount++
+		tool := ruleType.GetTestRunner(target)
 		opts := tool.GetAssessmentOptions()
 		opts.Tool = tool
-		opts.CustomPoliciesDir = dir
+		opts.CustomPoliciesDir = dest
 		opts.UploadEnabled = false
 		if dir, ok := tool.(tools.HasDirectory); ok {
 			dir.SetDirectory(testDir)
 		}
-		opts.Quiet = true
 		result, err := tools.RunSingleAssessment(tool)
 		if err != nil {
 			return err
 		}
-		passFailResult := rule.Type.FindRuleResult(result.Findings, rule.ID)
+		passFailResult := ruleType.FindRuleResult(result.Findings, rule.ID)
 		if passFailResult != nil {
 			ok := *passFailResult
 			if passFailName == "fail" {
@@ -286,18 +262,27 @@ tests:
 				p = rp
 			}
 			if ok {
-				log.Infof("{primary:%s} %s %s - {info:OK}", p, passFailName, target)
+				log.Infof("Policy {success:%s} %s %s - {success:OK}", p, passFailName, target)
 			} else {
-				log.Errorf("{primary:%s} %s %s - {danger:FAILED}", p, passFailName, target)
-				failures = true
+				log.Errorf("Policy {danger:%s} %s %s - {danger:FAILED}", p, passFailName, target)
+				failures++
+				metrics.FailureCount++
 			}
 			continue tests
 		}
 		log.Errorf("{primary:%s} - {danger:NOT FOUND}", testDir)
-		failures = true
+		failures++
+		metrics.FailureCount++
 	}
-	if failures {
-		return fmt.Errorf("one or more tests have failed")
+	if failures > 0 {
+		return fmt.Errorf("%d tests have failed", failures)
 	}
 	return nil
+}
+
+func (t Target) getTestsDir(rule *Rule, passFailName string) string {
+	if t != "" {
+		return filepath.Join(rule.Path, string(t), "tests", passFailName)
+	}
+	return filepath.Join(rule.Path, "tests", passFailName)
 }

@@ -210,3 +210,13 @@ func TruncateFormatter(width int, left bool) Formatter {
 		return fmt.Sprintf("%s...", s[0:width-3])
 	}
 }
+
+func ChopFormatter(width int) Formatter {
+	return func(n *jnode.Node) string {
+		s := n.AsText()
+		if len(s) <= width {
+			return s
+		}
+		return s[0:width]
+	}
+}
