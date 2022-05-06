@@ -20,7 +20,7 @@ import (
 type Repo struct {
 	tools.ToolOpts
 	tools.DirectoryOpt
-	tools.UploadOpt
+	tools.UploadOpts
 	Details bool
 }
 
@@ -40,7 +40,7 @@ func (*Repo) CommandTemplate() *cobra.Command {
 func (r *Repo) Register(cmd *cobra.Command) {
 	r.ToolOpts.Register(cmd)
 	r.DirectoryOpt.Register(cmd)
-	r.UploadOpt.Register(cmd)
+	r.UploadOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.BoolVar(&r.Details, "details", false, "Print out the file tree along with a summary")
 }

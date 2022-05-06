@@ -30,7 +30,7 @@ import (
 type Local struct {
 	tools.ToolOpts
 	tools.DirectoryOpt
-	tools.UploadOpt
+	tools.UploadOpts
 }
 
 var _ tools.Simple = &Local{}
@@ -44,7 +44,7 @@ func (t *Local) Register(cmd *cobra.Command) {
 	t.ToolOpts.Register(cmd)
 	t.DirectoryOpt.Register(cmd)
 	t.DefaultUploadEnabled = true
-	t.UploadOpt.Register(cmd)
+	t.UploadOpts.Register(cmd)
 }
 
 func (t *Local) Validate() error {

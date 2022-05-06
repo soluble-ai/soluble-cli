@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type UploadOpt struct {
+type UploadOpts struct {
 	DefaultUploadEnabled bool
 	UploadEnabled        bool
 	GitPRBaseRef         string
 	UploadErrors         bool
 }
 
-func (o *UploadOpt) Register(cmd *cobra.Command) {
+func (o *UploadOpts) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	uploadUsage := "Upload results to lacework"
 	if o.DefaultUploadEnabled {
@@ -30,26 +30,44 @@ func (o *UploadOpt) Register(cmd *cobra.Command) {
 	flags.BoolVar(&o.UploadErrors, "upload-errors", false, "Upload tool logs and diagnostics on failures")
 }
 
-func (o *UploadOpt) AppendUploadOptions(dir string, options []api.Option) []api.Option {
+func (o *UploadOpts) AppendUploadOptions(dir string, options []api.Option) []api.Option {
 	if dir != "" && o.GitPRBaseRef != "" {
 		diff := o.getPRDIffText(dir)
 		if len(diff) > 0 {
 			options = append(options,
-				xcp.WithFileFromReader("git_pr_diffs", "git-pr-diffs.txt", bytes.NewReader(diff)))
+				xcp.WithFileFromReader("git_pr_diffs", "git-pr-diffs-z.txt", bytes.NewReader(diff)))
 		}
+	}
+	status := o.getGitStatusText(dir)
+	if len(status) > 0 {
+		options = append(options,
+			xcp.WithFileFromReader("git_status", "git-status-z.txt", bytes.NewReader(status)))
 	}
 	return options
 }
 
-func (o *UploadOpt) getPRDIffText(dir string) []byte {
+func (o *UploadOpts) getPRDIffText(dir string) []byte {
 	buf := &bytes.Buffer{}
 	// #nosec G204
-	diff := exec.Command("git", "diff", "--name-status", fmt.Sprintf("%s...HEAD", o.GitPRBaseRef))
+	diff := exec.Command("git", "diff", "-z", "--name-status", fmt.Sprintf("%s...HEAD", o.GitPRBaseRef))
 	fmt.Fprintf(buf, "# %s\n", strings.Join(diff.Args, " "))
 	diff.Dir = dir
 	diff.Stdout = buf
 	if err := diff.Run(); err != nil {
 		log.Warnf("Could not determine PR diffs - {warning:%s}", err)
+		return nil
+	}
+	return buf.Bytes()
+}
+
+func (o *UploadOpts) getGitStatusText(dir string) []byte {
+	buf := &bytes.Buffer{}
+	status := exec.Command("git", "status", "-z")
+	fmt.Fprintf(buf, "# %s\n", strings.Join(status.Args, " "))
+	status.Dir = dir
+	status.Stdout = buf
+	if err := status.Run(); err != nil {
+		log.Warnf("Could not get git status - {warning:%s}", err)
 		return nil
 	}
 	return buf.Bytes()

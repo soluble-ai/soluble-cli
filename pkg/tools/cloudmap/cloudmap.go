@@ -16,7 +16,7 @@ import (
 type Tool struct {
 	tools.ToolOpts
 	tools.DirectoryOpt
-	tools.UploadOpt
+	tools.UploadOpts
 	StateFile string
 
 	extraArgs tools.ExtraArgs
@@ -50,7 +50,7 @@ func (t *Tool) Validate() error {
 func (t *Tool) Register(cmd *cobra.Command) {
 	t.ToolOpts.Register(cmd)
 	t.DirectoryOpt.Register(cmd)
-	t.UploadOpt.Register(cmd)
+	t.UploadOpts.Register(cmd)
 	cmd.Flags().StringVar(&t.StateFile, "state-file", "", "Map resources from terraform state `file`")
 	t.Path = []string{"managed_resources"}
 	t.Columns = []string{"source_location.file", "source_location.line", "cloud_id"}
