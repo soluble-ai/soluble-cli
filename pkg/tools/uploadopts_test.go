@@ -9,7 +9,7 @@ import (
 
 func TestGitPRDiffs(t *testing.T) {
 	assert := assert.New(t)
-	opts := &UploadOpt{
+	opts := &UploadOpts{
 		GitPRBaseRef: "HEAD~1",
 	}
 	dat := opts.getPRDIffText(".")

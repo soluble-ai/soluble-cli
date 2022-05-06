@@ -49,7 +49,8 @@ func TestScanUploadJSON(t *testing.T) {
 		files = append(files, f[slash+1:])
 	}
 	assert.ElementsMatch(files, []string{
-		"config.yml", "results.json", "tool.log", "findings.json", "fingerprints.json",
+		"config.yml", "results.json", "tool.log", "findings.json",
+		"fingerprints.json", "git-status-z.txt",
 	})
 }
 

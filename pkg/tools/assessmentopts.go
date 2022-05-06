@@ -13,7 +13,7 @@ import (
 
 type AssessmentOpts struct {
 	ToolOpts
-	UploadOpt
+	UploadOpts
 	PrintResultOpt        bool
 	SaveResult            string
 	PrintResultValues     bool
@@ -36,7 +36,7 @@ func (o *AssessmentOpts) GetAssessmentOptions() *AssessmentOpts {
 func (o *AssessmentOpts) Register(c *cobra.Command) {
 	o.ToolOpts.Register(c)
 	o.DefaultUploadEnabled = true
-	o.UploadOpt.Register(c)
+	o.UploadOpts.Register(c)
 	o.SetFormatter("pass", PassFormatter)
 	// if not uploaded these columns will be empty, so make that a little easier to see
 	o.SetFormatter("sid", MissingFormatter)
