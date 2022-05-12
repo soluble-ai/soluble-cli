@@ -26,6 +26,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
+	"github.com/soluble-ai/soluble-cli/pkg/compress"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -84,13 +85,18 @@ func (r *Result) AddUploadOption(options ...api.Option) {
 	r.UploadOptions = append(r.UploadOptions, options...)
 }
 
-func (r *Result) Upload(client *api.Client, org, name string) error {
-	rr := bytes.NewReader([]byte(r.Data.String()))
+func (r *Result) upload(client *api.Client, org, name string, compressFiles bool) error {
 	options := r.UploadOptions
 	options = append(options,
 		xcp.WithCIEnv(r.Directory),
-		xcp.WithFileFromReader("results_json", "results.json", rr),
 	)
+	rr := bytes.NewReader([]byte(r.Data.String()))
+	if compressFiles {
+		gzp := compress.NewGZIPPipe(rr)
+		options = append(options, xcp.WithFileFromReader("results_json", "results.json.gz", gzp))
+	} else {
+		options = append(options, xcp.WithFileFromReader("results_json", "results.json", rr))
+	}
 	values := r.Values
 	dir, _ := repotree.FindRepoRoot(r.Directory)
 	if dir != "" {
@@ -114,7 +120,7 @@ func (r *Result) Upload(client *api.Client, org, name string) error {
 		}
 	}
 	if r.ExecuteResult != nil {
-		options = r.ExecuteResult.AppendUploadOptions(options)
+		options = r.ExecuteResult.AppendUploadOptions(compressFiles, options)
 		r.ExecuteResult.SetUploadValues(values)
 	}
 	if r.Findings != nil {

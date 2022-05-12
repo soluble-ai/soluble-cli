@@ -10,6 +10,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/capture"
+	"github.com/soluble-ai/soluble-cli/pkg/compress"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
@@ -79,10 +80,17 @@ func (r *ExecuteResult) SetUploadValues(values map[string]string) {
 	values["COMMAND"] = strings.Join(r.Args, " ")
 }
 
-func (r *ExecuteResult) AppendUploadOptions(options []api.Option) []api.Option {
+func (r *ExecuteResult) AppendUploadOptions(compressFiles bool, options []api.Option) []api.Option {
 	if len(r.CombinedOutput) > 0 {
-		options = append(options,
-			xcp.WithFileFromReader("tool_log", "tool.log", strings.NewReader(r.CombinedOutput)))
+		var toolLogOpt api.Option
+		src := strings.NewReader(r.CombinedOutput)
+		if compressFiles {
+			gz := compress.NewGZIPPipe(src)
+			toolLogOpt = xcp.WithFileFromReader("tool_log", "tool.log.gz", gz)
+		} else {
+			toolLogOpt = xcp.WithFileFromReader("tool_log", "tool.log", src)
+		}
+		options = append(options, toolLogOpt)
 	}
 	return options
 }

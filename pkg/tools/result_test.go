@@ -78,7 +78,7 @@ func TestUpload(t *testing.T) {
 			assert.Equal(h.FormValue("FOO"), "hello")
 			return resp, err
 		})
-	assert.Nil(result.Upload(opts.GetAPIClient(), "", "test"))
+	assert.Nil(result.upload(opts.GetAPIClient(), "", "test", false))
 	assert.Equal("http://app.example.com/A1", result.Assessment.URL)
 }
 
