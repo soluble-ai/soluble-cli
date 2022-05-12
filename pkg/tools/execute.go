@@ -12,6 +12,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/capture"
 	"github.com/soluble-ai/soluble-cli/pkg/compress"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/redaction"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
@@ -59,7 +60,11 @@ func executeCommand(cmd *exec.Cmd) *ExecuteResult {
 	if capErr != nil {
 		log.Warnf("Could not capture output of {info:%s} - {warning:%s}", cmd.Args[0], capErr)
 	}
-	result.CombinedOutput = string(out)
+	s := &strings.Builder{}
+	if err := redaction.RedactStream(bytes.NewReader(out), s); err != nil {
+		log.Warnf("Could not redact output of {info:%s} - {warning:%s}", cmd.Args[0], err)
+	}
+	result.CombinedOutput = s.String()
 	if output != nil {
 		result.Output = output.Bytes()
 	}
