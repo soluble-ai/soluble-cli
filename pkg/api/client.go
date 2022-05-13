@@ -146,13 +146,16 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 		path = fmt.Sprintf("%s/%s", c.APIPrefix, path)
 	}
 	resp, err := r.Execute(method, path)
-	if resp.Header().Get("Content-Type") == "text/plain" {
+	switch resp.Header().Get("Content-Type") {
+	case "text/plain":
+		fallthrough
+	case "application/octet-stream":
 		// Almost everything we get from api-server is JSON except
 		// for assessment files.  So this is a workaround to put
 		// the text content in the JSON object.
-		content := string(resp.Body())
+		content := resp.Body()
 		if n, ok := r.Result.(*jnode.Node); ok {
-			n.Put("plainText", content)
+			n.Put("contentBytes", jnode.NewNode(content))
 		}
 	}
 	for _, opt := range options {

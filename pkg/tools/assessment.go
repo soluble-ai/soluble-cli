@@ -112,7 +112,7 @@ func processResult(result *Result) error {
 	}
 	if o.UploadEnabled {
 		result.UploadOptions = o.AppendUploadOptions(result.Directory, result.UploadOptions)
-		if err := result.upload(o.GetAPIClient(), o.GetOrganization(), o.Tool.Name(), o.CompressFiles); err != nil {
+		if err := result.upload(o.GetAPIClient(), o.GetOrganization(), o.Tool.Name(), o.CompressResults); err != nil {
 			return err
 		}
 		if result.Assessment != nil && len(o.parsedFailThresholds) > 0 {
