@@ -38,6 +38,7 @@ type DockerTool struct {
 	Stderr                   io.Writer
 	Directory                string
 	Quiet                    bool
+	WorkingDirectory         string
 	PropagateEnvironmentVars []string
 }
 
@@ -110,8 +111,15 @@ func (t *DockerTool) run(skipPull bool) (*ExecuteResult, error) {
 func (t *DockerTool) getArgs(getenv func(string) string) []string {
 	args := []string{"run", "--rm"}
 	if t.Directory != "" {
+		workingDirectory := t.WorkingDirectory
+		switch {
+		case workingDirectory == "":
+			workingDirectory = "/src"
+		case workingDirectory[0] != '/':
+			workingDirectory = fmt.Sprintf("/src/%s", workingDirectory)
+		}
 		args = append(args, "-v", fmt.Sprintf("%s:/src", t.Directory),
-			"-w", "/src")
+			"-w", workingDirectory)
 	}
 	actualArgs := make([]string, len(t.Args))
 	copy(actualArgs, t.Args)

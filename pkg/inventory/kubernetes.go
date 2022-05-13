@@ -15,8 +15,12 @@
 package inventory
 
 import (
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
 type kubernetesDetector int
@@ -34,7 +38,7 @@ func (kubernetesDetector) DetectFileName(m *Manifest, path string) ContentDetect
 func (kubernetesDetector) DetectContent(m *Manifest, path string, content []byte) {
 	d := decodeDocument(path, content)
 	if filepath.Base(path) == "Chart.yaml" && d["apiVersion"] != "" {
-		// assume this is a helm chart
+		// Looks like a helm chart
 		m.HelmCharts.Add(filepath.Dir(path))
 		return
 	}
@@ -47,4 +51,25 @@ func (kubernetesDetector) DetectContent(m *Manifest, path string, content []byte
 		}
 		m.KubernetesManifestDirectories.Add(filepath.Dir(path))
 	}
+}
+
+func (kubernetesDetector) FinalizeDetection(m *Manifest) {
+	// We want to remove helm subcharts, which are helm
+	// charts in a subdirectory under "charts/" under another helm
+	// chart
+	charts := util.NewStringSet()
+	chartPaths := m.HelmCharts.Values()
+	sort.Strings(chartPaths)
+	for _, chart := range chartPaths {
+		parts := strings.Split(chart, string(os.PathSeparator))
+		n := len(parts)
+		if n > 2 && parts[n-2] == "charts" {
+			parentChart := filepath.Join(parts[0 : n-2]...)
+			if m.HelmCharts.Contains(parentChart) {
+				continue
+			}
+		}
+		charts.Add(chart)
+	}
+	m.HelmCharts = *charts
 }

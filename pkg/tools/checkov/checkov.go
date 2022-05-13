@@ -36,7 +36,8 @@ type Tool struct {
 	EnableModuleDownload bool
 	VarFiles             []string
 
-	extraArgs tools.ExtraArgs
+	relativeVarFiles []string
+	extraArgs        tools.ExtraArgs
 }
 
 var _ tools.Single = &Tool{}
@@ -73,6 +74,7 @@ func (t *Tool) Validate() error {
 				// This is also a limitation of checkov
 				return fmt.Errorf("variable files must be in the same directory as the target terraform")
 			}
+			t.relativeVarFiles = append(t.relativeVarFiles, r)
 		}
 	}
 	return nil
@@ -95,18 +97,26 @@ func (t *Tool) Run() (*tools.Result, error) {
 			"-o", "json", "-s",
 		},
 	}
-	dt.Directory = t.GetDirectory()
-	var targetDir string
 	if t.RepoRoot != "" {
 		// We want to run in the repo root and target a relative directory under
 		// that so the module references to peer or sibling directories
 		// resolve correctly.
-		targetDir, _ = filepath.Rel(t.RepoRoot, dt.Directory)
 		dt.Directory = t.RepoRoot
+		targetDir, _ := filepath.Rel(t.RepoRoot, t.GetDirectory())
+		dt.WorkingDirectory = targetDir
 	} else {
-		targetDir = "."
+		dt.Directory = t.GetDirectory()
 	}
-	dt.AppendArgs("-d", targetDir)
+	if t.Framework == "helm" {
+		// for Helm we use the -f option, this avoids checkov scanning
+		// itself for Chart.yaml files and avoiding subcharts
+		if !util.FileExists(fmt.Sprintf("%s/Chart.yaml", t.GetDirectory())) {
+			return nil, fmt.Errorf("%s does not contain Chart.yaml", t.GetDirectory())
+		}
+		dt.AppendArgs("-f", "./Chart.yaml")
+	} else {
+		dt.AppendArgs("-d", ".")
+	}
 	if t.Framework != "" {
 		dt.AppendArgs("--framework", t.Framework)
 	}
@@ -126,12 +136,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 		dt.AppendArgs("--external-checks-dir", customPoliciesDir)
 		dt.Mount(customPoliciesDir, "/policy")
 	}
-	for _, varFile := range t.VarFiles {
-		if !filepath.IsAbs(varFile) {
-			varFile, _ = filepath.Abs(varFile)
-		}
-		rv, _ := filepath.Rel(dt.Directory, varFile)
-		dt.AppendArgs("--var-file", rv)
+	for _, varFile := range t.relativeVarFiles {
+		dt.AppendArgs("--var-file", varFile)
 	}
 	dt.AppendArgs(t.extraArgs...)
 	if t.Framework == "" || t.Framework == "terraform" {
@@ -141,7 +147,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := exec.ToResult(t.RepoRoot)
+	result := exec.ToResult(t.GetDirectory())
 	if !exec.ExpectExitCode(0) {
 		return result, nil
 	}
@@ -150,7 +156,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return result, nil
 	}
 	t.processResults(result, n)
-	result.AddValue(tools.AssessmentDirectoryValue, targetDir)
 	return result, nil
 }
 
@@ -217,18 +222,29 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 	for _, n := range checks.Elements() {
 		filePath := n.Path("file_path").AsText()
 		if len(filePath) > 0 && filePath[0] == '/' {
+			// checkov sticks an extra slash at the beginning
 			filePath = filePath[1:]
-			n.Put("file_path", filePath)
 		}
 		if t.Framework == "helm" {
 			// checkov generates templates with helm, so the "file_path" doesn't
 			// actually match the path in the repo.  We'll rewrite so it does.
-			base := filepath.Base(t.GetDirectory()) + "/"
-			if strings.HasPrefix(filepath.ToSlash(filePath), base) {
-				filePath = filePath[len(base):]
-				n.Put("file_path", filePath)
+			// Two things:
+			// 1 - filePath may a tmp file in /tmp
+			// 2 - filePath will start with the name of the chart
+			// directory
+			base := filepath.Base(t.GetDirectory())
+			parts := strings.Split(filepath.ToSlash(filePath), "/")
+			if len(parts) > 3 && parts[0] == "tmp" && strings.HasPrefix(parts[1], "tmp") {
+				if parts[2] == base {
+					filePath = strings.Join(parts[3:], "/")
+				} else {
+					filePath = strings.Join(parts[2:], "/")
+				}
+			} else if len(parts) > 1 && parts[0] == base {
+				filePath = strings.Join(parts[1:], "/")
 			}
 		}
+		n.Put("file_path", filePath)
 	}
 	checks = util.RemoveJNodeElementsIf(checks, func(e *jnode.Node) bool {
 		return t.IsExcluded(e.Path("file_path").AsText())
@@ -245,12 +261,6 @@ func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType
 			Pass:          pass,
 			Title:         n.Path("check_name").AsText(),
 			GeneratedFile: t.isGeneratedFile(path),
-		}
-		if t.RepoRoot != "" {
-			// we run checkov in the repo root with the -d argument
-			// pointing to the actual directory, so in this case
-			// the RepoPath is the same as the path
-			finding.RepoPath = path
 		}
 		result.Findings = append(result.Findings, finding)
 	}

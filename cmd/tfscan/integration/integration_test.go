@@ -15,7 +15,7 @@ import (
 )
 
 func TestScan(t *testing.T) {
-	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--config-file", "/dev/null")
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--use-empty-config-file")
 	tool.Must(tool.Run())
 	lines := strings.Split(tool.Out.String(), "\n")
 	assert := assert.New(t)
@@ -25,7 +25,7 @@ func TestScan(t *testing.T) {
 
 func TestScanUploadJSON(t *testing.T) {
 	test.RequireAPIToken(t)
-	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--config-file", "/dev/null", "--format", "json").
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--use-empty-config-file", "--format", "json").
 		WithUpload(true)
 	tool.Must(tool.Run())
 	n := tool.JSON()
@@ -74,7 +74,7 @@ func TestFail(t *testing.T) {
 		exit.Func = nil
 		exit.Code = 0
 	}()
-	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--config-file", "/dev/null", "--fail", "high").
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--use-empty-config-file", "--fail", "high").
 		WithUpload(true)
 	tool.Must(tool.Run())
 	assert.Equal(2, exitCode)
@@ -84,7 +84,7 @@ func TestFail(t *testing.T) {
 
 func TestTfsec(t *testing.T) {
 	assert := assert.New(t)
-	tool := test.NewTool(t, "tf-scan", "tfsec", "-d", "testdata", "--config-file", "/dev/null",
+	tool := test.NewTool(t, "tf-scan", "tfsec", "-d", "testdata", "--use-empty-config-file",
 		"--format", "json")
 	tool.Must(tool.Run())
 	n := tool.JSON()

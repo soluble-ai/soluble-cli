@@ -29,9 +29,9 @@ import (
 
 type ToolOpts struct {
 	RunOpts
-	Tool       Interface
-	RepoRoot   string
-	ConfigFile string
+	Tool               Interface
+	RepoRoot           string
+	UseEmptyConfigFile bool
 
 	config      *Config
 	repoRootSet bool
@@ -49,8 +49,8 @@ func (o *ToolOpts) GetConfig() *Config {
 
 func (o *ToolOpts) getConfig(repoRoot string) *Config {
 	if o.config == nil {
-		if o.ConfigFile != "" {
-			o.config = ReadConfigFile(o.ConfigFile)
+		if o.UseEmptyConfigFile {
+			o.config = &Config{}
 		} else {
 			oldConfig := filepath.Join(repoRoot, ".soluble", "config.yml")
 			newConfig := filepath.Join(repoRoot, ".lacework", "config.yml")
@@ -69,8 +69,8 @@ func (o *ToolOpts) getConfig(repoRoot string) *Config {
 func (o *ToolOpts) Register(cmd *cobra.Command) {
 	o.RunOpts.Register(cmd)
 	flags := cmd.Flags()
-	flags.StringVar(&o.ConfigFile, "config-file", "", "Read tool configuration from `file`, overriding the default config file search.")
-	_ = flags.MarkHidden("config-file")
+	flags.BoolVar(&o.UseEmptyConfigFile, "use-empty-config-file", false, "Use an empty tool configuration file.  (For testing only.)")
+	flags.Lookup("use-empty-config-file").Hidden = true
 }
 
 func (o *ToolOpts) Validate() error {

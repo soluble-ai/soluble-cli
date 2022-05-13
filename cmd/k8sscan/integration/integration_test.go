@@ -12,7 +12,7 @@ import (
 
 func TestMultiDocument(t *testing.T) {
 	assert := assert.New(t)
-	cmd := test.NewTool(t, "k8s-scan", "--config-file", "/dev/null", "-d", "testdata/k", "--format", "json").
+	cmd := test.NewTool(t, "k8s-scan", "--use-empty-config-file", "-d", "testdata/k", "--format", "json").
 		WithFingerprints()
 	cmd.Must(cmd.Run())
 	assert.Equal(2, cmd.Fingerprints.Size())

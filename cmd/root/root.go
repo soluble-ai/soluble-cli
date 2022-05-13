@@ -57,6 +57,7 @@ import (
 var (
 	profile    string
 	setProfile string
+	workingDir string
 	ExitFunc   = os.Exit
 )
 
@@ -78,6 +79,11 @@ func Command() *cobra.Command {
 			}
 			if profile != "" {
 				config.SelectProfile(profile)
+			}
+			if workingDir != "" {
+				if err := os.Chdir(workingDir); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
@@ -102,6 +108,8 @@ func Command() *cobra.Command {
 	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
 	log.AddFlags(flags)
 	flags.BoolVar(&options.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
+	flags.StringVar(&workingDir, "working-dir", "", "Change the working dir to `dir` before running")
+	flags.Lookup("working-dir").Hidden = true
 
 	config.Load()
 	addBuiltinCommands(rootCmd)

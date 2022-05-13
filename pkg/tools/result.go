@@ -85,7 +85,7 @@ func (r *Result) AddUploadOption(options ...api.Option) {
 	r.UploadOptions = append(r.UploadOptions, options...)
 }
 
-func (r *Result) upload(client *api.Client, org, name string, compressFiles bool) error {
+func (r *Result) upload(client *api.Client, org, name string, compressFiles bool, useEmptyConfigFile bool) error {
 	options := r.UploadOptions
 	options = append(options,
 		xcp.WithCIEnv(r.Directory),
@@ -102,18 +102,25 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 	if dir != "" {
 		// include various repo files if they exist
 		names := &util.StringSet{}
+		if useEmptyConfigFile {
+			// for integration testing we need to ignore the CLI's config.yml
+			// and use an empty one
+			names.Add("config.yml")
+			options = append(options,
+				xcp.WithFileFromReader("config.yml", "config.yml", strings.NewReader("ignore:\n")))
+		}
 		for _, path := range repoFiles {
+			name := filepath.Base(path)
 			p := filepath.Join(dir, filepath.FromSlash(path))
 			fi, err := os.Stat(p)
 			if err != nil || fi.Size() == 0 {
 				// don't include 0 length files
 				continue
 			}
-			if f, err := os.Open(p); err == nil {
-				defer f.Close()
-				name := filepath.Base(path)
-				if names.Add(name) {
-					// only include one
+			if names.Add(name) {
+				// only include one
+				if f, err := os.Open(p); err == nil {
+					defer f.Close()
 					options = append(options, xcp.WithFileFromReader(name, name, f))
 				}
 			}
@@ -207,7 +214,7 @@ func (r *Result) isMultiDocument(path string) bool {
 			return true
 		})
 		if err != nil {
-			log.Warnf("{warning:%s}", err)
+			log.Warnf("While fingerprinting: {warning:%s}", err)
 		}
 		return multiDocument
 	}
