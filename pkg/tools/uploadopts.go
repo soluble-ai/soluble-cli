@@ -17,7 +17,7 @@ type UploadOpts struct {
 	UploadEnabled        bool
 	GitPRBaseRef         string
 	UploadErrors         bool
-	CompressFiles        bool
+	CompressResults      bool
 }
 
 func (o *UploadOpts) Register(cmd *cobra.Command) {
@@ -29,8 +29,8 @@ func (o *UploadOpts) Register(cmd *cobra.Command) {
 	flags.BoolVar(&o.UploadEnabled, "upload", o.DefaultUploadEnabled, uploadUsage)
 	flags.StringVar(&o.GitPRBaseRef, "git-pr-base-ref", "", "Include in the upload a summary of the diffs from `ref` to HEAD.")
 	flags.BoolVar(&o.UploadErrors, "upload-errors", false, "Upload tool logs and diagnostics on failures")
-	flags.BoolVar(&o.CompressFiles, "compress-files", false, "Compress files before uploading.")
-	flags.Lookup("compress-files").Hidden = true
+	flags.BoolVar(&o.CompressResults, "x-compress-results", false, "Compress results before uploading.")
+	flags.Lookup("x-compress-results").Hidden = true
 }
 
 func (o *UploadOpts) AppendUploadOptions(dir string, options []api.Option) []api.Option {

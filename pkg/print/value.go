@@ -68,6 +68,9 @@ func (p *ValuePrinter) print(w io.Writer, n *jnode.Node) bool {
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(n)
+	case n.GetType() == jnode.Binary:
+		dat, _ := n.AsBinary()
+		_, _ = w.Write(dat)
 	default:
 		fmt.Fprintln(w, n.AsText())
 	}
