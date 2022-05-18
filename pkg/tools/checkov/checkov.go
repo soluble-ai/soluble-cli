@@ -25,6 +25,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/redaction"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -41,6 +42,20 @@ type Tool struct {
 }
 
 var _ tools.Single = &Tool{}
+
+var noCodeBlockChecks = map[string]bool{
+	// These checkov checks will send code blocks with secrets in
+	// them.  We don't want to do that.
+	"CKV_AWS_41":      true,
+	"CKV_BCW_1":       true,
+	"CKV_LIN_1":       true,
+	"CKV_OCI_1":       true,
+	"CKV_OPENSTACK_1": true,
+	"CKV_PAN_1":       true,
+	"CKV_AWS_46":      true,
+	"CKV_AWS_45":      true,
+	"CKV_AZURE_45":    true,
+}
 
 func (t *Tool) Name() string {
 	return "checkov"
@@ -220,6 +235,9 @@ func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
 
 func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string, pass bool) *jnode.Node {
 	for _, n := range checks.Elements() {
+		if codeBlockIsSensitive(n, pass) {
+			n.Remove("code_block")
+		}
 		filePath := n.Path("file_path").AsText()
 		if len(filePath) > 0 && filePath[0] == '/' {
 			// checkov sticks an extra slash at the beginning
@@ -285,4 +303,20 @@ func propagateTfVarsEnv(d *tools.DockerTool, env []string) {
 			d.PropagateEnvironmentVars = append(d.PropagateEnvironmentVars, name)
 		}
 	}
+}
+
+func codeBlockIsSensitive(check *jnode.Node, pass bool) bool {
+	if !pass {
+		checkID := check.Path("check_id").AsText()
+		if noCodeBlockChecks[checkID] {
+			return true
+		}
+	}
+	for _, elt := range check.Path("code_block").Elements() {
+		text := elt.Get(1).AsText()
+		if redaction.ContainsSecret(text) {
+			return true
+		}
+	}
+	return false
 }
