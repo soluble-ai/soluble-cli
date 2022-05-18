@@ -20,7 +20,7 @@ type CDK struct {
 	Synth        bool
 }
 
-var _ tools.Interface = (*Helm)(nil)
+var _ tools.Interface = (*CDK)(nil)
 
 func (cdk *CDK) Name() string {
 	return "checkov-cdk"

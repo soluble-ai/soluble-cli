@@ -72,7 +72,7 @@ func (m *Manifest) getDetectors(detectors []interface{}) (fds []FileDetector, dd
 func (m *Manifest) scan(root string, detectors ...interface{}) {
 	root, _ = filepath.Abs(root)
 	fileDetectors, dirDetectors := m.getDetectors(detectors)
-	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.WalkDir(root, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			log.Warnf("Could not scan {info:%s}: {warning:%s}", path, err)
 			return nil
@@ -81,7 +81,7 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 			// skip .git directory
 			return filepath.SkipDir
 		}
-		if isdir := info.IsDir(); isdir || info.Mode().IsRegular() {
+		if isdir := info.IsDir(); isdir || info.Type().IsRegular() {
 			relpath := path
 			if filepath.IsAbs(relpath) {
 				relpath, _ = filepath.Rel(root, relpath)

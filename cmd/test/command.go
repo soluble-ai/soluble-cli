@@ -58,7 +58,7 @@ func (c *Command) YAML() map[string]interface{} {
 	var m map[string]interface{}
 	err := yaml.Unmarshal(c.Out.Bytes(), &m)
 	if err != nil {
-		log.Errorf("{primary:%s} did not return JSON - {danger:%s}", c.Args[0], err)
+		log.Errorf("{primary:%s} did not return YAML - {danger:%s}", c.Args[0], err)
 	}
 	return m
 }
