@@ -63,11 +63,15 @@ func (o *RunOpts) Register(cmd *cobra.Command) {
 	}
 }
 
+func (o *RunOpts) UsingDocker() bool {
+	return o.ToolPath == "" && !o.NoDocker
+}
+
 // Run a docker tool.  If the tool cannot be run because docker isn't running or
 // the tool path isn't known then returns an error.  Otherwise returns an ExecuteResult
 // that holds the output, log and exit code of the command.
 func (o *RunOpts) RunDocker(d *DockerTool) (*ExecuteResult, error) {
-	if o.ToolPath != "" || o.NoDocker {
+	if !o.UsingDocker() {
 		path := o.ToolPath
 		if path == "" {
 			path = d.DefaultNoDockerName
