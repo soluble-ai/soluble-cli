@@ -33,7 +33,7 @@ func (c *Command) Run() error {
 	color.NoColor = true
 	wd, err := os.Getwd()
 	util.Must(err)
-	log.Infof("Running command {primary:%s} {secondary:(in %s)}", strings.Join(c.Args, " "), wd)
+	log.Infof("Running command {primary:%s} {secondary:with --working-dir %s}", strings.Join(c.Args, " "), wd)
 	cmd := root.Command()
 	cmd.SetArgs(c.Args)
 	c.Out = &bytes.Buffer{}

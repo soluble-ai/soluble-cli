@@ -106,13 +106,13 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 func (t *Tool) Run() (*tools.Result, error) {
 	dt := &tools.DockerTool{
 		Name:                "checkov",
-		Image:               "bridgecrew/checkov:latest",
+		Image:               "gcr.io/soluble-repo:2",
 		DefaultNoDockerName: "checkov",
 		Args: []string{
 			"-o", "json", "-s",
 		},
 	}
-	if t.RepoRoot != "" {
+	if t.UsingDocker() && t.RepoRoot != "" {
 		// We want to run in the repo root and target a relative directory under
 		// that so the module references to peer or sibling directories
 		// resolve correctly.
