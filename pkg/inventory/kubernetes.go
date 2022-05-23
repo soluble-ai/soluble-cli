@@ -28,6 +28,10 @@ type kubernetesDetector int
 var _ FileDetector = kubernetesDetector(0)
 
 func (kubernetesDetector) DetectFileName(m *Manifest, path string) ContentDetector {
+	if filepath.Base(path) == "kustomization.yaml" {
+		m.KustomizeDirectories.Add(filepath.Dir(path))
+		return nil
+	}
 	if strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml") ||
 		strings.HasSuffix(path, ".json") {
 		return kubernetesDetector(0)
@@ -48,6 +52,10 @@ func (kubernetesDetector) DetectContent(m *Manifest, path string, content []byte
 			if strings.HasPrefix(path, ch) {
 				return
 			}
+		}
+		// ignore templates in kustomize directories
+		if m.KustomizeDirectories.Contains(filepath.Dir(path)) {
+			return
 		}
 		m.KubernetesManifestDirectories.Add(filepath.Dir(path))
 	}

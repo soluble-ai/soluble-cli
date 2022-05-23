@@ -29,6 +29,7 @@ type Manifest struct {
 	CloudformationFiles           util.StringSet `json:"cloudformation_files"`
 	HelmCharts                    util.StringSet `json:"helm_charts"`
 	KubernetesManifestDirectories util.StringSet `json:"kubernetes_manifest_directories"`
+	KustomizeDirectories          util.StringSet `json:"kustomize_directories"`
 	CISystems                     util.StringSet `json:"ci_systems"`
 	DockerDirectories             util.StringSet `json:"docker_directories"`
 	GODirectories                 util.StringSet `json:"go_directories"`
