@@ -37,8 +37,9 @@ type Tool struct {
 	EnableModuleDownload bool
 	VarFiles             []string
 
-	relativeVarFiles []string
-	extraArgs        tools.ExtraArgs
+	kustomizationName string
+	relativeVarFiles  []string
+	extraArgs         tools.ExtraArgs
 }
 
 var _ tools.Single = &Tool{}
@@ -74,7 +75,10 @@ func (t *Tool) Validate() error {
 	if err := t.DirectoryBasedToolOpts.Validate(); err != nil {
 		return err
 	}
-	if t.Framework == "" || t.Framework == "terraform" {
+	switch t.Framework {
+	case "":
+		fallthrough
+	case "terraform":
 		for _, name := range t.VarFiles {
 			if !strings.Contains(name, ".tfvars") {
 				// This bug is present in at least 2.0.1021.  Strange but true.
@@ -90,6 +94,21 @@ func (t *Tool) Validate() error {
 				return fmt.Errorf("variable files must be in the same directory as the target terraform")
 			}
 			t.relativeVarFiles = append(t.relativeVarFiles, r)
+		}
+	case "kustomize":
+		for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
+			file := filepath.Join(t.GetDirectory(), name)
+			if util.FileExists(file) {
+				t.kustomizationName = name
+				break
+			}
+		}
+		if t.kustomizationName == "" {
+			return fmt.Errorf("no kustomization file in %s", t.GetDirectory())
+		}
+	case "helm":
+		if !util.FileExists(filepath.Join(t.GetDirectory(), "Chart.yaml")) {
+			return fmt.Errorf("no Chart.yaml in %s", t.GetDirectory())
 		}
 	}
 	return nil
@@ -122,14 +141,19 @@ func (t *Tool) Run() (*tools.Result, error) {
 	} else {
 		dt.Directory = t.GetDirectory()
 	}
-	if t.Framework == "helm" {
+	switch t.Framework {
+	case "helm":
 		// for Helm we use the -f option, this avoids checkov scanning
 		// itself for Chart.yaml files and avoiding subcharts
-		if !util.FileExists(fmt.Sprintf("%s/Chart.yaml", t.GetDirectory())) {
-			return nil, fmt.Errorf("%s does not contain Chart.yaml", t.GetDirectory())
-		}
 		dt.AppendArgs("-f", "./Chart.yaml")
-	} else {
+	case "kustomize":
+		// for kustomize we should use the -f option, but checkov (as of 2.0.1140)
+		// dies if the file is in the current directory, so instead use -d
+		dt.AppendArgs("-d", ".")
+	case "kubernetes":
+		t.skipKustomizationTemplates(dt)
+		fallthrough
+	default:
 		dt.AppendArgs("-d", ".")
 	}
 	if t.Framework != "" {
@@ -172,6 +196,17 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	t.processResults(result, n)
 	return result, nil
+}
+
+func (t *Tool) skipKustomizationTemplates(dt *tools.DockerTool) {
+	m := t.GetInventory()
+	for _, dir := range m.KustomizeDirectories.Values() {
+		// skip-path is a regexp, which isn't so great here
+		// actually.  We'll anchor it but probably should
+		// escape it as well, tho special regexp characters
+		// usually aren't in directory names.
+		dt.AppendArgs("--skip-path", fmt.Sprintf(`^\./%s/`, dir))
+	}
 }
 
 func (t *Tool) makeHelmAvailable() error {
@@ -234,11 +269,34 @@ func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
 }
 
 func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string, pass bool) *jnode.Node {
+	var kustomizeSrcPrefix string
+	if t.UsingDocker() && t.Framework == "kustomize" {
+		// checkov isn't consistent: for kustomize the filePath is an
+		// absolute file.  When running in docker the path will
+		// start with /src, and if run in a repo it will be /src/<target-rel>
+		kustomizeSrcPrefix = "/src"
+		if t.RepoRoot != "" {
+			targetRel, err := filepath.Rel(t.RepoRoot, t.GetDirectory())
+			if err == nil {
+				kustomizeSrcPrefix = fmt.Sprintf("/src/%s", targetRel)
+			}
+		}
+	}
 	for _, n := range checks.Elements() {
 		if codeBlockIsSensitive(n, pass) {
 			n.Remove("code_block")
 		}
 		filePath := n.Path("file_path").AsText()
+		if t.Framework == "kustomize" && filePath != "" {
+			if t.UsingDocker() {
+				filePath = strings.TrimPrefix(filePath, kustomizeSrcPrefix)
+			} else if filepath.IsAbs(filePath) {
+				r, err := filepath.Rel(t.GetDirectory(), filePath)
+				if err == nil {
+					filePath = r
+				}
+			}
+		}
 		if len(filePath) > 0 && filePath[0] == '/' {
 			// checkov sticks an extra slash at the beginning
 			filePath = filePath[1:]

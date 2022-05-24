@@ -84,3 +84,28 @@ func TestParseHelmResults(t *testing.T) {
 		}
 	}
 }
+
+func TestKustomizeResults(t *testing.T) {
+	assert := assert.New(t)
+	for i, resultsFile := range []string{
+		"testdata/kustomize-results-docker.json.gz",
+		"testdata/kustomize-results-local.json.gz",
+	} {
+		tool := &Tool{Framework: "kustomize"}
+		tool.Directory = "testdata/kust"
+		tool.UseEmptyConfigFile = true
+		if i == 1 {
+			tool.NoDocker = true
+		}
+		assert.NoError(tool.Validate())
+		results, err := util.ReadJSONFile(resultsFile)
+		assert.NoError(err)
+		result := tool.processResults(&tools.Result{}, results)
+		assert.Greater(len(result.Findings), 30)
+		for _, finding := range result.Findings {
+			assert.False(strings.HasPrefix(finding.FilePath, "/"), "%s is relative", finding.FilePath)
+			assert.False(strings.HasPrefix(finding.FilePath, "tmp/"), "%s is relative", finding.FilePath)
+			assert.True(strings.HasSuffix(finding.FilePath, "/kustomization.yaml") || strings.HasSuffix(finding.FilePath, "/kustomization.yml"))
+		}
+	}
+}

@@ -52,7 +52,7 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 			flags.BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
 			flags.DurationVar(&opts.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
 				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
-			flags.IntVar(&opts.RetryCount, "retry", 0, "The `number` of times to retry the request")
+			flags.IntVar(&opts.RetryCount, "api-retry", 0, "The `number` of times to retry the request")
 			flags.Float64Var(&opts.RetryWaitSeconds, "api-retry-wait", 0,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
 			flags.StringSliceVar(&opts.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
