@@ -28,7 +28,7 @@ type kubernetesDetector int
 var _ FileDetector = kubernetesDetector(0)
 
 func (kubernetesDetector) DetectFileName(m *Manifest, path string) ContentDetector {
-	if filepath.Base(path) == "kustomization.yaml" {
+	if base := filepath.Base(path); base == "kustomization.yaml" || base == "kustomization.yml" {
 		m.KustomizeDirectories.Add(filepath.Dir(path))
 		return nil
 	}

@@ -214,7 +214,7 @@ func (r *Result) isMultiDocument(path string) bool {
 			return true
 		})
 		if err != nil {
-			log.Warnf("While fingerprinting: {warning:%s}", err)
+			log.Warnf("Fingerprinting failed: {warning:%s}", err)
 		}
 		return multiDocument
 	}
