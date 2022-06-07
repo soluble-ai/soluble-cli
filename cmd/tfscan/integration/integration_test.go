@@ -41,6 +41,7 @@ func TestScanUploadJSON(t *testing.T) {
 	assert.Equal("cmd/tfscan/integration/testdata", params.Path("ASSESSMENT_DIRECTORY").AsText())
 	assert.Equal("0", params.Path("EXIT_CODE").AsText())
 	assert.Equal("true", params.Path("SUCCESS").AsText())
+	assert.NotEmpty(params.Path("CHECKOV_VERSION").AsText())
 	var files []string
 	for _, e := range assmt.Path("files").Elements() {
 		assert.Equal(jnode.Text, e.GetType())

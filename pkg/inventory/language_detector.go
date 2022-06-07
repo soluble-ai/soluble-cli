@@ -15,10 +15,7 @@
 package inventory
 
 import (
-	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
@@ -48,22 +45,7 @@ func (d *LanguageDetector) FinalizeDetection(m *Manifest) {
 	if !d.collapseNestedDirs {
 		return
 	}
-	// collapse nested directories with markers into single dir
-	values := d.getValues(m)
-	if values.Len() == 0 {
-		return
-	}
-	dirs := values.Values()
-	values.Reset()
-	sort.Strings(dirs)
-	values.Add(dirs[0])
-	p := dirs[0]
-	for i := 1; i < len(dirs); i++ {
-		if p != "." && (!strings.HasPrefix(dirs[i], p) || (len(dirs[i]) > len(p) && dirs[i][len(p)] != os.PathSeparator)) {
-			values.Add(dirs[i])
-			p = dirs[i]
-		}
-	}
+	collapseNestedDirs(d.getValues(m))
 }
 
 func pythonDetector() *LanguageDetector {
