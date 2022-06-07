@@ -244,6 +244,13 @@ func (t *Tool) processResults(result *tools.Result, data *jnode.Node) *tools.Res
 	} else {
 		t.processCheckResults(result, data)
 	}
+	if summary := data.Path("summary"); summary.IsObject() {
+		result.AddValue("CHECKOV_VERSION", summary.Path("checkov_version").AsText())
+		if rc := summary.Path("resource_count"); !rc.IsMissing() {
+			result.AddValue("RESOURCE_COUNT", rc.AsText())
+		}
+	}
+
 	return result
 }
 
@@ -254,10 +261,6 @@ func (t *Tool) processCheckResults(result *tools.Result, e *jnode.Node) {
 	failedChecks := t.processChecks(result, results.Path("failed_checks"), checkType, false)
 	updateChecks(results, "passed_checks", passedChecks)
 	updateChecks(results, "failed_checks", failedChecks)
-	result.AddValue("CHECKOV_VERSION", e.Path("summary").Path("checkov_version").AsText())
-	if rc := e.Path("summary").Path("resource_count"); !rc.IsMissing() {
-		result.AddValue("RESOURCE_COUNT", rc.AsText())
-	}
 }
 
 func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {

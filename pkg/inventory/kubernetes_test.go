@@ -31,4 +31,7 @@ func TestHelm(t *testing.T) {
 	assert.ElementsMatch(m.KubernetesManifestDirectories.Values(), []string{
 		"t",
 	})
+	assert.ElementsMatch(m.KustomizeDirectories.Values(), []string{
+		"kus",
+	})
 }
