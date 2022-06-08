@@ -129,6 +129,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		DefaultNoDockerName: "checkov",
 		Args: []string{
 			"-o", "json", "-s",
+			// would like to use "--skip-download" but it's not in 2.0.708
 		},
 	}
 	if t.UsingDocker() && t.RepoRoot != "" {
@@ -236,31 +237,41 @@ func (t *Tool) makeHelmAvailable() error {
 
 func (t *Tool) processResults(result *tools.Result, data *jnode.Node) *tools.Result {
 	result.Data = data
+	var haveResults bool
 	if data.IsArray() {
 		// checkov returns an array if it runs more than one check type at a go
 		for _, n := range data.Elements() {
-			t.processCheckResults(result, n)
+			h := t.processCheckResults(result, n)
+			haveResults = haveResults || h
 		}
 	} else {
-		t.processCheckResults(result, data)
+		haveResults = t.processCheckResults(result, data)
 	}
-	if summary := data.Path("summary"); summary.IsObject() {
+	var summary *jnode.Node
+	if haveResults {
+		summary = data.Path("summary")
+	} else {
+		// if checkov has no results then it just returns a summary with
+		// no wrapping
+		summary = data
+	}
+	if summary.IsObject() {
 		result.AddValue("CHECKOV_VERSION", summary.Path("checkov_version").AsText())
 		if rc := summary.Path("resource_count"); !rc.IsMissing() {
 			result.AddValue("RESOURCE_COUNT", rc.AsText())
 		}
 	}
-
 	return result
 }
 
-func (t *Tool) processCheckResults(result *tools.Result, e *jnode.Node) {
+func (t *Tool) processCheckResults(result *tools.Result, e *jnode.Node) bool {
 	checkType := e.Path("check_type").AsText()
 	results := e.Path("results")
 	passedChecks := t.processChecks(result, results.Path("passed_checks"), checkType, true)
 	failedChecks := t.processChecks(result, results.Path("failed_checks"), checkType, false)
 	updateChecks(results, "passed_checks", passedChecks)
 	updateChecks(results, "failed_checks", failedChecks)
+	return results.IsObject()
 }
 
 func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
