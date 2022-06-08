@@ -109,3 +109,13 @@ func TestKustomizeResults(t *testing.T) {
 		}
 	}
 }
+
+func TestEmptyResults(t *testing.T) {
+	assert := assert.New(t)
+	tool := &Tool{}
+	assert.NoError(tool.Validate())
+	results, err := util.ReadJSONFile("testdata/empty-results.json")
+	assert.NoError(err)
+	result := tool.processResults(&tools.Result{}, results)
+	assert.Equal("2.0.1146", result.Values["CHECKOV_VERSION"])
+}
