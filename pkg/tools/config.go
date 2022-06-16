@@ -19,35 +19,14 @@ import (
 	"io/ioutil"
 	"os"
 
-	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	path   string
-	data   *jnode.Node
-	ignore *ignore.GitIgnore
-}
-
-func (c *Config) IsIgnored(path string) bool {
-	if c.ignore == nil {
-		v := c.data.Path("ignore")
-		if v.IsArray() {
-			lines := make([]string, v.Size())
-			for i, line := range v.Elements() {
-				lines[i] = line.AsText()
-			}
-			c.ignore = ignore.CompileIgnoreLines(lines...)
-		} else {
-			c.ignore = ignore.CompileIgnoreLines(v.AsText())
-		}
-		if c.ignore == nil {
-			log.Warnf("{warning:Invalid ignore lines} {secondary:in %s}", c.path)
-		}
-	}
-	return c.ignore.MatchesPath(path)
+	path string
+	data *jnode.Node
 }
 
 func ReadConfigFile(path string) *Config {
