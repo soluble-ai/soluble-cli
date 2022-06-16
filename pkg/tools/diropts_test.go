@@ -26,9 +26,9 @@ import (
 func TestDirectoryOpts(t *testing.T) {
 	assert := assert.New(t)
 	o := &DirectoryBasedToolOpts{
-		Exclude: []string{"dir.go"},
+		Exclude: []string{"dir.go", "/secrets/testdata/"},
 	}
-	assert.Nil(o.Validate())
+	assert.NoError(o.Validate())
 	dir := o.GetDirectory()
 	assert.True(filepath.IsAbs(dir))
 	assert.NotEmpty(o.RepoRoot)
