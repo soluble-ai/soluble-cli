@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -309,8 +310,9 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		Version:           actualVersion,
 		URL:               spec.URL,
 		APIServerArtifact: spec.APIServerArtifact,
-		Dir:               filepath.Join(m.downloadDir, meta.Name, actualVersion),
-		InstallTime:       time.Now(),
+		// remove special fs characters from tag
+		Dir:         filepath.Join(m.downloadDir, meta.Name, noslashdotdots(actualVersion)),
+		InstallTime: time.Now(),
 	}
 	meta.removeInstalledVersion(d.Version)
 	meta.Installed = append(meta.Installed, d)
@@ -324,6 +326,12 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		return nil, err
 	}
 	return d, nil
+}
+
+var slashDotDotsRe = regexp.MustCompile(`(\.\.)|[/\\]`)
+
+func noslashdotdots(s string) string {
+	return slashDotDotsRe.ReplaceAllString(s, "_")
 }
 
 func (meta *DownloadMeta) FindVersion(version string, cacheTime time.Duration, stale bool) *Download {

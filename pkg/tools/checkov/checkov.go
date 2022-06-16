@@ -17,14 +17,11 @@ package checkov
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
-	"github.com/soluble-ai/soluble-cli/pkg/download"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/redaction"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -37,9 +34,10 @@ type Tool struct {
 	EnableModuleDownload bool
 	VarFiles             []string
 
-	kustomizationName string
-	relativeVarFiles  []string
-	extraArgs         tools.ExtraArgs
+	relativeVarFiles    []string
+	extraArgs           tools.ExtraArgs
+	pathTranslationFunc func(string) string
+	workingDir          string
 }
 
 var _ tools.Single = &Tool{}
@@ -75,10 +73,7 @@ func (t *Tool) Validate() error {
 	if err := t.DirectoryBasedToolOpts.Validate(); err != nil {
 		return err
 	}
-	switch t.Framework {
-	case "":
-		fallthrough
-	case "terraform":
+	if t.Framework == "terraform" {
 		for _, name := range t.VarFiles {
 			if !strings.Contains(name, ".tfvars") {
 				// This bug is present in at least 2.0.1021.  Strange but true.
@@ -94,21 +89,6 @@ func (t *Tool) Validate() error {
 				return fmt.Errorf("variable files must be in the same directory as the target terraform")
 			}
 			t.relativeVarFiles = append(t.relativeVarFiles, r)
-		}
-	case "kustomize":
-		for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
-			file := filepath.Join(t.GetDirectory(), name)
-			if util.FileExists(file) {
-				t.kustomizationName = name
-				break
-			}
-		}
-		if t.kustomizationName == "" {
-			return fmt.Errorf("no kustomization file in %s", t.GetDirectory())
-		}
-	case "helm":
-		if !util.FileExists(filepath.Join(t.GetDirectory(), "Chart.yaml")) {
-			return fmt.Errorf("no Chart.yaml in %s", t.GetDirectory())
 		}
 	}
 	return nil
@@ -128,8 +108,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Image:               "gcr.io/soluble-repo:2",
 		DefaultNoDockerName: "checkov",
 		Args: []string{
-			"-o", "json", "-s",
-			// would like to use "--skip-download" but it's not in 2.0.708
+			"-o", "json", "-s", "--skip-download",
 		},
 	}
 	if t.UsingDocker() && t.RepoRoot != "" {
@@ -137,36 +116,25 @@ func (t *Tool) Run() (*tools.Result, error) {
 		// that so the module references to peer or sibling directories
 		// resolve correctly.
 		dt.Directory = t.RepoRoot
-		targetDir, _ := filepath.Rel(t.RepoRoot, t.GetDirectory())
+		workingDir := t.workingDir
+		if t.workingDir == "" {
+			workingDir = t.GetDirectory()
+		}
+		targetDir, err := filepath.Rel(t.RepoRoot, workingDir)
+		if err != nil {
+			return nil, fmt.Errorf("working directory must be relative to %s: %w", t.RepoRoot, err)
+		}
 		dt.WorkingDirectory = targetDir
 	} else {
 		dt.Directory = t.GetDirectory()
+		dt.WorkingDirectory = t.workingDir
 	}
-	switch t.Framework {
-	case "helm":
-		// for Helm we use the -f option, this avoids checkov scanning
-		// itself for Chart.yaml files and avoiding subcharts
-		dt.AppendArgs("-f", "./Chart.yaml")
-	case "kustomize":
-		// for kustomize we should use the -f option, but checkov (as of 2.0.1140)
-		// dies if the file is in the current directory, so instead use -d
-		dt.AppendArgs("-d", ".")
-	case "kubernetes":
-		t.skipKustomizationTemplates(dt)
-		fallthrough
-	default:
-		dt.AppendArgs("-d", ".")
-	}
+	dt.AppendArgs("-d", ".")
 	if t.Framework != "" {
 		dt.AppendArgs("--framework", t.Framework)
 	}
 	if t.Framework == "terraform" && t.EnableModuleDownload {
 		dt.AppendArgs("--download-external-modules", "true")
-	}
-	if t.Framework == "helm" && (t.NoDocker || t.ToolPath != "") {
-		if err := t.makeHelmAvailable(); err != nil {
-			return nil, err
-		}
 	}
 	customPoliciesDir, err := t.GetCustomPoliciesDir()
 	if err != nil {
@@ -197,42 +165,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	t.processResults(result, n)
 	return result, nil
-}
-
-func (t *Tool) skipKustomizationTemplates(dt *tools.DockerTool) {
-	m := t.GetInventory()
-	for _, dir := range m.KustomizeDirectories.Values() {
-		// skip-path is a regexp, which isn't so great here
-		// actually.  We'll anchor it but probably should
-		// escape it as well, tho special regexp characters
-		// usually aren't in directory names.
-		dt.AppendArgs("--skip-path", fmt.Sprintf(`^\./%s/`, dir))
-	}
-}
-
-func (t *Tool) makeHelmAvailable() error {
-	c := exec.Command("helm", "version")
-	if err := c.Run(); err != nil {
-		// helm is not installed, so install it from github
-		installer := &tools.RunOpts{}
-		d, err := installer.InstallTool(&download.Spec{
-			URL: "github.com/helm/helm",
-		})
-		if err != nil {
-			return err
-		}
-		dir := filepath.Dir(d.GetExePath("helm"))
-		// add to path
-		path := os.Getenv("PATH")
-		if path == "" {
-			path = dir
-		} else {
-			path = fmt.Sprintf("%s%c%s", path, os.PathListSeparator, dir)
-		}
-		log.Infof("Adding {info:%s} to PATH", dir)
-		os.Setenv("PATH", path)
-	}
-	return nil
 }
 
 func (t *Tool) processResults(result *tools.Result, data *jnode.Node) *tools.Result {
@@ -283,56 +215,17 @@ func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
 }
 
 func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string, pass bool) *jnode.Node {
-	var kustomizeSrcPrefix string
-	if t.UsingDocker() && t.Framework == "kustomize" {
-		// checkov isn't consistent: for kustomize the filePath is an
-		// absolute file.  When running in docker the path will
-		// start with /src, and if run in a repo it will be /src/<target-rel>
-		kustomizeSrcPrefix = "/src"
-		if t.RepoRoot != "" {
-			targetRel, err := filepath.Rel(t.RepoRoot, t.GetDirectory())
-			if err == nil {
-				kustomizeSrcPrefix = fmt.Sprintf("/src/%s", targetRel)
-			}
-		}
-	}
 	for _, n := range checks.Elements() {
 		if codeBlockIsSensitive(n, pass) {
 			n.Remove("code_block")
 		}
 		filePath := n.Path("file_path").AsText()
-		if t.Framework == "kustomize" && filePath != "" {
-			if t.UsingDocker() {
-				filePath = strings.TrimPrefix(filePath, kustomizeSrcPrefix)
-			} else if filepath.IsAbs(filePath) {
-				r, err := filepath.Rel(t.GetDirectory(), filePath)
-				if err == nil {
-					filePath = r
-				}
-			}
+		if t.pathTranslationFunc != nil {
+			filePath = t.pathTranslationFunc(filePath)
 		}
 		if len(filePath) > 0 && filePath[0] == '/' {
 			// checkov sticks an extra slash at the beginning
 			filePath = filePath[1:]
-		}
-		if t.Framework == "helm" {
-			// checkov generates templates with helm, so the "file_path" doesn't
-			// actually match the path in the repo.  We'll rewrite so it does.
-			// Two things:
-			// 1 - filePath may a tmp file in /tmp
-			// 2 - filePath will start with the name of the chart
-			// directory
-			base := filepath.Base(t.GetDirectory())
-			parts := strings.Split(filepath.ToSlash(filePath), "/")
-			if len(parts) > 3 && parts[0] == "tmp" && strings.HasPrefix(parts[1], "tmp") {
-				if parts[2] == base {
-					filePath = strings.Join(parts[3:], "/")
-				} else {
-					filePath = strings.Join(parts[2:], "/")
-				}
-			} else if len(parts) > 1 && parts[0] == base {
-				filePath = strings.Join(parts[1:], "/")
-			}
 		}
 		n.Put("file_path", filePath)
 	}

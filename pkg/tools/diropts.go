@@ -82,8 +82,7 @@ func (o *DirectoryBasedToolOpts) removeExcludedStringSet(ss util.StringSet) util
 
 func (o *DirectoryBasedToolOpts) IsExcluded(file string) bool {
 	if o.ignore != nil {
-		rfile := MustRel(o.GetDirectory(), file)
-		if o.ignore.MatchesPath(rfile) {
+		if o.ignore.MatchesPath(file) {
 			return true
 		}
 	}

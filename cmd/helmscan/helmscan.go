@@ -7,13 +7,9 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := tools.CreateCommand(&checkov.Tool{
-		Framework: "helm",
-	})
+	c := tools.CreateCommand(&checkov.Helm{})
 	c.Use = "helm-scan"
 	c.Short = "Scan helm charts"
-	c.AddCommand(tools.CreateCommand(&checkov.Tool{
-		Framework: "helm",
-	}))
+	c.AddCommand(tools.CreateCommand(&checkov.Helm{}))
 	return c
 }

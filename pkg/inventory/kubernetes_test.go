@@ -32,6 +32,6 @@ func TestHelm(t *testing.T) {
 		"t",
 	})
 	assert.ElementsMatch(m.KustomizeDirectories.Values(), []string{
-		"kus",
+		"kus", "kus/kus-1",
 	})
 }

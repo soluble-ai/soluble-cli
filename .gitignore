@@ -20,3 +20,5 @@ target/
 **/.DS_Store
 /.tfscore
 .terraform*
+.helm*
+.kustomize*
