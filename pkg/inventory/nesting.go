@@ -25,3 +25,9 @@ func collapseNestedDirs(values *util.StringSet) {
 		}
 	}
 }
+
+func CollapseNestedDirs(values util.StringSet) []string {
+	values = *util.NewStringSetWithValues(values.Values())
+	collapseNestedDirs(&values)
+	return values.Values()
+}

@@ -15,8 +15,6 @@
 package checkov
 
 import (
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -61,53 +59,6 @@ func TestPropagateTfvarsEnv(t *testing.T) {
 	d := &tools.DockerTool{}
 	propagateTfVarsEnv(d, []string{"TF_VAR_foo=foo", "TF_VAR_bar=bar", "PATH=/bin;/usr/bin"})
 	assert.ElementsMatch(t, []string{"TF_VAR_foo", "TF_VAR_bar"}, d.PropagateEnvironmentVars)
-}
-
-func TestParseHelmResults(t *testing.T) {
-	assert := assert.New(t)
-	for _, resultsFile := range []string{
-		"testdata/helm-results-local.json.gz",
-		"testdata/helm-results-docker.json.gz",
-	} {
-		tool := &Tool{Framework: "helm"}
-		tool.Directory = "testdata/mychart"
-		assert.NoError(tool.Validate())
-		results, err := util.ReadJSONFile(resultsFile)
-		assert.NoError(err)
-		result := tool.processResults(&tools.Result{}, results)
-		assert.Greater(len(result.Findings), 30)
-		for _, finding := range result.Findings {
-			assert.False(strings.HasPrefix(finding.FilePath, "/"), "%s is relative", finding.FilePath)
-			assert.False(strings.HasPrefix(finding.FilePath, "tmp/"), "%s is relative", finding.FilePath)
-			file := filepath.Join(tool.Directory, finding.FilePath)
-			assert.True(util.FileExists(file), "%s : %s should exist", resultsFile, file)
-		}
-	}
-}
-
-func TestKustomizeResults(t *testing.T) {
-	assert := assert.New(t)
-	for i, resultsFile := range []string{
-		"testdata/kustomize-results-docker.json.gz",
-		"testdata/kustomize-results-local.json.gz",
-	} {
-		tool := &Tool{Framework: "kustomize"}
-		tool.Directory = "testdata/kust"
-		tool.UseEmptyConfigFile = true
-		if i == 1 {
-			tool.NoDocker = true
-		}
-		assert.NoError(tool.Validate())
-		results, err := util.ReadJSONFile(resultsFile)
-		assert.NoError(err)
-		result := tool.processResults(&tools.Result{}, results)
-		assert.Greater(len(result.Findings), 30)
-		for _, finding := range result.Findings {
-			assert.False(strings.HasPrefix(finding.FilePath, "/"), "%s is relative", finding.FilePath)
-			assert.False(strings.HasPrefix(finding.FilePath, "tmp/"), "%s is relative", finding.FilePath)
-			assert.True(strings.HasSuffix(finding.FilePath, "/kustomization.yaml") || strings.HasSuffix(finding.FilePath, "/kustomization.yml"))
-		}
-	}
 }
 
 func TestEmptyResults(t *testing.T) {

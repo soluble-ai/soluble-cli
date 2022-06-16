@@ -80,5 +80,4 @@ func (kubernetesDetector) FinalizeDetection(m *Manifest) {
 		charts.Add(chart)
 	}
 	m.HelmCharts = *charts
-	collapseNestedDirs(&m.KustomizeDirectories)
 }

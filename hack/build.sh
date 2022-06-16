@@ -70,7 +70,7 @@ fi
 
 echo "Running go test (integration tests)"
 
-go test -tags=integration -timeout 30s ./.../integration
+go test -tags=integration -timeout 60s ./.../integration
 
 rm -rf dist
 mkdir -p dist

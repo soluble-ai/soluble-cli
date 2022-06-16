@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDownload(t *testing.T) {
@@ -140,4 +141,9 @@ func registerTestArchive(name string, auth bool) {
 	} else {
 		httpmock.RegisterResponder("GET", fmt.Sprintf("https://example.com/%s", name), r)
 	}
+}
+
+func TestNodots(t *testing.T) {
+	assert := assert.New(t)
+	assert.Equal("__foo_bar___bar.zip", noslashdotdots("../foo/bar/../bar.zip"))
 }

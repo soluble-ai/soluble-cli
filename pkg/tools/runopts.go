@@ -85,7 +85,11 @@ func (o *RunOpts) RunDocker(d *DockerTool) (*ExecuteResult, error) {
 		// don't use docker, just run it directly
 		// #nosec G204
 		c := exec.Command(path, d.Args...)
-		c.Dir = d.Directory
+		if d.WorkingDirectory != "" {
+			c.Dir = d.WorkingDirectory
+		} else {
+			c.Dir = d.Directory
+		}
 		c.Stderr = os.Stderr
 		return o.ExecuteCommand(c), nil
 	}
