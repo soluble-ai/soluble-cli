@@ -14,11 +14,8 @@ import (
 
 func TestKustomizeScan(t *testing.T) {
 	assert := assert.New(t)
-	// As of 5-24-22 the gcr.io/soluble-repo version of checkov doesn't
-	// support kustomize, so run with a specific later version that does.
-	// This will need to get sorted out before kustomize-scan is GA.
 	tool := test.NewTool(t, "ea", "kustomize-scan", "-d", "../../k8sscan/integration/testdata/kust",
-		"--tool-version", "bridgecrew/checkov:2.0.1140", "--use-empty-config-file").WithFingerprints()
+		"--use-empty-config-file").WithFingerprints()
 	tool.Must(tool.Run())
 	repoRoot, err := repotree.FindRepoRoot("")
 	assert.NoError(err)
