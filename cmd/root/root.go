@@ -218,7 +218,7 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 //
 // These functions will allow us to inject the name of the component at runtime so that
 // all the help messages reflect the correct component name. If the environment variable
-// does not exist, this funciton defaults to the original name of the Soluble CLI.
+// does not exist, this function defaults to the original name of the Soluble CLI.
 func binaryName() string {
 	if name := os.Getenv("LW_COMPONENT_NAME"); name != "" {
 		return name
