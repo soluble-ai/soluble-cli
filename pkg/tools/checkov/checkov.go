@@ -127,7 +127,15 @@ func (t *Tool) Run() (*tools.Result, error) {
 		dt.WorkingDirectory = targetDir
 	} else {
 		dt.Directory = t.GetDirectory()
-		dt.WorkingDirectory = t.workingDir
+		if t.UsingDocker() {
+			workingDir, err := filepath.Rel(dt.Directory, t.workingDir)
+			if err != nil {
+				return nil, fmt.Errorf("working directory must be relative to %s: %w", dt.Directory, err)
+			}
+			dt.WorkingDirectory = workingDir
+		} else {
+			dt.WorkingDirectory = t.workingDir
+		}
 	}
 	dt.AppendArgs("-d", ".")
 	if t.Framework != "" {
@@ -156,6 +164,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 	result := exec.ToResult(t.GetDirectory())
+	result.ModuleName = "checkov"
 	if !exec.ExpectExitCode(0) {
 		return result, nil
 	}
