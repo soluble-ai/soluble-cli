@@ -94,5 +94,8 @@ func (cdk *CDK) Run() (*tools.Result, error) {
 			f.GeneratedFile = true
 		}
 	}
+	if result != nil {
+		result.ModuleName = "checkov-cdk"
+	}
 	return result, err
 }

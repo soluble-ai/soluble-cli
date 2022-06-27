@@ -42,6 +42,7 @@ type Result struct {
 	FileFingerprints []*FileFingerprint
 	UploadOptions    []api.Option
 	ExecuteResult    *ExecuteResult
+	ModuleName       string
 
 	Assessment    *assessments.Assessment
 	AssessmentRaw *jnode.Node
@@ -138,7 +139,10 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 			options = append(options, xcp.WithFileFromReader("fingerprints_json", "fingerprints.json", rf))
 		}
 	}
-	moduleName := name
+	moduleName := r.ModuleName
+	if moduleName == "" {
+		moduleName = name
+	}
 	if r.ExecuteResult != nil && r.ExecuteResult.FailureType != "" {
 		moduleName = "failed-assessment"
 		log.Infof("Uploading failed assessment logs for {primary:%s}", name)
