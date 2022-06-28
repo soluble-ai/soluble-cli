@@ -14,7 +14,7 @@ import (
 
 func TestKustomizeScan(t *testing.T) {
 	assert := assert.New(t)
-	tool := test.NewTool(t, "ea", "kustomize-scan", "-d", "../../k8sscan/integration/testdata/kust",
+	tool := test.NewTool(t, "kustomize-scan", "-d", "../../k8sscan/integration/testdata/kust",
 		"--use-empty-config-file").WithFingerprints()
 	tool.Must(tool.Run())
 	repoRoot, err := repotree.FindRepoRoot("")
