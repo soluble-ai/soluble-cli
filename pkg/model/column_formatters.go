@@ -46,4 +46,5 @@ func init() {
 	RegisterColumnFormatter("bytes", print.BytesFormatter)
 	RegisterColumnFormatter("number", print.NumberFormatter)
 	RegisterColumnFormatter("millis", print.DurationMillisFormatter)
+	RegisterColumnFormatter("commit", print.ChopFormatter(7))
 }

@@ -115,20 +115,18 @@ func testCommand() *cobra.Command {
 		Use:   "test",
 		Short: "Test custom policy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m, ruleType, rule, target, err := policy.DetectPolicy(dir)
+			m, err := policy.DetectPolicy(dir)
 			if err != nil {
 				return err
 			}
-			switch {
-			case rule != nil && target != "":
-				return m.TestRuleTarget(rule, target)
-			case rule != nil:
-				return m.TestRule(rule)
-			case ruleType != nil:
-				return m.TestRuleType(ruleType)
-			default:
-				return m.TestRules()
+			metrics, err := m.TestRules()
+			if metrics.FailureCount == 0 {
+				log.Infof("Ran {primary:%d} tests and all passed", metrics.TestCount)
+			} else {
+				log.Infof("Ran {primary:%d} tests with {success:%d} passed and {danger:%d} failed",
+					metrics.TestCount, metrics.TestCount-metrics.FailureCount, metrics.FailureCount)
 			}
+			return err
 		},
 	}
 	c.Flags().StringVarP(&dir, "directory", "d", "", "Run tests in `dir`")
