@@ -24,3 +24,13 @@ func TestKustomizeScan(t *testing.T) {
 		assert.True(util.FileExists(file), "%s should exist", file)
 	}
 }
+
+func TestKustomizeUpload(t *testing.T) {
+	assert := assert.New(t)
+	tool := test.NewTool(t, "kustomize-scan", "-d", "../../k8sscan/integration/testdata/kust",
+		"--use-empty-config-file", "--format", "json").WithUpload(true)
+	tool.Must(tool.Run())
+	n := tool.JSON()
+	findings := n.Get(0).Path("findings")
+	assert.Greater(findings.Size(), 30)
+}
