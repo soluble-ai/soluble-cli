@@ -21,7 +21,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/aws"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
-	"github.com/soluble-ai/soluble-cli/cmd/cdkscan"
 	"github.com/soluble-ai/soluble-cli/cmd/cfnscan"
 	"github.com/soluble-ai/soluble-cli/cmd/cloudscan"
 	"github.com/soluble-ai/soluble-cli/cmd/codescan"
@@ -33,6 +32,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/imagescan"
 	"github.com/soluble-ai/soluble-cli/cmd/inventorycmd"
 	"github.com/soluble-ai/soluble-cli/cmd/k8sscan"
+	"github.com/soluble-ai/soluble-cli/cmd/kustomizescan"
 	"github.com/soluble-ai/soluble-cli/cmd/logincmd"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
@@ -49,7 +49,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudmap"
 	v "github.com/soluble-ai/soluble-cli/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -148,11 +147,10 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		checkovCommand,
 		codescan.Command(),
 		cloudscan.Command(),
-		tools.CreateCommand(&cloudmap.Tool{}),
-		cdkscan.Command(),
 		fingerprint.Command(),
 		earlyAccessCommand(),
 		repoinventory.Command(),
+		kustomizescan.Command(),
 	)
 }
 
