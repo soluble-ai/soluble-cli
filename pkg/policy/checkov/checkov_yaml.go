@@ -26,7 +26,7 @@ func (checkovYAML) GetCode() string {
 	return "ckv"
 }
 
-func (h checkovYAML) PrepareRules(rules []*policy.Rule, dst string) error {
+func (h checkovYAML) PrepareRules(m *policy.Manager, rules []*policy.Rule, dst string) error {
 	for _, rule := range rules {
 		for _, target := range rule.Targets {
 			ruleBody, err := h.readRule(rule, target)
@@ -61,7 +61,17 @@ func (checkovYAML) readRule(rule *policy.Rule, target policy.Target) (map[string
 	return ruleBody, nil
 }
 
-func (h checkovYAML) Validate(rule *policy.Rule) error {
+func (h checkovYAML) ValidateRules(m *policy.Manager, rules []*policy.Rule) error {
+	var err error
+	for _, rule := range rules {
+		if e := h.validate(rule); e != nil {
+			err = multierror.Append(err, e)
+		}
+	}
+	return err
+}
+
+func (h checkovYAML) validate(rule *policy.Rule) error {
 	var err error
 	for _, target := range supportedTargets {
 		body, terr := h.readRule(rule, target)
@@ -75,8 +85,8 @@ func (h checkovYAML) Validate(rule *policy.Rule) error {
 	return err
 }
 
-func (checkovYAML) GetTestRunner(target policy.Target) tools.Single {
-	return getTestRunner(target)
+func (checkovYAML) GetTestRunner(m *policy.Manager, target policy.Target) tools.Single {
+	return getTestRunner(m, target)
 }
 
 func (checkovYAML) FindRuleResult(findings assessments.Findings, id string) policy.PassFail {

@@ -12,7 +12,8 @@ import (
 
 func TestPreparePy(t *testing.T) {
 	assert := assert.New(t)
-	m, err := policy.DetectPolicy("testdata")
+	m := &policy.Manager{Dir: "testdata"}
+	err := m.DetectPolicy()
 	if !assert.NoError(err) {
 		return
 	}

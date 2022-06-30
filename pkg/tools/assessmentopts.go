@@ -99,11 +99,11 @@ func (o *AssessmentOpts) Validate() error {
 }
 
 func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
-	if o.DisableCustomPolicies {
-		return "", nil
-	}
 	if o.CustomPoliciesDir != "" {
 		return o.CustomPoliciesDir, nil
+	}
+	if o.DisableCustomPolicies {
+		return "", nil
 	}
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil
