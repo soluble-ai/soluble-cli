@@ -127,7 +127,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		dt.WorkingDirectory = targetDir
 	} else {
 		dt.Directory = t.GetDirectory()
-		if t.UsingDocker() {
+		if t.UsingDocker() && t.workingDir != "" {
 			workingDir, err := filepath.Rel(dt.Directory, t.workingDir)
 			if err != nil {
 				return nil, fmt.Errorf("working directory must be relative to %s: %w", dt.Directory, err)
@@ -156,7 +156,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		dt.AppendArgs("--var-file", varFile)
 	}
 	dt.AppendArgs(t.extraArgs...)
-	if t.Framework == "" || t.Framework == "terraform" {
+	if t.Framework == "terraform" {
 		propagateTfVarsEnv(dt, os.Environ())
 	}
 	exec, err := t.RunDocker(dt)

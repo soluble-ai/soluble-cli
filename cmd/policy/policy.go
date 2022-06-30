@@ -5,8 +5,8 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
@@ -26,48 +26,46 @@ func Command() *cobra.Command {
 }
 
 func vetCommand() *cobra.Command {
-	var dir string
+	m := &policy.Manager{}
 	c := &cobra.Command{
 		Use:   "vet",
 		Short: "Vet custom policy for potential errors",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m := policy.NewManager(dir)
-			err := m.LoadAllRules()
+			err := m.LoadRules()
 			if err != nil {
 				return err
 			}
 			for ruleType := range m.Rules {
-				log.Infof("Found %d {primary:%s} custom rules", len(m.Rules[ruleType]), ruleType)
+				log.Infof("Found %d {info:%s} custom rules", len(m.Rules[ruleType]), ruleType)
 			}
-			return m.ValidateRules()
+			metrics, err := m.ValidateRules()
+			log.Infof("Validated {primary:%d} custom rules", metrics.Count)
+			return err
 		},
 	}
-	c.Flags().StringVarP(&dir, "directory", "d", "", "Validate custom policy in `dir`")
-	_ = c.MarkFlagRequired("directory")
+	m.Register(c)
 	return c
 }
 
 func uploadCommand() *cobra.Command {
 	var (
-		dir     string
-		client  options.ClientOpts
-		tarball string
-		upload  bool
+		m          policy.Manager
+		tarball    string
+		uploadOpts tools.UploadOpts
 	)
 	c := &cobra.Command{
 		Use:   "upload",
 		Short: "Upload custom policies",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if upload {
-				if err := client.RequireAPIToken(); err != nil {
+			if uploadOpts.UploadEnabled {
+				if err := m.RequireAPIToken(); err != nil {
 					return err
 				}
 			}
-			m := policy.NewManager(dir)
-			if err := m.LoadAllRules(); err != nil {
+			if err := m.LoadRules(); err != nil {
 				return err
 			}
-			if err := m.ValidateRules(); err != nil {
+			if _, err := m.ValidateRules(); err != nil {
 				return err
 			}
 			if tarball == "" {
@@ -81,17 +79,18 @@ func uploadCommand() *cobra.Command {
 			if err := m.CreateTarBall(tarball); err != nil {
 				return err
 			}
-			if upload {
+			if uploadOpts.UploadEnabled {
 				f, err := os.Open(tarball)
 				if err != nil {
 					return err
 				}
 				defer f.Close()
 				options := []api.Option{
-					xcp.WithCIEnv(dir),
+					xcp.WithCIEnv(m.Dir),
 					xcp.WithFileFromReader("tarball", "rules.tar.gz", f),
 				}
-				_, err = client.GetAPIClient().XCPPost(client.GetOrganization(),
+				options = uploadOpts.AppendUploadOptions(m.Dir, options)
+				_, err = m.GetAPIClient().XCPPost(m.GetOrganization(),
 					"custom/policy", nil, nil, options...)
 				if err != nil {
 					return err
@@ -100,22 +99,24 @@ func uploadCommand() *cobra.Command {
 			return nil
 		},
 	}
-	client.Register(c)
+	m.Register(c)
 	flags := c.Flags()
-	flags.StringVarP(&dir, "directory", "d", "", "Read custom policies from `dir`")
-	flags.BoolVar(&upload, "upload", true, "Upload custom policies.  Use --upload=false to disable.")
-	flags.StringVar(&tarball, "tarball", "", "Write upload tarball to `file`.  By default the tarball is written to a temporary file.")
+	uploadOpts.DefaultUploadEnabled = true
+	uploadOpts.Register(c)
+	flags.StringVar(&tarball, "save-tarball", "", "Save the upload tarball to `file`.  By default the tarball is written to a temporary file.")
+	flags.Lookup("upload").Usage = "Upload rules to lacework.  Use --upload=false to skip uploading."
+	flags.Lookup("upload-errors").Hidden = true // doesn't make sense here
 	_ = c.MarkFlagRequired("directory")
 	return c
 }
 
 func testCommand() *cobra.Command {
-	var dir string
+	m := &policy.Manager{}
 	c := &cobra.Command{
 		Use:   "test",
 		Short: "Test custom policy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m, err := policy.DetectPolicy(dir)
+			err := m.DetectPolicy()
 			if err != nil {
 				return err
 			}
@@ -129,6 +130,6 @@ func testCommand() *cobra.Command {
 			return err
 		},
 	}
-	c.Flags().StringVarP(&dir, "directory", "d", "", "Run tests in `dir`")
+	m.Register(c)
 	return c
 }

@@ -12,10 +12,12 @@ var supportedTargets = []policy.Target{
 	policy.Secrets,
 }
 
-func getTestRunner(target policy.Target) tools.Single {
-	return &checkov.Tool{
+func getTestRunner(m *policy.Manager, target policy.Target) tools.Single {
+	t := &checkov.Tool{
 		Framework: string(target),
 	}
+	t.RunOpts = m.RunOpts
+	return t
 }
 
 func findRuleResult(findings assessments.Findings, id string) policy.PassFail {

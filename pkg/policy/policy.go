@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -15,6 +16,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -23,7 +25,6 @@ type Rule struct {
 	Path     string
 	Metadata map[string]interface{}
 	Targets  []Target
-	Error    error
 }
 
 type Target string
@@ -43,15 +44,16 @@ type PassFail *bool
 type RuleType interface {
 	GetName() string
 	GetCode() string
-	PrepareRules(rules []*Rule, dest string) error
-	Validate(rule *Rule) error
-	GetTestRunner(target Target) tools.Single
+	PrepareRules(m *Manager, rules []*Rule, dest string) error
+	ValidateRules(m *Manager, rules []*Rule) error
+	GetTestRunner(m *Manager, target Target) tools.Single
 	FindRuleResult(findings assessments.Findings, id string) PassFail
 }
 
 var allRuleTypes = map[string]RuleType{}
 
 type Manager struct {
+	tools.RunOpts
 	Dir   string
 	Rules map[RuleType][]*Rule
 }
@@ -59,6 +61,10 @@ type Manager struct {
 type TestMetrics struct {
 	FailureCount int
 	TestCount    int
+}
+
+type ValidateMetrics struct {
+	Count int
 }
 
 func RegisterRuleType(ruleType RuleType) {
@@ -69,23 +75,24 @@ func GetRuleType(ruleTypeName string) RuleType {
 	return allRuleTypes[ruleTypeName]
 }
 
-func NewManager(dir string) *Manager {
-	return &Manager{
-		Dir:   dir,
-		Rules: make(map[RuleType][]*Rule),
-	}
+func (m *Manager) Register(cmd *cobra.Command) {
+	m.RunOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.StringVarP(&m.Dir, "directory", "d", "", "Load policies from this directory")
+	_ = cmd.MarkFlagRequired("directory")
 }
 
-func (m *Manager) LoadAllRules() error {
+func (m *Manager) LoadRules() error {
+	m.Rules = make(map[RuleType][]*Rule)
 	for _, ruleType := range allRuleTypes {
-		if err := m.LoadRules(ruleType); err != nil {
+		if err := m.loadRules(ruleType); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Manager) LoadRules(ruleType RuleType) error {
+func (m *Manager) loadRules(ruleType RuleType) error {
 	ruleTypeDir := filepath.Join(m.Dir, "policies", ruleType.GetName())
 	dirs, err := os.ReadDir(ruleTypeDir)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -99,7 +106,7 @@ func (m *Manager) LoadRules(ruleType RuleType) error {
 		if dirName[0] == '.' {
 			continue
 		}
-		_, err := m.LoadRule(ruleType, filepath.Join(ruleTypeDir, dirName))
+		_, err := m.loadRule(ruleType, filepath.Join(ruleTypeDir, dirName))
 		if err != nil {
 			return err
 		}
@@ -107,7 +114,7 @@ func (m *Manager) LoadRules(ruleType RuleType) error {
 	return nil
 }
 
-func (m *Manager) LoadRule(ruleType RuleType, path string) (*Rule, error) {
+func (m *Manager) loadRule(ruleType RuleType, path string) (*Rule, error) {
 	id := fmt.Sprintf("c-%s-%s", ruleType.GetCode(), strings.ReplaceAll(filepath.Base(path), "_", "-"))
 	d, err := os.ReadFile(filepath.Join(path, "metadata.yaml"))
 	if err != nil {
@@ -132,23 +139,27 @@ func (m *Manager) LoadRule(ruleType RuleType, path string) (*Rule, error) {
 func (m *Manager) PrepareRules(dest string) error {
 	var err error
 	for ruleType, rules := range m.Rules {
-		if perr := ruleType.PrepareRules(rules, dest); perr != nil {
+		if perr := ruleType.PrepareRules(m, rules, dest); perr != nil {
 			err = multierror.Append(err, perr)
 		}
 	}
 	return err
 }
 
-func (m *Manager) ValidateRules() error {
-	var err error
-	for ruleType, rules := range m.Rules {
-		for _, rule := range rules {
-			if rule.Error = ruleType.Validate(rule); rule.Error != nil {
-				err = multierror.Append(err, rule.Error)
-			}
+func (m *Manager) ValidateRules() (ValidateMetrics, error) {
+	var (
+		metrics ValidateMetrics
+		err     error
+	)
+
+	for _, ruleType := range m.getLoadedRuleTypes() {
+		rules := m.Rules[ruleType]
+		metrics.Count += len(rules)
+		if verr := ruleType.ValidateRules(m, rules); verr != nil {
+			err = multierror.Append(err, verr)
 		}
 	}
-	return err
+	return metrics, err
 }
 
 func (m *Manager) CreateTarBall(path string) error {
@@ -205,6 +216,18 @@ func (m *Manager) CreateTarBall(path string) error {
 	return w.Close()
 }
 
+func (m *Manager) getLoadedRuleTypes() (res []RuleType) {
+	for ruleType := range m.Rules {
+		res = append(res, ruleType)
+	}
+	// sort so that validate and test run in the same
+	// order each time
+	sort.Slice(res, func(i, j int) bool {
+		return strings.Compare(res[i].GetName(), res[j].GetName()) > 0
+	})
+	return
+}
+
 func (m *Manager) TestRules() (TestMetrics, error) {
 	metrics := TestMetrics{}
 	dest, err := os.MkdirTemp("", "testrules*")
@@ -213,12 +236,13 @@ func (m *Manager) TestRules() (TestMetrics, error) {
 	}
 	defer os.RemoveAll(dest)
 	for ruleType, rules := range m.Rules {
-		if err := ruleType.PrepareRules(rules, dest); err != nil {
+		if err := ruleType.PrepareRules(m, rules, dest); err != nil {
 			return metrics, err
 		}
 	}
 	err = nil
-	for ruleType, rules := range m.Rules {
+	for _, ruleType := range m.getLoadedRuleTypes() {
+		rules := m.Rules[ruleType]
 		for _, rule := range rules {
 			for _, target := range rule.Targets {
 				if terr := m.testRuleTarget(&metrics, ruleType, rule, target, dest); terr != nil {
@@ -239,9 +263,10 @@ tests:
 			continue
 		}
 		metrics.TestCount++
-		tool := ruleType.GetTestRunner(target)
+		tool := ruleType.GetTestRunner(m, target)
 		opts := tool.GetAssessmentOptions()
 		opts.Tool = tool
+		opts.DisableCustomPolicies = true
 		opts.CustomPoliciesDir = dest
 		opts.UploadEnabled = false
 		if dir, ok := tool.(tools.HasDirectory); ok {

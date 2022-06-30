@@ -13,7 +13,8 @@ import (
 )
 
 func TestCheckov(t *testing.T) {
-	m, err := policy.DetectPolicy("testdata")
+	m := &policy.Manager{Dir: "testdata"}
+	err := m.DetectPolicy()
 	assert.NoError(t, err)
 	assert.Len(t, m.Rules[CheckovYAML], 1)
 	rule := m.Rules[CheckovYAML][0]

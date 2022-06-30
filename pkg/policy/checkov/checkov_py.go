@@ -6,11 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
@@ -26,7 +29,7 @@ func (checkovPython) GetCode() string {
 	return "ckv-py"
 }
 
-func (checkovPython) PrepareRules(rules []*policy.Rule, dst string) error {
+func (checkovPython) PrepareRules(m *policy.Manager, rules []*policy.Rule, dst string) error {
 	var ruleFiles []string
 	for _, rule := range rules {
 		for _, target := range rule.Targets {
@@ -74,7 +77,61 @@ func preparePythonRule(rule *policy.Rule, target policy.Target, dst string) (str
 
 var checkAssignmentRe = regexp.MustCompile("^check *=")
 
-func (h checkovPython) Validate(rule *policy.Rule) error {
+func (h checkovPython) ValidateRules(m *policy.Manager, rules []*policy.Rule) error {
+	var err error
+	for _, rule := range rules {
+		if e := h.validate(rule); e != nil {
+			err = multierror.Append(err, e)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	// We're going to run checkov against these rules just to
+	// determine if they load w/o failure
+	temp, err := os.MkdirTemp("", "checkov-py*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(temp)
+	policyDir := filepath.Join(temp, "policy")
+	if err := os.MkdirAll(policyDir, 0777); err != nil {
+		return err
+	}
+	if err := h.PrepareRules(m, rules, policyDir); err != nil {
+		return err
+	}
+	t := &checkov.Tool{}
+	t.Directory = temp
+	t.UploadEnabled = false
+	t.DisableCustomPolicies = true
+	t.CustomPoliciesDir = policyDir
+	t.RunOpts = m.RunOpts
+	if err := t.Validate(); err != nil {
+		return err
+	}
+	log.Infof("Verifying that checkov can load {info:checkov-py} rules")
+	result, err := t.Run()
+	if err != nil {
+		return err
+	}
+	if result.ExecuteResult != nil {
+		if strings.Contains(result.ExecuteResult.CombinedOutput, "Traceback") {
+			// Look for individual rules
+			for _, rule := range rules {
+				if strings.Contains(result.ExecuteResult.CombinedOutput, rule.ID) {
+					err = multierror.Append(fmt.Errorf("the python rule in %s does not load in checkov", rule.Path))
+				}
+			}
+			if err == nil {
+				err = fmt.Errorf("{info:checkov} has crashed with these custom {info:checkov-py} rules")
+			}
+		}
+	}
+	return err
+}
+
+func (h checkovPython) validate(rule *policy.Rule) error {
 	var err error
 	for _, target := range supportedTargets {
 		rulePy := fmt.Sprintf("%s/%s/rule.py", rule.Path, target)
@@ -98,8 +155,8 @@ func (h checkovPython) Validate(rule *policy.Rule) error {
 	return err
 }
 
-func (checkovPython) GetTestRunner(target policy.Target) tools.Single {
-	return getTestRunner(target)
+func (checkovPython) GetTestRunner(m *policy.Manager, target policy.Target) tools.Single {
+	return getTestRunner(m, target)
 }
 
 func (checkovPython) FindRuleResult(findings assessments.Findings, id string) policy.PassFail {
