@@ -114,7 +114,8 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 	d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-policies", o.Tool.Name()),
 		fmt.Sprintf("/api/v1/org/{org}/rules/%s/rules.tgz", o.Tool.Name()))
 	if err != nil {
-		return "", err
+		log.Warnf("Failed to get custom policies - {warning:%s}", err)
+		return "", nil
 	}
 	// if the directory is empty, then treat that the same as no custom policies
 	fs, err := ioutil.ReadDir(d.Dir)

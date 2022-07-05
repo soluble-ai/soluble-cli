@@ -34,7 +34,7 @@ func TestTimestampFormatters(t *testing.T) {
 	formatterNow = &now
 	formatterLocation = time.FixedZone("test", -8*60*60)
 	n := jnode.NewObjectNode().Put("ts", "2020-05-08T11:18:33Z")
-	if s := TimestampFormatter(n.Path("ts")); s != "2020-05-08T03:18:33-08:00" {
+	if s := TimestampFormatter(n.Path("ts")); s != "2020-05-08T03:18:33.000-08:00" {
 		t.Error("timestamp wrong", n, s)
 	}
 	if s := RelativeTimestampFormatter(n.Path("ts")); s != "2d22h47m12s" {

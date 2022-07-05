@@ -151,7 +151,6 @@ func (m *Manager) ValidateRules() (ValidateMetrics, error) {
 		metrics ValidateMetrics
 		err     error
 	)
-
 	for _, ruleType := range m.getLoadedRuleTypes() {
 		rules := m.Rules[ruleType]
 		metrics.Count += len(rules)

@@ -37,7 +37,7 @@ const (
 	mb = float64(int64(1) << 20)
 	gb = float64(int64(1) << 30)
 
-	RFC3339Millis   = "2006-01-02T15:04:05.999Z07:00"
+	RFC3339Millis   = "2006-01-02T15:04:05.000Z07:00"
 	GODefaultFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 )
 

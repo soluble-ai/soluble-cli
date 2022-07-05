@@ -8,7 +8,10 @@ command "group" "org" {
     path   = "org"
     result {
       path    = ["organizations"]
-      columns = ["displayName", "name", "orgId", "createTs", "isCurrent"]
+      columns = ["isCurrent", "displayName", "name", "orgId", "createTs"]
+      computed_columns = {
+        "isCurrent": "is_current_org"
+      }
     }
   }
   command "print_client" "update" {

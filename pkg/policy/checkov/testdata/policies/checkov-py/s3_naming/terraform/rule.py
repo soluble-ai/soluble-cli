@@ -4,11 +4,8 @@ from typing import Dict, List, Any
 
 class S3Naming(BaseResourceCheck):
     def __init__(self):
-        name = "S3 bucket naming convention"
-        id = "ACME_CKV_002"
         supported_resources = ['aws_s3_bucket']
-        categories = [CheckCategories.CONVENTION]
-        super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
+        super().__init__(name="", id="", categories=[], supported_resources=supported_resources)
 
     def scan_resource_conf(self, conf):
         if 'bucket' in conf.keys():
