@@ -2,6 +2,8 @@ package policy
 
 import (
 	"archive/tar"
+	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,12 +12,14 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -31,6 +35,7 @@ type Target string
 
 const (
 	Terraform      = Target("terraform")
+	TerraformPlan  = Target("terraform-plan")
 	Cloudformation = Target("cloudformation")
 	Kubernetes     = Target("kubernetes")
 	Helm           = Target("helm")
@@ -130,7 +135,8 @@ func (m *Manager) loadRule(ruleType RuleType, path string) (*Rule, error) {
 	if rule.Metadata == nil {
 		rule.Metadata = make(map[string]interface{})
 	}
-	rule.Metadata["id"] = rule.ID
+	rule.Metadata["ruleId"] = rule.ID
+	rule.Metadata["sid"] = rule.ID
 	log.Debugf("Loaded %s from %s\n", rule.ID, rule.Path)
 	m.Rules[ruleType] = append(m.Rules[ruleType], rule)
 	return rule, nil
@@ -161,16 +167,104 @@ func (m *Manager) ValidateRules() (ValidateMetrics, error) {
 	return metrics, err
 }
 
+func (m *Manager) RuleCount() (count int) {
+	for _, rules := range m.Rules {
+		count += len(rules)
+	}
+	return
+}
+
 func (m *Manager) CreateTarBall(path string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	w := tar.NewWriter(f)
-	err = filepath.Walk(m.Dir, func(path string, info fs.FileInfo, err error) error {
+	gz := gzip.NewWriter(f)
+	w := tar.NewWriter(gz)
+	if err := m.writeRules(w); err != nil {
+		return err
+	}
+	if err := m.writeUploadMetadata(w); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	log.Infof("Created tarball with {info:%d} rules", m.RuleCount())
+	return gz.Close()
+}
+
+func (m *Manager) writeUploadMetadata(w *tar.Writer) error {
+	env := xcp.GetCIEnv(m.Dir)
+	dat, err := json.MarshalIndent(env, "", "  ")
+	if err != nil {
+		return err
+	}
+	h := &tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "policies/upload.json",
+		Size:     int64(len(dat)),
+		ModTime:  time.Now(),
+		Mode:     0644,
+	}
+	if err := w.WriteHeader(h); err != nil {
+		return err
+	}
+	if _, err := w.Write(dat); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) writeRules(w *tar.Writer) error {
+	for _, ruleType := range m.getLoadedRuleTypes() {
+		rules := m.Rules[ruleType]
+		for _, rule := range rules {
+			log.Infof("Including {info:%s} from {primary:%s}", rule.ID, rule.Path)
+			if err := m.writeRuleFiles(w, rule); err != nil {
+				return err
+			}
+			if err := m.writeRuleMetadata(w, rule); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) writeRuleMetadata(w *tar.Writer, rule *Rule) error {
+	dat, err := yaml.Marshal(rule.Metadata)
+	if err != nil {
+		return err
+	}
+	rpath, err := filepath.Rel(m.Dir, rule.Path)
+	if err != nil {
+		return err
+	}
+	h := &tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     fmt.Sprintf("%s/metadata.yaml", rpath),
+		Size:     int64(len(dat)),
+		ModTime:  time.Now(),
+		Mode:     0644,
+	}
+	if err := w.WriteHeader(h); err != nil {
+		return err
+	}
+	if _, err := w.Write(dat); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) writeRuleFiles(w *tar.Writer, rule *Rule) error {
+	return filepath.Walk(rule.Path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+		if info.Name() == "metadata.yaml" {
+			return nil
 		}
 		rpath, err := filepath.Rel(m.Dir, path)
 		if err != nil {
@@ -209,10 +303,6 @@ func (m *Manager) CreateTarBall(path string) error {
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	return w.Close()
 }
 
 func (m *Manager) getLoadedRuleTypes() (res []RuleType) {

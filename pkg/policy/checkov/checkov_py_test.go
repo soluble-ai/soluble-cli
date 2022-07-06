@@ -27,7 +27,7 @@ func TestPreparePy(t *testing.T) {
 	}
 	defer os.RemoveAll(temp)
 	assert.NoError(m.PrepareRules(temp))
-	dat, err := os.ReadFile(filepath.Join(temp, "c-ckv-py-s3-naming-terraform.py"))
+	dat, err := os.ReadFile(filepath.Join(temp, "c-ckvpy-s3-naming-terraform.py"))
 	assert.NoError(err)
 	fmt.Println(string(dat))
 }
