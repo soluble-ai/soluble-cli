@@ -30,4 +30,4 @@ curl --fail -L -o target/source.tar.gz -H "Accept:application/octet-stream" "$ta
 hash=$(shasum -a 256 target/source.tar.gz | awk '{print $1}')
 formula=/usr/local/Homebrew/Library/Taps/soluble-ai/homebrew-soluble/soluble-cli.rb
 sed -I "" -e "s/sha256 .*/sha256 \"$hash\"/" -e "s,url .*,url \"$tarball\"," $formula
-(cd $(dirname "$formula"/) && git diff)
+(cd $(dirname "$formula"/) && pwd && git diff)

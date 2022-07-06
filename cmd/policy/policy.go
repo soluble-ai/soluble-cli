@@ -14,8 +14,9 @@ import (
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "policy",
-		Short: "Custom policy management",
+		Use:    "policy",
+		Short:  "Custom policy management",
+		Hidden: true,
 	}
 	c.AddCommand(
 		vetCommand(),

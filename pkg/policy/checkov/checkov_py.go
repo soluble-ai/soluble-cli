@@ -26,7 +26,7 @@ func (checkovPython) GetName() string {
 }
 
 func (checkovPython) GetCode() string {
-	return "ckv-py"
+	return "ckvpy"
 }
 
 func (checkovPython) PrepareRules(m *policy.Manager, rules []*policy.Rule, dst string) error {
