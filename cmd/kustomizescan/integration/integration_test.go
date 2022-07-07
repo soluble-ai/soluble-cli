@@ -33,4 +33,7 @@ func TestKustomizeUpload(t *testing.T) {
 	n := tool.JSON()
 	findings := n.Get(0).Path("findings")
 	assert.Greater(findings.Size(), 30)
+	params := n.Get(0).Path("params")
+	assert.Equal("kustomize", params.Path("IAC_PLATFORM").AsText())
+	assert.Equal("0", params.Path("EXIT_CODE").AsText())
 }

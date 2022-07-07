@@ -75,7 +75,11 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 	if err := checkov.Validate(); err != nil {
 		return nil, err
 	}
-	return checkov.Run()
+	result, err := checkov.Run()
+	if result != nil {
+		result.IACPlatform = "kustomize"
+	}
+	return result, err
 }
 
 func (k *Kustomize) makeKustomizeAvailable() error {

@@ -76,7 +76,11 @@ func (h *Helm) Run() (*tools.Result, error) {
 	if err := checkov.Validate(); err != nil {
 		return nil, err
 	}
-	return checkov.Run()
+	result, err := checkov.Run()
+	if result != nil {
+		result.IACPlatform = "helm"
+	}
+	return result, err
 }
 
 func (h *Helm) makeHelmAvailable() error {
