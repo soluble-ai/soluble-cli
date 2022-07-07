@@ -34,6 +34,10 @@ type Tool struct {
 	EnableModuleDownload bool
 	VarFiles             []string
 
+	// targetFile will use the checkov's -f option instead of -d.
+	// targetFile must be in the Directory directory
+	targetFile string
+
 	relativeVarFiles    []string
 	extraArgs           tools.ExtraArgs
 	pathTranslationFunc func(string) string
@@ -137,7 +141,11 @@ func (t *Tool) Run() (*tools.Result, error) {
 			dt.WorkingDirectory = t.workingDir
 		}
 	}
-	dt.AppendArgs("-d", ".")
+	if t.targetFile != "" {
+		dt.AppendArgs("-f", filepath.Base(t.targetFile))
+	} else {
+		dt.AppendArgs("-d", ".")
+	}
 	if t.Framework != "" {
 		dt.AppendArgs("--framework", t.Framework)
 	}
