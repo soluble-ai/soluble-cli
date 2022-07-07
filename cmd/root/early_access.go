@@ -3,6 +3,7 @@ package root
 import (
 	"github.com/soluble-ai/soluble-cli/cmd/armscan"
 	"github.com/soluble-ai/soluble-cli/cmd/cdkscan"
+	"github.com/soluble-ai/soluble-cli/cmd/dockerfilescan"
 	"github.com/soluble-ai/soluble-cli/cmd/policy"
 	"github.com/soluble-ai/soluble-cli/cmd/tfplan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -14,7 +15,8 @@ func earlyAccessCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:     "early-access",
 		Aliases: []string{"ea"},
-		Short:   "Alpha/pre-release commands subject to change",
+		Short:   "Early access commands",
+		Long:    "Eary access commands may be incomplete, not fully working, and subject to change.",
 		Hidden:  true,
 	}
 	c.AddCommand(
@@ -23,6 +25,7 @@ func earlyAccessCommand() *cobra.Command {
 		armscan.Command(),
 		cdkscan.Command(),
 		tools.CreateCommand(&cloudmap.Tool{}),
+		dockerfilescan.Command(),
 	)
 	return c
 }
