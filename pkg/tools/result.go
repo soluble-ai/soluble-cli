@@ -43,6 +43,7 @@ type Result struct {
 	UploadOptions    []api.Option
 	ExecuteResult    *ExecuteResult
 	ModuleName       string
+	IACPlatform      string
 
 	Assessment    *assessments.Assessment
 	AssessmentRaw *jnode.Node
@@ -99,6 +100,9 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 		options = append(options, xcp.WithFileFromReader("results_json", "results.json", rr))
 	}
 	values := r.Values
+	if r.IACPlatform != "" {
+		values["IAC_PLATFORM"] = r.IACPlatform
+	}
 	dir, _ := repotree.FindRepoRoot(r.Directory)
 	if dir != "" {
 		// include various repo files if they exist

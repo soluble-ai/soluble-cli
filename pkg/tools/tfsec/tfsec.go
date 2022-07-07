@@ -65,7 +65,8 @@ func (t *Tool) Register(cmd *cobra.Command) {
 
 func (t *Tool) Run() (*tools.Result, error) {
 	result := &tools.Result{
-		Directory: t.GetDirectory(),
+		Directory:   t.GetDirectory(),
+		IACPlatform: "terraform",
 	}
 	if !t.NoInit {
 		tfInit, err := t.runTerraformInit()

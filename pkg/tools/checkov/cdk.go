@@ -96,6 +96,7 @@ func (cdk *CDK) Run() (*tools.Result, error) {
 	}
 	if result != nil {
 		result.ModuleName = "checkov-cdk"
+		result.IACPlatform = "cdk"
 	}
 	return result, err
 }
