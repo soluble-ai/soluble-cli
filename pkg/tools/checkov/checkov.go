@@ -173,7 +173,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 	result := exec.ToResult(t.GetDirectory())
 	result.ModuleName = "checkov"
-	result.IACPlatform = t.Framework
+	result.IACPlatform = strings.ReplaceAll(t.Framework, "_", "-")
 	if !exec.ExpectExitCode(0) {
 		return result, nil
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/dockerfilescan"
 	"github.com/soluble-ai/soluble-cli/cmd/policy"
 	"github.com/soluble-ai/soluble-cli/cmd/tfplan"
+	"github.com/soluble-ai/soluble-cli/cmd/tfplanscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cloudmap"
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ func earlyAccessCommand() *cobra.Command {
 		cdkscan.Command(),
 		tools.CreateCommand(&cloudmap.Tool{}),
 		dockerfilescan.Command(),
+		tfplanscan.Command(),
 	)
 	return c
 }
