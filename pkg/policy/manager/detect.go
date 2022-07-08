@@ -1,4 +1,4 @@
-package policy
+package manager
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
@@ -19,7 +20,7 @@ import (
 // policies/<rule-type>/<rule>/<target>
 //
 // <target> is optional depending on <rule-type>.
-func (m *Manager) DetectPolicy() error {
+func (m *M) DetectPolicy() error {
 	if !filepath.IsAbs(m.Dir) {
 		dir, err := filepath.Abs(m.Dir)
 		if err != nil {
@@ -43,28 +44,28 @@ func (m *Manager) DetectPolicy() error {
 			// work backwards through path elements of dir, looking for
 			// "policies" directory
 			if elements[i] == "policies" {
-				var ruleType RuleType
+				var ruleType policy.RuleType
 				m.Dir = strings.Join(elements[0:i], string(os.PathSeparator))
-				m.Rules = make(map[RuleType][]*Rule)
+				m.Rules = make(map[policy.RuleType][]*policy.Rule)
 				// look at the path elements past "policies" to see where
 				// we are
 				n := len(elements) - i
 				if n > 1 {
-					ruleType = allRuleTypes[elements[i+1]]
+					ruleType = policy.GetRuleType(elements[i+1])
 					if ruleType == nil {
 						return fmt.Errorf("unsupported rule type %s", elements[i+1])
 					}
 				}
 				if n > 2 {
 					rulePath := strings.Join(elements[0:i+3], string(os.PathSeparator))
-					_, err := m.loadRule(ruleType, rulePath)
+					_, err := m.LoadSingleRule(ruleType, rulePath)
 					if err != nil {
 						return err
 					}
 					break
 				}
 				if ruleType != nil {
-					if err := m.loadRules(ruleType); err != nil {
+					if err := m.LoadRulesOfType(ruleType); err != nil {
 						return err
 					}
 					break
@@ -79,6 +80,5 @@ func (m *Manager) DetectPolicy() error {
 			return fmt.Errorf("%s is not a policy directory", dir)
 		}
 	}
-	_, err := m.ValidateRules()
-	return err
+	return nil
 }

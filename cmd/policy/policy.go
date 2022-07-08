@@ -5,7 +5,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
@@ -27,7 +27,7 @@ func Command() *cobra.Command {
 }
 
 func vetCommand() *cobra.Command {
-	m := &policy.Manager{}
+	m := &manager.M{}
 	c := &cobra.Command{
 		Use:   "vet",
 		Short: "Vet custom policy for potential errors",
@@ -40,6 +40,7 @@ func vetCommand() *cobra.Command {
 				log.Infof("Found %d {info:%s} custom rules", len(m.Rules[ruleType]), ruleType)
 			}
 			metrics, err := m.ValidateRules()
+			m.MustPrintStructResult(metrics)
 			log.Infof("Validated {primary:%d} custom rules", metrics.Count)
 			return err
 		},
@@ -50,7 +51,7 @@ func vetCommand() *cobra.Command {
 
 func uploadCommand() *cobra.Command {
 	var (
-		m          policy.Manager
+		m          manager.M
 		tarball    string
 		uploadOpts tools.UploadOpts
 	)
@@ -112,21 +113,24 @@ func uploadCommand() *cobra.Command {
 }
 
 func testCommand() *cobra.Command {
-	m := &policy.Manager{}
+	m := &manager.M{}
 	c := &cobra.Command{
 		Use:   "test",
 		Short: "Test custom policy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := m.DetectPolicy()
-			if err != nil {
+			if err := m.DetectPolicy(); err != nil {
+				return err
+			}
+			if _, err := m.ValidateRules(); err != nil {
 				return err
 			}
 			metrics, err := m.TestRules()
-			if metrics.FailureCount == 0 {
-				log.Infof("Ran {primary:%d} tests and all passed", metrics.TestCount)
+			m.MustPrintStructResult(metrics)
+			if metrics.Failures == 0 {
+				log.Infof("Ran {primary:%d} tests and all passed", metrics.Count)
 			} else {
 				log.Infof("Ran {primary:%d} tests with {success:%d} passed and {danger:%d} failed",
-					metrics.TestCount, metrics.TestCount-metrics.FailureCount, metrics.FailureCount)
+					metrics.Count, metrics.Count-metrics.Failures, metrics.Failures)
 			}
 			return err
 		},

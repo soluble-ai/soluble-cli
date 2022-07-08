@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"gopkg.in/yaml.v3"
@@ -16,7 +17,7 @@ import (
 
 type checkovYAML string
 
-var CheckovYAML policy.RuleType = checkovYAML("checkov")
+var CheckovYAML manager.RuleType = checkovYAML("checkov")
 
 func (checkovYAML) GetName() string {
 	return "checkov"
@@ -26,7 +27,7 @@ func (checkovYAML) GetCode() string {
 	return "ckv"
 }
 
-func (h checkovYAML) PrepareRules(m *policy.Manager, rules []*policy.Rule, dst string) error {
+func (h checkovYAML) PrepareRules(rules []*policy.Rule, dst string) error {
 	for _, rule := range rules {
 		for _, target := range rule.Targets {
 			ruleBody, err := h.readRule(rule, target)
@@ -34,6 +35,7 @@ func (h checkovYAML) PrepareRules(m *policy.Manager, rules []*policy.Rule, dst s
 				return err
 			}
 			util.GenericSet(&ruleBody, "metadata/id", rule.ID)
+			util.GenericSet(&ruleBody, "metadata/name", rule.Metadata["title"])
 			d, err := yaml.Marshal(ruleBody)
 			if err != nil {
 				return err
@@ -61,7 +63,7 @@ func (checkovYAML) readRule(rule *policy.Rule, target policy.Target) (map[string
 	return ruleBody, nil
 }
 
-func (h checkovYAML) ValidateRules(m *policy.Manager, rules []*policy.Rule) error {
+func (h checkovYAML) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) error {
 	var err error
 	for _, rule := range rules {
 		if e := h.validate(rule); e != nil {
@@ -73,20 +75,20 @@ func (h checkovYAML) ValidateRules(m *policy.Manager, rules []*policy.Rule) erro
 
 func (h checkovYAML) validate(rule *policy.Rule) error {
 	var err error
-	for _, target := range supportedTargets {
-		body, terr := h.readRule(rule, target)
+	for _, target := range rule.Targets {
+		if verr := validateSupportedTarget(rule, target); verr != nil {
+			err = multierror.Append(err, verr)
+		}
+		_, terr := h.readRule(rule, target)
 		if terr != nil {
 			err = multierror.Append(err, terr)
-		}
-		if body != nil {
-			rule.Targets = append(rule.Targets, target)
 		}
 	}
 	return err
 }
 
-func (checkovYAML) GetTestRunner(m *policy.Manager, target policy.Target) tools.Single {
-	return getTestRunner(m, target)
+func (checkovYAML) GetTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
+	return getTestRunner(runOpts, target)
 }
 
 func (checkovYAML) FindRuleResult(findings assessments.Findings, id string) policy.PassFail {

@@ -3,10 +3,13 @@ package tools
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
+	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -22,11 +25,11 @@ type AssessmentOpts struct {
 	PrintFingerprints     bool
 	SaveFingerprints      string
 	CustomPoliciesDir     string
-	TestCustomPolicies    bool
 	FailThresholds        []string
 
-	parsedFailThresholds map[string]int
-	customPoliciesDir    *string
+	parsedFailThresholds     map[string]int
+	customPoliciesDir        *string
+	xEnableNewCustomPolicies bool
 }
 
 func (o *AssessmentOpts) GetAssessmentOptions() *AssessmentOpts {
@@ -65,7 +68,6 @@ The severity levels are critical, high, medium, low, and info in that order.`,
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", false, "Don't use custom policies")
 			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use custom policies from `dir`.")
-			flags.BoolVar(&o.TestCustomPolicies, "test-custom-policies", false, "Test custom polices")
 			flags.BoolVar(&o.PrintResultOpt, "print-result", false, "Print the JSON result from the tool on stderr")
 			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON reesult from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")
@@ -74,6 +76,7 @@ The severity levels are critical, high, medium, low, and info in that order.`,
 			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
 			flags.StringSliceVar(&o.FailThresholds, "fail", nil,
 				"Set failure thresholds in the form `severity=count`.  The command will exit with exit code 2 if the assessment has count or more failed findings of the specified severity.")
+			flags.BoolVar(&o.xEnableNewCustomPolicies, "x-enable-custom-policies", false, "Enable new custom policy download (early access)")
 		},
 	}
 }
@@ -111,8 +114,13 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 	if o.GetAPIClientConfig().APIToken == "" {
 		return "", nil
 	}
-	d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-policies", o.Tool.Name()),
-		fmt.Sprintf("/api/v1/org/{org}/rules/%s/rules.tgz", o.Tool.Name()))
+	var url string
+	if o.xEnableNewCustomPolicies {
+		url = fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/rules.tgz", o.Tool.Name())
+	} else {
+		url = fmt.Sprintf("/api/v1/org/{org}/rules/%s/rules.tgz", o.Tool.Name())
+	}
+	d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-policies", o.Tool.Name()), url)
 	if err != nil {
 		log.Warnf("Failed to get custom policies - {warning:%s}", err)
 		return "", nil
@@ -122,12 +130,24 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if len(fs) == 0 {
+	if !o.xEnableNewCustomPolicies || len(fs) == 0 {
 		var zero string
 		o.customPoliciesDir = &zero
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
-		o.customPoliciesDir = &d.Dir
+		store := &policy.Store{Dir: d.Dir}
+		dest, err := os.MkdirTemp("", "policy*")
+		if err != nil {
+			return "", err
+		}
+		exit.AddFunc(func() { _ = os.RemoveAll(dest) })
+		if err := store.LoadRules(); err != nil {
+			return "", err
+		}
+		if err := store.PrepareRules(dest); err != nil {
+			return "", err
+		}
+		o.customPoliciesDir = &dest
 	}
 	return *o.customPoliciesDir, nil
 }
