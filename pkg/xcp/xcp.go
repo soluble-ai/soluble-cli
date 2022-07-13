@@ -166,7 +166,7 @@ envLoop:
 			 strings.EqualFold(k, "PULL_NUM") ||
 			 strings.EqualFold(k, "PULL_AUTHOR") ||
 			 strings.EqualFold(k, "PROJECT_NAME") ||
-			 strings.EqualFold(k, "REPO_REL_DIR"){
+			 strings.EqualFold(k, "REPO_REL_DIR") {
 			 values["ATLANTIS_" + k] = v
 		}
 	}

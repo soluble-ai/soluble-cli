@@ -53,8 +53,8 @@ func TestGetCIEnv(t *testing.T) {
 
 	// make sure atlantis env variables are available
 	assert.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
-	assert.True(contains(env, "PULL_NUM"))
-	assert.True(contains(env, "PULL_AUTHOR"))
+	assert.True(contains(env, "ATLANTIS_PULL_NUM"))
+	assert.False(contains(env, "ATLANTIS_PULL_AUTHOR")) // contains auth
 
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
