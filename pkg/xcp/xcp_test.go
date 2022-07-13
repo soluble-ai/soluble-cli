@@ -18,9 +18,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCIEnv(t *testing.T) {
+	assert := assert.New(t)
 	saveEnv := os.Environ()
 	defer func() {
 		os.Clearenv()
@@ -48,6 +50,12 @@ func TestGetCIEnv(t *testing.T) {
 			t.Error(k, v)
 		}
 	}
+
+	// make sure atlantis env variables are available
+	assert.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
+	assert.True(contains(env, "PULL_NUM"))
+	assert.True(contains(env, "PULL_AUTHOR"))
+
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
 			if env[kv[0:len(kv)-4]] != "yyy" {
@@ -61,4 +69,13 @@ func TestNormalizeGitRemote(t *testing.T) {
 	if s := normalizeGitRemote("git@github.com:fizz/buzz.git"); s != "github.com/fizz/buzz" {
 		t.Error(s)
 	}
+}
+
+func contains(s map[string]string, searchStr string) (int, bool) {
+	for k, _ := range s {
+		if k == searchStr {
+			return true
+		}
+	}
+	return false
 }
