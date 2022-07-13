@@ -71,7 +71,7 @@ func TestNormalizeGitRemote(t *testing.T) {
 	}
 }
 
-func contains(s map[string]string, searchStr string) (int, bool) {
+func contains(s map[string]string, searchStr string) bool {
 	for k, _ := range s {
 		if k == searchStr {
 			return true
