@@ -161,13 +161,12 @@ envLoop:
 
 		// for atlantis they do not have a prefix in the key for most of them
 		// https://www.runatlantis.io/docs/custom-workflows.html#reference
-		if strings.EqualFold(k, "DIR") ||
-		   strings.EqualFold(k, "WORKSPACE") ||
-			 strings.EqualFold(k, "PULL_NUM") ||
-			 strings.EqualFold(k, "PULL_AUTHOR") ||
-			 strings.EqualFold(k, "PROJECT_NAME") ||
-			 strings.EqualFold(k, "REPO_REL_DIR") {
-			 values["ATLANTIS_" + k] = v
+		if strings.EqualFold(k, "DIR") || strings.EqualFold(k, "WORKSPACE") ||
+			strings.EqualFold(k, "PULL_NUM") ||
+			strings.EqualFold(k, "PULL_AUTHOR") ||
+			strings.EqualFold(k, "PROJECT_NAME") ||
+			strings.EqualFold(k, "REPO_REL_DIR") {
+			values["ATLANTIS_"+k] = v
 		}
 	}
 

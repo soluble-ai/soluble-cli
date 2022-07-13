@@ -15,10 +15,10 @@
 package xcp
 
 import (
+	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCIEnv(t *testing.T) {
@@ -57,8 +57,8 @@ func TestGetCIEnv(t *testing.T) {
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
 			if strings.HasPrefix(kv, "PULL_NUM") ||
-				 strings.HasPrefix(kv, "REPO_REL_DIR") {
-         kv = "ATLANTIS_" + kv
+				strings.HasPrefix(kv, "REPO_REL_DIR") {
+				kv = "ATLANTIS_" + kv
 			}
 			if env[kv[0:len(kv)-4]] != "yyy" {
 				t.Error(kv)
@@ -74,7 +74,7 @@ func TestNormalizeGitRemote(t *testing.T) {
 }
 
 func contains(s map[string]string, searchStr string) bool {
-	for k, _ := range s {
+	for k := range s {
 		if k == searchStr {
 			return true
 		}
