@@ -18,9 +18,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCIEnv(t *testing.T) {
+	assert := assert.New(t)
 	saveEnv := os.Environ()
 	defer func() {
 		os.Clearenv()
@@ -38,14 +41,26 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("BUILDKITE_S3_ACCESS_URL", "xxx")
 	os.Setenv("BITBUCKET_BUILD_NUMBER", "yyy")
 	os.Setenv("BITBUCKET_STEP_OIDC_TOKEN", "xxx")
+	os.Setenv("ATLANTIS_TERRAFORM_VERSION", "yyy")
+	os.Setenv("PULL_NUM", "yyy")
+	os.Setenv("REPO_REL_DIR", "yyy")
 	env := GetCIEnv(".")
 	for k, v := range env {
 		if v == "xxx" {
 			t.Error(k, v)
 		}
 	}
+
+	// make sure atlantis env variables are available
+	assert.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
+	assert.True(contains(env, "ATLANTIS_PULL_NUM"))
+
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
+			if strings.HasPrefix(kv, "PULL_NUM") ||
+				strings.HasPrefix(kv, "REPO_REL_DIR") {
+				kv = "ATLANTIS_" + kv
+			}
 			if env[kv[0:len(kv)-4]] != "yyy" {
 				t.Error(kv)
 			}
@@ -57,4 +72,13 @@ func TestNormalizeGitRemote(t *testing.T) {
 	if s := normalizeGitRemote("git@github.com:fizz/buzz.git"); s != "github.com/fizz/buzz" {
 		t.Error(s)
 	}
+}
+
+func contains(s map[string]string, searchStr string) bool {
+	for k := range s {
+		if k == searchStr {
+			return true
+		}
+	}
+	return false
 }
