@@ -42,7 +42,6 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("BITBUCKET_STEP_OIDC_TOKEN", "xxx")
 	os.Setenv("ATLANTIS_TERRAFORM_VERSION", "yyy")
 	os.Setenv("PULL_NUM", "yyy")
-	os.Setenv("PULL_AUTHOR", "yyy")
 	os.Setenv("REPO_REL_DIR", "yyy")
 	env := GetCIEnv(".")
 	for k, v := range env {
@@ -54,10 +53,13 @@ func TestGetCIEnv(t *testing.T) {
 	// make sure atlantis env variables are available
 	assert.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
 	assert.True(contains(env, "ATLANTIS_PULL_NUM"))
-	assert.False(contains(env, "ATLANTIS_PULL_AUTHOR")) // contains auth
 
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
+			if strings.HasPrefix(kv, "PULL_NUM") ||
+				 strings.HasPrefix(kv, "REPO_REL_DIR") {
+         kv = "ATLANTIS_" + kv
+			}
 			if env[kv[0:len(kv)-4]] != "yyy" {
 				t.Error(kv)
 			}
