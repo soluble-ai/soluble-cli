@@ -38,6 +38,10 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("BUILDKITE_S3_ACCESS_URL", "xxx")
 	os.Setenv("BITBUCKET_BUILD_NUMBER", "yyy")
 	os.Setenv("BITBUCKET_STEP_OIDC_TOKEN", "xxx")
+	os.Setenv("ATLANTIS_TERRAFORM_VERSION", "yyy")
+	os.Setenv("PULL_NUM", "yyy")
+	os.Setenv("PULL_AUTHOR", "yyy")
+	os.Setenv("REPO_REL_DIR", "yyy")
 	env := GetCIEnv(".")
 	for k, v := range env {
 		if v == "xxx" {
