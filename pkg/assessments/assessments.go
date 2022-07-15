@@ -67,19 +67,19 @@ type Finding struct {
 }
 
 type Metrics struct {
-	Findings             int `json:"findings,omitempty"`
-	FindingsFail         int `json:"findingsFail,omitempty"`
-	FindingsPass         int `json:"findingsPass,omitempty"`
-	FindingsFailCritical int `json:"findingsFailCritical,omitempty"`
-	FindingsFailHigh     int `json:"findingsFailHigh,omitempty"`
-	FindingsFailMedium   int `json:"findingsFailMedium,omitempty"`
-	FindingsFailLow      int `json:"findingsFailLow,omitempty"`
-	FindingsFailInfo     int `json:"findingsFailInfo,omitempty"`
+	Findings             int `json:"findings"`
+	FindingsFail         int `json:"findingsFail"`
+	FindingsPass         int `json:"findingsPass"`
+	FindingsFailCritical int `json:"findingsFailCritical"`
+	FindingsFailHigh     int `json:"findingsFailHigh"`
+	FindingsFailMedium   int `json:"findingsFailMedium"`
+	FindingsFailLow      int `json:"findingsFailLow"`
+	FindingsFailInfo     int `json:"findingsFailInfo"`
 
 	// suppressed metrics
-	SuppressedFindings     int `json:"suppressedFindings,omitempty"`
-	SuppressedFindingsFail int `json:"suppressedFindingsFail,omitempty"`
-	SuppressedFindingsPass int `json:"suppressedFindingsPass,omitempty"`
+	SuppressedFindings     int `json:"suppressedFindings"`
+	SuppressedFindingsFail int `json:"suppressedFindingsFail"`
+	SuppressedFindingsPass int `json:"suppressedFindingsPass"`
 }
 
 type Findings []*Finding
