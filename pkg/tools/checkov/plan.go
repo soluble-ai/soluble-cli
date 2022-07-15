@@ -12,8 +12,7 @@ import (
 
 type Plan struct {
 	tools.DirectoryBasedToolOpts
-	Plan     string
-	Atlantis bool
+	Plan string
 }
 
 var _ tools.Single = (*Plan)(nil)
@@ -27,13 +26,6 @@ func (p *Plan) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.StringVar(&p.Plan, "plan", "", "Scan the JSON format plan in `file`")
 	_ = cmd.MarkFlagRequired("plan")
-	flags.BoolVar(&p.Atlantis, "atlantis", true, "Print the results in the markdown format required for Atlantis output")
-
-	if p.Atlantis {
-		template_path := filepath.FromSlash("templates/atlantis.tmpl")
-		log.Infof("Template directory: %s", template_path)
-		//p.Tool.GetToolOptions().PrintOpts.Template = "hello {{ len .}}"
-	}
 }
 
 func (p *Plan) Validate() error {
