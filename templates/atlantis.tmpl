@@ -1,5 +1,4 @@
-Results:
-{{if .metrics}}
+Results:{{if .metrics}}
 {{if .metrics.findingsPass }}Passed: {{ .metrics.findingsPass }}{{end}}{{if .metrics.findingsFail}} | Failed: {{ .metrics.findingsFail }}{{end}}{{if .metrics.suppressedFindingsFail}} | Suppressed: {{ .metrics.suppressedFindingsFail }}{{end}}
 
 Violations:
