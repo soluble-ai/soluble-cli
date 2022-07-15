@@ -10,12 +10,6 @@ import (
 
 func TestTemplate(t *testing.T) {
 	w := &bytes.Buffer{}
-	//n := jnode.NewObjectNode()
-	// n.Put("greeting", "New").Put("subject", "world")
-	// printer := &TemplatePrinter{
-	// 	Template: "Hello {{.greeting}}!. This is a new {{.subject}}",
-	// }
-
 	n := jnode.NewArrayNode().Append("test").Append("hemanth")
 	printer := &TemplatePrinter{
 		Template: "Hello {{len .findings}}!.",

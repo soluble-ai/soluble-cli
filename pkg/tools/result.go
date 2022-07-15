@@ -268,17 +268,17 @@ func (results Results) getConsolidatedMetrics() (*jnode.Node, error) {
 		if assessment := result.Assessment; assessment != nil {
 			if metrics := assessment.Metrics; metrics != nil {
 				//TODO: Need some better way of doing this
-				consolidatedMetrics.Findings = consolidatedMetrics.Findings + metrics.Findings
-				consolidatedMetrics.FindingsFail = consolidatedMetrics.FindingsFail + metrics.FindingsFail
-				consolidatedMetrics.FindingsPass = consolidatedMetrics.FindingsPass + metrics.FindingsPass
-				consolidatedMetrics.FindingsFailCritical = consolidatedMetrics.FindingsFailCritical + metrics.FindingsFailCritical
-				consolidatedMetrics.FindingsFailHigh = consolidatedMetrics.FindingsFailHigh + metrics.FindingsFailHigh
-				consolidatedMetrics.FindingsFailMedium = consolidatedMetrics.FindingsFailMedium + metrics.FindingsFailMedium
-				consolidatedMetrics.FindingsFailLow = consolidatedMetrics.FindingsFailLow + metrics.FindingsFailLow
-				consolidatedMetrics.FindingsFailInfo = consolidatedMetrics.FindingsFailInfo + metrics.FindingsFailInfo
-				consolidatedMetrics.SuppressedFindings = consolidatedMetrics.SuppressedFindings + metrics.SuppressedFindings
-				consolidatedMetrics.SuppressedFindingsFail = consolidatedMetrics.SuppressedFindingsFail + metrics.SuppressedFindingsFail
-				consolidatedMetrics.SuppressedFindingsPass = consolidatedMetrics.SuppressedFindingsPass + metrics.SuppressedFindingsPass
+				consolidatedMetrics.Findings += metrics.Findings
+				consolidatedMetrics.FindingsFail += metrics.FindingsFail
+				consolidatedMetrics.FindingsPass += metrics.FindingsPass
+				consolidatedMetrics.FindingsFailCritical += metrics.FindingsFailCritical
+				consolidatedMetrics.FindingsFailHigh += metrics.FindingsFailHigh
+				consolidatedMetrics.FindingsFailMedium += metrics.FindingsFailMedium
+				consolidatedMetrics.FindingsFailLow += metrics.FindingsFailLow
+				consolidatedMetrics.FindingsFailInfo += metrics.FindingsFailInfo
+				consolidatedMetrics.SuppressedFindings += metrics.SuppressedFindings
+				consolidatedMetrics.SuppressedFindingsFail += metrics.SuppressedFindingsFail
+				consolidatedMetrics.SuppressedFindingsPass += metrics.SuppressedFindingsPass
 			}
 		}
 	}

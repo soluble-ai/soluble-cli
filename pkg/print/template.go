@@ -13,7 +13,6 @@ type TemplatePrinter struct {
 }
 
 func (tp *TemplatePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
-
 	if result.IsArray() {
 		n := jnode.NewObjectNode()
 		n.Put("findings", result)
