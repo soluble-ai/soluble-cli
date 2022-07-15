@@ -7,7 +7,9 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := tools.CreateCommand(&checkov.Plan{})
+
+	plan := &checkov.Plan{}
+	c := tools.CreateCommand(plan)
 	c.Use = "terraform-plan-scan"
 	c.Short = "Scan a terraform plan"
 	c.Long = `Scan a terraform plan

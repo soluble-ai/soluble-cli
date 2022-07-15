@@ -257,7 +257,7 @@ func (meta *DownloadMeta) updateLatestInfo(requestedVersion, actualVersion strin
 	if isLatestTag(requestedVersion) {
 		meta.LatestCheckTime = time.Now()
 		meta.LatestVersion = actualVersion
-		log.Infof("Latest release of {primary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
+		log.Debugf("Latest release of {primary:%s} is {info:%s}", meta.Name, meta.LatestVersion)
 		return meta.findVersionExactly(actualVersion)
 	}
 	return nil
