@@ -1,0 +1,11 @@
+Results:
+{{if .metrics}}
+{{if .metrics.findingsPass }}Passed: {{ .metrics.findingsPass }}{{end}}{{if .metrics.findingsFail}} | Failed: {{ .metrics.findingsFail }}{{end}}{{if .metrics.suppressedFindingsFail}} | Suppressed: {{ .metrics.suppressedFindingsFail }}{{end}}
+
+Violations:
+{{if .metrics.findingsFailCritical}}Critical: {{ .metrics.findingsFailCritical }} | {{end}}{{if .metrics.findingsFailHigh}}High: {{ .metrics.findingsFailHigh }} | {{end}}{{if .metrics.findingsFailMedium}}Medium: {{ .metrics.findingsFailMedium }} | {{end}}{{if .metrics.findingsFailLow}}Low: {{ .metrics.findingsFailLow }} | {{end}}{{if .metrics.findingsFailInfo}}Info : {{ .metrics.findingsFailInfo }}{{end}}
+{{end}}{{range .findings}}{{ if not .pass }}
+❌ {{ .title }}
+   {{if .severity }}Severity: {{ .severity }}{{end}}
+   {{if .severity }}Resource: {{ .resource }}{{end}}
+{{end}}{{end}}

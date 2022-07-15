@@ -2,7 +2,6 @@ package print
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -11,14 +10,19 @@ import (
 
 func TestTemplate(t *testing.T) {
 	w := &bytes.Buffer{}
-	n := jnode.NewObjectNode()
-	n.Put("greeting", "New").Put("subject", "world")
+	//n := jnode.NewObjectNode()
+	// n.Put("greeting", "New").Put("subject", "world")
+	// printer := &TemplatePrinter{
+	// 	Template: "Hello {{.greeting}}!. This is a new {{.subject}}",
+	// }
+
+	n := jnode.NewArrayNode().Append("test").Append("hemanth")
 	printer := &TemplatePrinter{
-		Template: "Hello {{.greeting}}!. This is a new {{.subject}}",
+		Template: "Hello {{len .findings}}!.",
 	}
+
 	printer.PrintResult(w, n)
-	fmt.Println(" The result is: " + w.String())
-	if s := w.String(); !strings.Contains(s, "New") || !strings.Contains(s, "world") {
+	if s := w.String(); !strings.Contains(s, "2") {
 		t.Error(s)
 	}
 }

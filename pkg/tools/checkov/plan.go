@@ -30,7 +30,7 @@ func (p *Plan) Register(cmd *cobra.Command) {
 	flags.BoolVar(&p.Atlantis, "atlantis", true, "Print the results in the markdown format required for Atlantis output")
 
 	if p.Atlantis {
-		template_path := filepath.FromSlash("templates/atlantis.txt")
+		template_path := filepath.FromSlash("templates/atlantis.tmpl")
 		log.Infof("Template directory: %s", template_path)
 		//p.Tool.GetToolOptions().PrintOpts.Template = "hello {{ len .}}"
 	}

@@ -93,6 +93,8 @@ func runTool(tool Interface) error {
 			opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
 		}
 		n, err = results.getFindingsJNode()
+	} else if opts.OutputFormat == "template" {
+		n, err = results.getConsolidatedAssessmentJNode()
 	} else {
 		n, err = results.getAssessmentsJNode()
 	}
