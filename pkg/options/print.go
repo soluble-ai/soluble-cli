@@ -158,8 +158,8 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 		template := "@templates/atlantis.tmpl"
 		if template[0] == '@' {
 			pwd, _ := os.Getwd()
-			template_path := filepath.Join(pwd, template[1:])
-			dat, err := os.ReadFile(template_path)
+			templatePath := filepath.Join(pwd, template[1:])
+			dat, err := os.ReadFile(templatePath)
 			if err != nil {
 				return nil, err
 			}
