@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -156,7 +157,10 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 	case "atlantis":
 		template := "@templates/atlantis.tmpl"
 		if template[0] == '@' {
-			dat, err := os.ReadFile(template[1:])
+			pwd, _ := os.Getwd()
+			fmt.Println("PWD: " + pwd)
+			template_path := filepath.Join(pwd, template[1:])
+			dat, err := os.ReadFile(template_path)
 			if err != nil {
 				return nil, err
 			}
