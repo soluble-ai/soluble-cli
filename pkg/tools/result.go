@@ -151,7 +151,7 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 		moduleName = "failed-assessment"
 		log.Infof("Uploading failed assessment logs for {primary:%s}", name)
 	} else {
-		log.Infof("Uploading results of {primary:%s}", name)
+		log.Debugf("Uploading results of {primary:%s}", name)
 	}
 	n, err := client.XCPPost(org, moduleName, nil, values, options...)
 	if err != nil {
@@ -260,6 +260,48 @@ func (results Results) getFindingsJNode() (*jnode.Node, error) {
 		return nil, err
 	}
 	return jnode.FromJSON(d)
+}
+
+func (results Results) getConsolidatedMetrics() (*jnode.Node, error) {
+	consolidatedMetrics := assessments.Metrics{}
+	for _, result := range results {
+		if assessment := result.Assessment; assessment != nil {
+			if metrics := assessment.Metrics; metrics != nil {
+				//TODO: Need some better way of doing this
+				consolidatedMetrics.Findings += metrics.Findings
+				consolidatedMetrics.FindingsFail += metrics.FindingsFail
+				consolidatedMetrics.FindingsPass += metrics.FindingsPass
+				consolidatedMetrics.FindingsFailCritical += metrics.FindingsFailCritical
+				consolidatedMetrics.FindingsFailHigh += metrics.FindingsFailHigh
+				consolidatedMetrics.FindingsFailMedium += metrics.FindingsFailMedium
+				consolidatedMetrics.FindingsFailLow += metrics.FindingsFailLow
+				consolidatedMetrics.FindingsFailInfo += metrics.FindingsFailInfo
+				consolidatedMetrics.SuppressedFindings += metrics.SuppressedFindings
+				consolidatedMetrics.SuppressedFindingsFail += metrics.SuppressedFindingsFail
+				consolidatedMetrics.SuppressedFindingsPass += metrics.SuppressedFindingsPass
+			}
+		}
+	}
+	d, err := json.Marshal(consolidatedMetrics)
+	if err != nil {
+		return nil, err
+	}
+	return jnode.FromJSON(d)
+}
+
+func (results Results) getConsolidatedAssessmentJNode() (*jnode.Node, error) {
+	consolidatedAssessment := jnode.NewObjectNode()
+	findings, err := results.getFindingsJNode()
+	if err != nil {
+		return nil, err
+	}
+	metrics, err := results.getConsolidatedMetrics()
+	if err != nil {
+		return nil, err
+	}
+	consolidatedAssessment.Put("findings", findings)
+	consolidatedAssessment.Put("metrics", metrics)
+	return consolidatedAssessment, nil
 }
 
 func (results Results) getAssessmentsJNode() (*jnode.Node, error) {

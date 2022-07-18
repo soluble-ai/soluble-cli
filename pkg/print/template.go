@@ -13,6 +13,11 @@ type TemplatePrinter struct {
 }
 
 func (tp *TemplatePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
+	if result.IsArray() {
+		n := jnode.NewObjectNode()
+		n.Put("findings", result)
+		result = n
+	}
 	m := result.ToMap()
 	t := template.New("print-template")
 	if _, err := t.Parse(tp.Template); err != nil {

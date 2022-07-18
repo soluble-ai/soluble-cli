@@ -95,7 +95,7 @@ func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 	closer, _ := reader.(io.Closer)
 	return api.CloseableOptionFunc(func(req *resty.Request) {
 		req.SetFileReader(param, filename, reader)
-		log.Infof("...including {secondary:%s}", filename)
+		log.Debugf("...including {secondary:%s}", filename)
 	}, func() error {
 		if closer != nil {
 			return closer.Close()

@@ -64,7 +64,7 @@ func (p *PrintOpts) GetPrintOptionsGroup() *HiddenOptionsGroup {
 			flags.StringVar(&p.Template, "print-template", "",
 				"The go `template` to print with.  If the template begins with @, then read the template from a file.")
 			flags.StringVar(&p.OutputFormat, "format", "",
-				"Use this output `format` where format is one of: table, yaml, json, none, csv, template, count, or value(name).")
+				"Use this output `format` where format is one of: table, yaml, json, none, csv, atlantis, template, count, or value(name).")
 			flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
 			flags.StringSliceVar(&p.Filter, "filter", nil, "Print results that match a `filter`.  May be repeated.")
 			flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
@@ -153,6 +153,18 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			PathSupport: p.getPathSupport(),
 		}
 		return vp, nil
+	case "atlantis":
+		template := "@templates/atlantis.tmpl"
+		if template[0] == '@' {
+			dat, err := os.ReadFile(template[1:])
+			if err != nil {
+				return nil, err
+			}
+			template = string(dat)
+		}
+		return &print.TemplatePrinter{
+			Template: template,
+		}, nil
 	case "template":
 		if p.Template == "" {
 			return nil, fmt.Errorf("--print-template must be specified for --format template")
