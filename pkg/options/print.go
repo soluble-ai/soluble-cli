@@ -15,7 +15,6 @@
 package options
 
 import (
-	_ "embed"
 	"fmt"
 	"io"
 	"os"
