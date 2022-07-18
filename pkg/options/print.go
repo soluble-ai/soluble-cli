@@ -15,10 +15,10 @@
 package options
 
 import (
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
@@ -155,16 +155,17 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 		}
 		return vp, nil
 	case "atlantis":
-		template := "@templates/atlantis.tmpl"
-		if template[0] == '@' {
-			pwd, _ := os.Getwd()
-			templatePath := filepath.Join(pwd, template[1:])
-			dat, err := os.ReadFile(templatePath)
-			if err != nil {
-				return nil, err
-			}
-			template = string(dat)
-		}
+		template := `
+Results:{{if .metrics}}
+Passed: {{ .metrics.findingsPass }} | Failed: {{ .metrics.findingsFail }} | Suppressed: {{ .metrics.suppressedFindingsFail }}
+
+Violations:
+Critical: {{ .metrics.findingsFailCritical }} | High: {{ .metrics.findingsFailHigh }} | Medium: {{ .metrics.findingsFailMedium }} | Low: {{ .metrics.findingsFailLow }} | Info : {{ .metrics.findingsFailInfo }}
+{{end}}{{range .findings}}{{ if not .pass }}
+❌ {{ .title }}
+	{{if .severity }}Severity: {{ .severity }}{{end}}
+	{{if .severity }}Resource: {{ .resource }}{{end}}
+{{end}}{{end}}`
 		return &print.TemplatePrinter{
 			Template: template,
 		}, nil
