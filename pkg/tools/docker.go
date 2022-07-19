@@ -42,6 +42,9 @@ type DockerTool struct {
 	PropagateEnvironmentVars []string
 }
 
+// NB - not concurrent
+var pulled = map[string]bool{}
+
 func (d DockerError) Error() string {
 	return string(d)
 }
@@ -83,7 +86,8 @@ func (t *DockerTool) run(skipPull bool) (*ExecuteResult, error) {
 	if err := hasDocker(); err != nil {
 		return nil, err
 	}
-	if !skipPull {
+	if !skipPull || pulled[t.Image] {
+		pulled[t.Image] = true
 		// #nosec G204
 		pull := exec.Command("docker", "pull", t.Image)
 		out, err := pull.Output()

@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPreparePy(t *testing.T) {
 	assert := assert.New(t)
-	m := &policy.Manager{Dir: "testdata"}
+	m := &manager.M{Store: policy.Store{Dir: "testdata"}}
 	err := m.DetectPolicy()
 	if !assert.NoError(err) {
 		return
@@ -30,4 +31,6 @@ func TestPreparePy(t *testing.T) {
 	dat, err := os.ReadFile(filepath.Join(temp, "c-ckvpy-s3-naming-terraform.py"))
 	assert.NoError(err)
 	fmt.Println(string(dat))
+	_, err = m.ValidateRules()
+	assert.NoError(err)
 }

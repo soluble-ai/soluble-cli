@@ -236,6 +236,14 @@ func (p *PrintOpts) getPathSupport() print.PathSupport {
 	}
 }
 
+func (p *PrintOpts) MustPrintStructResult(result interface{}) {
+	n, err := print.ToResult(result)
+	if err != nil {
+		panic(err)
+	}
+	p.PrintResult(n)
+}
+
 func (p *PrintOpts) PrintResult(result *jnode.Node) {
 	var w io.Writer
 	if p.outputSource != nil {

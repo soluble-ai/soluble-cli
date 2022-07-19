@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
 func TestCheckov(t *testing.T) {
-	m := &policy.Manager{Dir: "testdata"}
+	m := &manager.M{Store: policy.Store{Dir: "testdata"}}
 	err := m.DetectPolicy()
 	assert.NoError(t, err)
 	assert.Len(t, m.Rules[CheckovYAML], 1)
@@ -33,4 +34,6 @@ func TestCheckov(t *testing.T) {
 	ruleMetadata, _ := ruleBody["metadata"].(map[string]interface{})
 	assert.NotNil(t, ruleMetadata)
 	assert.Equal(t, "c-ckv-team-tag", ruleMetadata["id"])
+	_, err = m.ValidateRules()
+	assert.NoError(t, err)
 }

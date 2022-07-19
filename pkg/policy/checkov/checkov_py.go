@@ -12,6 +12,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -19,7 +20,7 @@ import (
 
 type checkovPython string
 
-var CheckovPython policy.RuleType = checkovPython("checkov-py")
+var CheckovPython manager.RuleType = checkovPython("checkov-py")
 
 func (checkovPython) GetName() string {
 	return "checkov-py"
@@ -29,7 +30,7 @@ func (checkovPython) GetCode() string {
 	return "ckvpy"
 }
 
-func (checkovPython) PrepareRules(m *policy.Manager, rules []*policy.Rule, dst string) error {
+func (checkovPython) PrepareRules(rules []*policy.Rule, dst string) error {
 	var ruleFiles []string
 	for _, rule := range rules {
 		for _, target := range rule.Targets {
@@ -72,12 +73,13 @@ func preparePythonRule(rule *policy.Rule, target policy.Target, dst string) (str
 		return "", err
 	}
 	fmt.Fprintf(d, "\ncheck.id = \"%s\"\n", rule.ID)
+	fmt.Fprintf(d, "\ncheck.name = \"%s\"\n", quote(rule.Metadata["title"].(string)))
 	return name, nil
 }
 
 var checkAssignmentRe = regexp.MustCompile("^check *=")
 
-func (h checkovPython) ValidateRules(m *policy.Manager, rules []*policy.Rule) error {
+func (h checkovPython) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) error {
 	var err error
 	for _, rule := range rules {
 		if e := h.validate(rule); e != nil {
@@ -98,7 +100,7 @@ func (h checkovPython) ValidateRules(m *policy.Manager, rules []*policy.Rule) er
 	if err := os.MkdirAll(policyDir, 0777); err != nil {
 		return err
 	}
-	if err := h.PrepareRules(m, rules, policyDir); err != nil {
+	if err := h.PrepareRules(rules, policyDir); err != nil {
 		return err
 	}
 	t := &checkov.Tool{}
@@ -106,7 +108,7 @@ func (h checkovPython) ValidateRules(m *policy.Manager, rules []*policy.Rule) er
 	t.UploadEnabled = false
 	t.DisableCustomPolicies = true
 	t.CustomPoliciesDir = policyDir
-	t.RunOpts = m.RunOpts
+	t.RunOpts = runOpts
 	if err := t.Validate(); err != nil {
 		return err
 	}
@@ -133,7 +135,10 @@ func (h checkovPython) ValidateRules(m *policy.Manager, rules []*policy.Rule) er
 
 func (h checkovPython) validate(rule *policy.Rule) error {
 	var err error
-	for _, target := range supportedTargets {
+	for _, target := range rule.Targets {
+		if verr := validateSupportedTarget(rule, target); err != nil {
+			err = multierror.Append(err, verr)
+		}
 		rulePy := fmt.Sprintf("%s/%s/rule.py", rule.Path, target)
 		if !util.FileExists(rulePy) {
 			continue
@@ -146,17 +151,15 @@ func (h checkovPython) validate(rule *policy.Rule) error {
 			}
 			return true
 		})
-		if foundCheck {
-			rule.Targets = append(rule.Targets, target)
-		} else {
+		if !foundCheck {
 			err = multierror.Append(err, fmt.Errorf("%s did not contain an assignment to 'check'", rulePy))
 		}
 	}
 	return err
 }
 
-func (checkovPython) GetTestRunner(m *policy.Manager, target policy.Target) tools.Single {
-	return getTestRunner(m, target)
+func (checkovPython) GetTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
+	return getTestRunner(runOpts, target)
 }
 
 func (checkovPython) FindRuleResult(findings assessments.Findings, id string) policy.PassFail {
