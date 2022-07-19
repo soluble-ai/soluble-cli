@@ -55,6 +55,9 @@ func processResult(result *Result) error {
 		}
 	}
 	result.AddValues(result.Tool.GetToolOptions().GetStandardXCPValues())
+	if len(o.customPolicyMetadata) > 0 {
+		addCustomPolicyMetadata(result, o.customPolicyMetadata)
+	}
 	if result.Directory != "" {
 		result.UpdateFileFingerprints()
 		if result.Values[AssessmentDirectoryValue] == "" {
@@ -133,5 +136,11 @@ func processResult(result *Result) error {
 func writeResultValues(w io.Writer, result *Result) {
 	for k, v := range result.Values {
 		fmt.Fprintf(w, "%s=%s\n", k, v)
+	}
+}
+
+func addCustomPolicyMetadata(result *Result, metadata map[string]string) {
+	for k, v := range metadata {
+		result.AddValue(fmt.Sprintf("CUSTOM_POLICY_%s", k), v)
 	}
 }

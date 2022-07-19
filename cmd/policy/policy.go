@@ -118,7 +118,7 @@ func testCommand() *cobra.Command {
 		Use:   "test",
 		Short: "Test custom policy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := m.DetectPolicy(); err != nil {
+			if err := m.DetectPolicy(""); err != nil {
 				return err
 			}
 			if _, err := m.ValidateRules(); err != nil {

@@ -178,7 +178,7 @@ func (m *Store) writeUploadMetadata(w *tar.Writer) error {
 	}
 	h := &tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "policies/upload.json",
+		Name:     "policies-upload-metadata.json",
 		Size:     int64(len(dat)),
 		ModTime:  time.Now(),
 		Mode:     0644,
@@ -278,6 +278,27 @@ func (m *Store) writeRuleFiles(w *tar.Writer, rule *Rule) error {
 		}
 		return nil
 	})
+}
+
+func (m *Store) GetPolicyUploadMetadata() (map[string]string, error) {
+	dat, err := os.ReadFile(filepath.Join(m.Dir, "policies-upload-metadata.json"))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var md map[string]interface{}
+	if err := json.Unmarshal(dat, &md); err != nil {
+		return nil, err
+	}
+	res := map[string]string{}
+	for k, v := range md {
+		if s, ok := v.(string); ok {
+			res[k] = s
+		}
+	}
+	return res, err
 }
 
 func GetRuleTypes() (res []RuleType) {
