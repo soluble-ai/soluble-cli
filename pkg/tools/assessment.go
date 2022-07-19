@@ -46,7 +46,7 @@ func processResult(result *Result) error {
 		// exit with error
 		exit.Code = 2
 		exit.AddFunc(func() {
-			log.Errorf("{primary:%s} has failed - {danger:%s}", o.Tool.Name(), result.ExecuteResult.FailureMessage)
+			log.Debugf("{primary:%s} has failed - {danger:%s}", o.Tool.Name(), result.ExecuteResult.FailureMessage)
 		})
 		fmt.Fprintln(os.Stderr, result.ExecuteResult.CombinedOutput)
 		if !o.UploadErrors {
