@@ -20,7 +20,10 @@ import (
 // policies/<rule-type>/<rule>/<target>
 //
 // <target> is optional depending on <rule-type>.
-func (m *M) DetectPolicy() error {
+func (m *M) DetectPolicy(dir string) error {
+	if dir != "" {
+		m.Dir = dir
+	}
 	if !filepath.IsAbs(m.Dir) {
 		dir, err := filepath.Abs(m.Dir)
 		if err != nil {

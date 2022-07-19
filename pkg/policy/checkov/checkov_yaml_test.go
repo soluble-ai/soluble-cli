@@ -7,15 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
 func TestCheckov(t *testing.T) {
-	m := &manager.M{Store: policy.Store{Dir: "testdata"}}
-	err := m.DetectPolicy()
+	m := &manager.M{}
+	err := m.DetectPolicy("testdata")
 	assert.NoError(t, err)
 	assert.Len(t, m.Rules[CheckovYAML], 1)
 	rule := m.Rules[CheckovYAML][0]

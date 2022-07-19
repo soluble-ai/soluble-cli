@@ -13,8 +13,8 @@ func TestDetectPolicy(t *testing.T) {
 		"testdata", "testdata/policies", "testdata/policies/checkov",
 		"testdata/policies/checkov/team_tag/terraform",
 	} {
-		m := &manager.M{Store: policy.Store{Dir: dir}}
-		err := m.DetectPolicy()
+		m := &manager.M{}
+		err := m.DetectPolicy(dir)
 		assertFoundRule(t, m, dir, err)
 	}
 }

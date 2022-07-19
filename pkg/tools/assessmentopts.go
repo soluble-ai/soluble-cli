@@ -17,19 +17,20 @@ import (
 type AssessmentOpts struct {
 	ToolOpts
 	UploadOpts
-	PrintResultOpt        bool
-	SaveResult            string
-	PrintResultValues     bool
-	SaveResultValues      string
-	DisableCustomPolicies bool
-	PrintFingerprints     bool
-	SaveFingerprints      string
-	CustomPoliciesDir     string
-	FailThresholds        []string
+	PrintResultOpt            bool
+	SaveResult                string
+	PrintResultValues         bool
+	SaveResultValues          string
+	DisableCustomPolicies     bool
+	PrintFingerprints         bool
+	SaveFingerprints          string
+	CustomPoliciesDir         string
+	PreparedCustomPoliciesDir string
+	FailThresholds            []string
 
-	parsedFailThresholds     map[string]int
-	customPoliciesDir        *string
-	xEnableNewCustomPolicies bool
+	parsedFailThresholds map[string]int
+	customPoliciesDir    *string
+	customPolicyMetadata map[string]string
 }
 
 func (o *AssessmentOpts) GetAssessmentOptions() *AssessmentOpts {
@@ -76,7 +77,6 @@ The severity levels are critical, high, medium, low, and info in that order.`,
 			flags.StringVar(&o.SaveFingerprints, "save-fingerprints", "", "Save finding fingerprints to `file`")
 			flags.StringSliceVar(&o.FailThresholds, "fail", nil,
 				"Set failure thresholds in the form `severity=count`.  The command will exit with exit code 2 if the assessment has count or more failed findings of the specified severity.")
-			flags.BoolVar(&o.xEnableNewCustomPolicies, "x-enable-custom-policies", false, "Enable new custom policy download (early access)")
 		},
 	}
 }
@@ -102,8 +102,8 @@ func (o *AssessmentOpts) Validate() error {
 }
 
 func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
-	if o.CustomPoliciesDir != "" {
-		return o.CustomPoliciesDir, nil
+	if o.PreparedCustomPoliciesDir != "" {
+		return o.PreparedCustomPoliciesDir, nil
 	}
 	if o.DisableCustomPolicies {
 		return "", nil
@@ -114,28 +114,26 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 	if o.GetAPIClientConfig().APIToken == "" {
 		return "", nil
 	}
-	var url string
-	if o.xEnableNewCustomPolicies {
-		url = fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/rules.tgz", o.Tool.Name())
-	} else {
-		url = fmt.Sprintf("/api/v1/org/{org}/rules/%s/rules.tgz", o.Tool.Name())
-	}
-	d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-policies", o.Tool.Name()), url)
-	if err != nil {
-		log.Warnf("Failed to get custom policies - {warning:%s}", err)
-		return "", nil
+	dir := o.CustomPoliciesDir
+	if dir == "" {
+		url := fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/rules.tgz", o.Tool.Name())
+		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-policies", o.Tool.Name()), url)
+		if err != nil {
+			return "", err
+		}
+		dir = d.Dir
 	}
 	// if the directory is empty, then treat that the same as no custom policies
-	fs, err := ioutil.ReadDir(d.Dir)
+	fs, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return "", err
 	}
-	if !o.xEnableNewCustomPolicies || len(fs) == 0 {
+	if len(fs) == 0 {
 		var zero string
 		o.customPoliciesDir = &zero
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
-		store := &policy.Store{Dir: d.Dir}
+		store := &policy.Store{Dir: dir}
 		dest, err := os.MkdirTemp("", "policy*")
 		if err != nil {
 			return "", err
@@ -147,6 +145,11 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 		if err := store.PrepareRules(dest); err != nil {
 			return "", err
 		}
+		md, err := store.GetPolicyUploadMetadata()
+		if err != nil {
+			return "", err
+		}
+		o.customPolicyMetadata = md
 		o.customPoliciesDir = &dest
 	}
 	return *o.customPoliciesDir, nil

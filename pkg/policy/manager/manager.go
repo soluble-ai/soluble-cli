@@ -110,7 +110,7 @@ tests:
 		opts := tool.GetAssessmentOptions()
 		opts.Tool = tool
 		opts.DisableCustomPolicies = true
-		opts.CustomPoliciesDir = dest
+		opts.PreparedCustomPoliciesDir = dest
 		opts.UploadEnabled = false
 		if dir, ok := tool.(tools.HasDirectory); ok {
 			dir.SetDirectory(testDir)

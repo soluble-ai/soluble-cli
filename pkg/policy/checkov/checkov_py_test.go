@@ -6,15 +6,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPreparePy(t *testing.T) {
 	assert := assert.New(t)
-	m := &manager.M{Store: policy.Store{Dir: "testdata"}}
-	err := m.DetectPolicy()
+	m := &manager.M{}
+	err := m.DetectPolicy("testdata")
 	if !assert.NoError(err) {
 		return
 	}
