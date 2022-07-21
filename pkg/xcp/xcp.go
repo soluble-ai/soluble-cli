@@ -113,8 +113,7 @@ func WithFile(path string) (api.Option, error) {
 	return WithFileFromReader(filename, filename, f), nil
 }
 
-func GetCIEnv(dir string) map[string]string {
-	dir = filepath.Clean(dir)
+func getCIEnvValues() map[string]string {
 	values := map[string]string{}
 	allEnvs := make(map[string]string)
 	for _, e := range os.Environ() {
@@ -169,11 +168,13 @@ envLoop:
 			values["ATLANTIS_"+k] = v
 		}
 	}
-
-	// capture the atlantis env variables
-
 	values["SOLUBLE_METADATA_CI_SYSTEM"] = ciSystem
+	return values
+}
 
+func GetCIEnv(dir string) map[string]string {
+	values := getCIEnvValues()
+	dir = filepath.Clean(dir)
 	// evaluate the "easy" metadata commands
 	for k, command := range metadataCommands {
 		argv := strings.Split(command, " ")
@@ -206,4 +207,14 @@ func normalizeGitRemote(s string) string {
 		return strings.Replace(s[at+1:dotgit], ":", "/", 1)
 	}
 	return s
+}
+
+var ciSystem *string
+
+func GetCISystem() string {
+	if ciSystem == nil {
+		val := getCIEnvValues()["SOLUBLE_METADATA_CI_SYSTEM"]
+		ciSystem = &val
+	}
+	return *ciSystem
 }
