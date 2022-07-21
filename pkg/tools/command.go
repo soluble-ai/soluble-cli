@@ -95,8 +95,6 @@ func runTool(tool Interface) error {
 			opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
 		}
 		n, err = results.getFindingsJNode()
-	case opts.OutputFormat == "atlantis":
-		n, err = results.getConsolidatedAssessmentJNode()
 	default:
 		n, err = results.getAssessmentsJNode()
 	}

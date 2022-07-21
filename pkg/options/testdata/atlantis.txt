@@ -1,0 +1,9 @@
+Results:
+Passed: 2 | Failed: 1 | Suppressed: 0
+
+Violations:
+Critical: 1 | High: 0 | Medium: 0 | Low: 0 | Info : 0
+
+❌ Ensure no security groups allow ingress from 0.0.0.0:0 to port 22
+	Severity: Critical
+	Resource: aws_security_group_rule.ssh

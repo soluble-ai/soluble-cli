@@ -22,6 +22,7 @@ import (
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/options/templates"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -154,19 +155,8 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 		}
 		return vp, nil
 	case "atlantis":
-		template := `
-Results:{{if .metrics}}
-Passed: {{ .metrics.findingsPass }} | Failed: {{ .metrics.findingsFail }} | Suppressed: {{ .metrics.suppressedFindingsFail }}
-
-Violations:
-Critical: {{ .metrics.findingsFailCritical }} | High: {{ .metrics.findingsFailHigh }} | Medium: {{ .metrics.findingsFailMedium }} | Low: {{ .metrics.findingsFailLow }} | Info : {{ .metrics.findingsFailInfo }}
-{{end}}{{range .findings}}{{ if not .pass }}
-❌ {{ .title }}
-	{{if .severity }}Severity: {{ .severity }}{{end}}
-	{{if .severity }}Resource: {{ .resource }}{{end}}
-{{end}}{{end}}`
 		return &print.TemplatePrinter{
-			Template: template,
+			Template: templates.GetEmbeddedTemplate("atlantis.tmpl"),
 		}, nil
 	case "template":
 		if p.Template == "" {

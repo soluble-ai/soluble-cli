@@ -13,12 +13,7 @@ type TemplatePrinter struct {
 }
 
 func (tp *TemplatePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
-	if result.IsArray() {
-		n := jnode.NewObjectNode()
-		n.Put("findings", result)
-		result = n
-	}
-	m := result.ToMap()
+	m := result.Unwrap()
 	t := template.New("print-template")
 	if _, err := t.Parse(tp.Template); err != nil {
 		log.Errorf("Invalid go print template - {danger:%s}", err.Error())
