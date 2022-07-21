@@ -30,8 +30,8 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/download/gcs"
 	"github.com/soluble-ai/soluble-cli/pkg/download/terraform"
-	"github.com/soluble-ai/soluble-cli/pkg/download/tfscore"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/afero"
 )
@@ -80,7 +80,8 @@ type urlResolverFunc func(requestedVersion string) (version string, url string, 
 
 var urlResolvers = map[string]urlResolverFunc{
 	"terraform": terraform.GetVersionAndURL,
-	"tfscore":   tfscore.GetVersionAndURL,
+	"tfscore":   gcs.NewResolver("soluble-public", "tfscore"),
+	"opal":      gcs.NewResolver("soluble-public", "opal"),
 }
 
 func NewManager() *Manager {
