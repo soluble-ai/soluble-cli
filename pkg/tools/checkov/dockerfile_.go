@@ -1,5 +1,7 @@
 package checkov
 
+// NB - naming this file "dockerfile.go" breaks visual studio code
+
 import (
 	"fmt"
 	"path/filepath"
@@ -31,20 +33,34 @@ func (d *Dockerfile) Register(cmd *cobra.Command) {
 
 func (d *Dockerfile) Validate() error {
 	if d.Dockerfile != "" {
+		df := d.Dockerfile
+		if !filepath.IsAbs(df) {
+			var err error
+			df, err = filepath.Abs(df)
+			if err != nil {
+				return err
+			}
+		}
+		if !util.FileExists(df) {
+			return fmt.Errorf("%s not found", df)
+		}
 		if d.Directory != "" {
 			log.Warnf("Using --dockerfile will override the use of --directory")
 		}
-		d.Directory = filepath.Dir(d.Dockerfile)
-		d.dockerfile = "Dockerfile"
-	}
-	if err := d.DirectoryBasedToolOpts.Validate(); err != nil {
-		return err
-	}
-	if d.dockerfile == "" {
-		d.dockerfile = filepath.Join(d.GetDirectory(), "Dockerfile")
-	}
-	if !util.FileExists(d.dockerfile) {
-		return fmt.Errorf("%s not found", d.dockerfile)
+		d.Directory = filepath.Dir(df)
+		d.dockerfile = df
+	} else {
+		if err := d.DirectoryBasedToolOpts.Validate(); err != nil {
+			return err
+		}
+		df := filepath.Join(d.GetDirectory(), "Dockerfile")
+		if !util.FileExists(df) {
+			df = filepath.Join(d.GetDirectory(), "dockerfile")
+			if !util.FileExists(df) {
+				return fmt.Errorf("neither Dockerfile nor dockerfile exist in %s", d.GetDirectory())
+			}
+		}
+		d.dockerfile = df
 	}
 	return nil
 }
