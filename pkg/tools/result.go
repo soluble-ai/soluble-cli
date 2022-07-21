@@ -151,7 +151,7 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 		moduleName = "failed-assessment"
 		log.Infof("Uploading failed assessment logs for {primary:%s}", name)
 	} else {
-		log.Debugf("Uploading results of {primary:%s}", name)
+		log.Infof("Uploading results of {primary:%s}", name)
 	}
 	n, err := client.XCPPost(org, moduleName, nil, values, options...)
 	if err != nil {

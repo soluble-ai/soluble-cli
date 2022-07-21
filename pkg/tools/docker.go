@@ -99,7 +99,7 @@ func (t *DockerTool) run(skipPull bool) (*ExecuteResult, error) {
 	args := t.getArgs(os.Getenv)
 	run := exec.Command("docker", args...)
 	if !t.Quiet {
-		log.Debugf("Running {primary:%s}", strings.Join(run.Args, " "))
+		log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
 	}
 	run.Stdin = os.Stdin
 	run.Stderr = os.Stderr
