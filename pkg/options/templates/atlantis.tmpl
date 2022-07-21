@@ -1,0 +1,12 @@
+{{- range . -}}
+Results:{{if .metrics}}
+Passed: {{ .metrics.findingsPass }} | Failed: {{ .metrics.findingsFail }} | Suppressed: {{ .metrics.suppressedFindingsFail }}
+
+Violations:
+Critical: {{ .metrics.findingsFailCritical }} | High: {{ .metrics.findingsFailHigh }} | Medium: {{ .metrics.findingsFailMedium }} | Low: {{ .metrics.findingsFailLow }} | Info : {{ .metrics.findingsFailInfo }}
+{{end}}{{range .findings}}{{ if not .pass }}
+❌ {{ .title }}
+	{{if .severity }}Severity: {{ .severity }}{{end}}
+	{{if .severity }}Resource: {{ .resource }}{{end}}
+{{end}}{{end}}
+{{- end -}}

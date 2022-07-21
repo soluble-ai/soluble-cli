@@ -39,7 +39,6 @@ type Assessment struct {
 	Category string   `json:"category"`
 	Markdown string   `json:"markdown,omitempty"`
 	Findings Findings `json:"findings"`
-	Metrics  *Metrics `json:"metrics,omitempty"`
 
 	Failed         bool   `json:"failed"`
 	FailedCount    int    `json:"failedCount"`
@@ -64,22 +63,6 @@ type Finding struct {
 	RepoPath           string            `json:"repoPath,omitempty"`
 	PartialFingerprint string            `json:"partialFingerprint,omitempty"`
 	Tool               map[string]string `json:"tool,omitempty"`
-}
-
-type Metrics struct {
-	Findings             int `json:"findings"`
-	FindingsFail         int `json:"findingsFail"`
-	FindingsPass         int `json:"findingsPass"`
-	FindingsFailCritical int `json:"findingsFailCritical"`
-	FindingsFailHigh     int `json:"findingsFailHigh"`
-	FindingsFailMedium   int `json:"findingsFailMedium"`
-	FindingsFailLow      int `json:"findingsFailLow"`
-	FindingsFailInfo     int `json:"findingsFailInfo"`
-
-	// suppressed metrics
-	SuppressedFindings     int `json:"suppressedFindings"`
-	SuppressedFindingsFail int `json:"suppressedFindingsFail"`
-	SuppressedFindingsPass int `json:"suppressedFindingsPass"`
 }
 
 type Findings []*Finding
