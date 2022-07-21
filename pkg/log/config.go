@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	trace      bool
 	debug      bool
 	quiet      bool
 	forceColor bool
@@ -32,6 +33,7 @@ var (
 )
 
 func AddFlags(flags *pflag.FlagSet) {
+	flags.BoolVar(&trace, "trace", false, "Run with trace logging")
 	flags.BoolVar(&debug, "debug", false, "Run with debug logging")
 	flags.BoolVar(&quiet, "quiet", false, "Run with no logging")
 	flags.BoolVar(&color.NoColor, "no-color", false, "Disable color output")
@@ -49,6 +51,9 @@ func Configure() {
 	}
 	if debug {
 		Level = Debug
+	}
+	if trace {
+		Level = Trace
 	}
 	switch {
 	case logStdout:

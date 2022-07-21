@@ -84,7 +84,7 @@ func NewClient(config *Config) *Client {
 
 	apiServer := config.APIServer
 	c.SetBaseURL(apiServer)
-	if log.Level == log.Debug {
+	if log.Level == log.Trace {
 		c.Client.Debug = true
 	}
 	if config.TLSNoVerify {
@@ -97,7 +97,7 @@ func NewClient(config *Config) *Client {
 	c.EnableTrace()
 	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
 		info := r.Request.TraceInfo()
-		log.Debugf("{warning:%+v}\n", info)
+		log.Tracef("%+v\n", info)
 		return nil
 	})
 	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
@@ -111,7 +111,7 @@ func NewClient(config *Config) *Client {
 			}
 			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
 		}
-		log.Debugf("%v", r.Result())
+		log.Tracef("%v", r.Result())
 		log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Request.Method,
 			r.Request.URL, r.StatusCode(), t)
 		return nil

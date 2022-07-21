@@ -25,6 +25,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
+	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -37,7 +38,7 @@ type RunOpts struct {
 	ExtraDockerArgs []string
 	NoDocker        bool
 	Internal        bool
-	Quiet           bool
+	quiet           bool
 }
 
 var _ options.Interface = &RunOpts{}
@@ -61,6 +62,7 @@ func (o *RunOpts) Register(cmd *cobra.Command) {
 	if !o.Internal {
 		o.GetRunHiddenOptions().Register(cmd)
 	}
+	o.quiet = xcp.GetCISystem() != ""
 }
 
 func (o *RunOpts) UsingDocker() bool {
@@ -98,7 +100,7 @@ func (o *RunOpts) RunDocker(d *DockerTool) (*ExecuteResult, error) {
 		d.Image = image.AsText()
 	}
 	d.DockerArgs = append(d.DockerArgs, o.ExtraDockerArgs...)
-	d.Quiet = o.Quiet
+	d.quiet = o.quiet
 	return d.run(o.SkipDockerPull)
 }
 
@@ -151,7 +153,7 @@ func (o *RunOpts) ExecuteCommand(c *exec.Cmd) *ExecuteResult {
 }
 
 func (o *RunOpts) LogCommand(c *exec.Cmd) {
-	if o.Quiet {
+	if o.quiet {
 		return
 	}
 	if c.Dir != "" {

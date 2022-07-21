@@ -27,6 +27,7 @@ const (
 	Warning
 	Info
 	Debug
+	Trace
 )
 
 var (
@@ -36,6 +37,7 @@ var (
 		Warning: " Warn",
 		Info:    " Info",
 		Debug:   "Debug",
+		Trace:   "Trace",
 	}
 	lock sync.Mutex
 )
@@ -66,6 +68,10 @@ func Errorf(template string, args ...interface{}) {
 
 func Warnf(template string, args ...interface{}) {
 	Log(Warning, template, args...)
+}
+
+func Tracef(template string, args ...interface{}) {
+	Log(Trace, template, args...)
 }
 
 type TempLevel struct {

@@ -37,7 +37,7 @@ type DockerTool struct {
 	Stdout                   io.Writer
 	Stderr                   io.Writer
 	Directory                string
-	Quiet                    bool
+	quiet                    bool
 	WorkingDirectory         string
 	PropagateEnvironmentVars []string
 }
@@ -98,8 +98,8 @@ func (t *DockerTool) run(skipPull bool) (*ExecuteResult, error) {
 	}
 	args := t.getArgs(os.Getenv)
 	run := exec.Command("docker", args...)
-	if !t.Quiet {
-		log.Debugf("Running {primary:%s}", strings.Join(run.Args, " "))
+	if !t.quiet {
+		log.Infof("Running {primary:%s}", strings.Join(run.Args, " "))
 	}
 	run.Stdin = os.Stdin
 	run.Stderr = os.Stderr
