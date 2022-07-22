@@ -32,6 +32,7 @@ type Manifest struct {
 	KustomizeDirectories          util.StringSet `json:"kustomize_directories"`
 	CISystems                     util.StringSet `json:"ci_systems"`
 	DockerDirectories             util.StringSet `json:"docker_directories"`
+	Dockerfiles                   util.StringSet `jsont:"dockerfiles"`
 	GODirectories                 util.StringSet `json:"go_directories"`
 	PythonDirectories             util.StringSet `json:"python_directories"`
 	NodeDirectories               util.StringSet `json:"node_directories"`

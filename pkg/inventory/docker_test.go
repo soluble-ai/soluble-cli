@@ -27,4 +27,8 @@ func TestDocker(t *testing.T) {
 	m.scan("testdata", dockerDetector(0))
 	assert.ElementsMatch(m.DockerDirectories.Values(),
 		[]string{filepath.FromSlash("d/dot"), filepath.FromSlash("d/simple"), filepath.FromSlash("d/rdot")})
+	assert.ElementsMatch(m.Dockerfiles.Values(),
+		[]string{filepath.FromSlash("d/dot/Dockerfile.dot"),
+			filepath.FromSlash("d/rdot/dot.Dockerfile"),
+			filepath.FromSlash("d/simple/Dockerfile")})
 }
