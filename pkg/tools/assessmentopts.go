@@ -117,7 +117,8 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 	dir := o.CustomPoliciesDir
 	if dir == "" {
 		url := fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/rules.tgz", o.Tool.Name())
-		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-policies", o.Tool.Name()), url)
+		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
+			o.GetAPIClientConfig().Organization), url)
 		if err != nil {
 			return "", err
 		}
