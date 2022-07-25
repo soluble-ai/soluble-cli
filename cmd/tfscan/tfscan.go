@@ -17,6 +17,7 @@ package tfscan
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfscore"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
@@ -44,5 +45,8 @@ Scans terraform code with checkov.  Use a sub-command to explicitly choose a sca
 		}),
 		scan,
 	)
+	opal := tools.CreateCommand(&opal.Tool{})
+	opal.Hidden = true
+	c.AddCommand(opal)
 	return c
 }
