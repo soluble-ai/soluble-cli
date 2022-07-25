@@ -33,6 +33,6 @@ func TestCheckov(t *testing.T) {
 	ruleMetadata, _ := ruleBody["metadata"].(map[string]interface{})
 	assert.NotNil(t, ruleMetadata)
 	assert.Equal(t, "c-ckv-team-tag", ruleMetadata["id"])
-	_, err = m.ValidateRules()
-	assert.NoError(t, err)
+	validate := m.ValidateRules()
+	assert.NoError(t, validate.Errors)
 }

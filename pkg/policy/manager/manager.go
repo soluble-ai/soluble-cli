@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -13,13 +14,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type PassFail *bool
+
 type RuleType interface {
 	policy.RuleType
+	ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) ValidateResult
 	GetTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single
-	ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) error
+	// Find a test result.  This must be tool-specific because the
+	// findings have not been normalized.
+	FindRuleResult(findings assessments.Findings, id string) PassFail
 }
-
-type ValidationDetails map[*policy.Rule]error
 
 type M struct {
 	tools.RunOpts
@@ -27,9 +31,9 @@ type M struct {
 }
 
 type TestMetrics struct {
-	Rules    []RuleTestMetrics `json:"rules,omitempty"`
-	Count    int               `json:"count"`
-	Failures int               `json:"failures"`
+	Rules  []RuleTestMetrics `json:"rules,omitempty"`
+	Passed int               `json:"passed"`
+	Failed int               `json:"failed"`
 }
 
 type RuleTestMetrics struct {
@@ -39,9 +43,14 @@ type RuleTestMetrics struct {
 	Success  bool          `json:"success"`
 }
 
-type ValidateMetrics struct {
-	Count    int `json:"count"`
-	Failures int `json:"failures"`
+type ValidateResult struct {
+	Errors  error `json:"-"`
+	Valid   int   `json:"valid"`
+	Invalid int   `json:"invalid"`
+}
+
+func (vr *ValidateResult) AppendError(err error) {
+	vr.Errors = multierror.Append(vr.Errors, err)
 }
 
 func (m *M) Register(cmd *cobra.Command) {
@@ -51,20 +60,22 @@ func (m *M) Register(cmd *cobra.Command) {
 	_ = cmd.MarkFlagRequired("directory")
 }
 
-func (m *M) ValidateRules() (ValidateMetrics, error) {
-	var (
-		metrics ValidateMetrics
-		err     error
-	)
+func (m *M) ValidateRules() ValidateResult {
+	var result ValidateResult
 	for _, ruleType := range policy.GetRuleTypes() {
 		rules := m.Rules[ruleType]
-		metrics.Count += len(rules)
-		if verr := ruleType.(RuleType).ValidateRules(m.RunOpts, rules); verr != nil {
-			err = multierror.Append(err, verr)
-			metrics.Failures++
+		log.Debugf("{primary:%s} has {info:%d} rules", ruleType.GetName(), len(rules))
+		if len(rules) == 0 {
+			continue
 		}
+		typeResult := ruleType.(RuleType).ValidateRules(m.RunOpts, rules)
+		if typeResult.Errors != nil {
+			result.Errors = multierror.Append(result.Errors, typeResult.Errors)
+		}
+		result.Valid += typeResult.Valid
+		result.Invalid += typeResult.Invalid
 	}
-	return metrics, err
+	return result
 }
 
 func (m *M) TestRules() (TestMetrics, error) {
@@ -105,7 +116,6 @@ tests:
 		if !util.DirExists(testDir) {
 			continue
 		}
-		metrics.Count++
 		tool := mRuleType.GetTestRunner(m.RunOpts, target)
 		opts := tool.GetAssessmentOptions()
 		opts.Tool = tool
@@ -119,7 +129,7 @@ tests:
 		if err != nil {
 			return err
 		}
-		passFailResult := ruleType.FindRuleResult(result.Findings, rule.ID)
+		passFailResult := mRuleType.FindRuleResult(result.Findings, rule.ID)
 		if passFailResult != nil {
 			ok := *passFailResult
 			if passFailName == "fail" {
@@ -131,10 +141,11 @@ tests:
 			}
 			if ok {
 				log.Infof("Policy {success:%s} %s %s - {success:OK}", p, passFailName, target)
+				metrics.Passed++
 			} else {
 				log.Errorf("Policy {danger:%s} %s %s - {danger:FAILED}", p, passFailName, target)
 				failures++
-				metrics.Failures++
+				metrics.Failed++
 			}
 			metrics.Rules = append(metrics.Rules, RuleTestMetrics{
 				Path:     p,
@@ -145,6 +156,7 @@ tests:
 			continue tests
 		}
 		log.Errorf("{primary:%s} - {danger:NOT FOUND}", testDir)
+		metrics.Failed++
 		failures++
 	}
 	if failures > 0 {

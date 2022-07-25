@@ -15,8 +15,8 @@ func TestPolicyVet(t *testing.T) {
 	vet.Must(vet.Run())
 	n := vet.JSON()
 	assert := assert.New(t)
-	assert.Equal(2, n.Path("count").AsInt(), n)
-	assert.Equal(0, n.Path("failures").AsInt(), n)
+	assert.Equal(2, n.Path("valid").AsInt(), n)
+	assert.Equal(0, n.Path("invalid").AsInt(), n)
 }
 
 func TestPolicyTest(t *testing.T) {
@@ -25,6 +25,6 @@ func TestPolicyTest(t *testing.T) {
 	test.Must(test.Run())
 	n := test.JSON()
 	assert := assert.New(t)
-	assert.Equal(4, n.Path("count").AsInt(), n)
-	assert.Equal(0, n.Path("failures").AsInt(), n)
+	assert.Equal(4, n.Path("passed").AsInt(), n)
+	assert.Equal(0, n.Path("failed").AsInt(), n)
 }

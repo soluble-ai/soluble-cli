@@ -49,7 +49,7 @@ func (h checkovYAML) PrepareRules(rules []*policy.Rule, dst string) error {
 }
 
 func (checkovYAML) readRule(rule *policy.Rule, target policy.Target) (map[string]interface{}, error) {
-	d, err := os.ReadFile(filepath.Join(rule.Path, string(target), "rule.yaml"))
+	d, err := os.ReadFile(filepath.Join(target.Path(rule), "rule.yaml"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
@@ -63,14 +63,16 @@ func (checkovYAML) readRule(rule *policy.Rule, target policy.Target) (map[string
 	return ruleBody, nil
 }
 
-func (h checkovYAML) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) error {
-	var err error
+func (h checkovYAML) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) (validate manager.ValidateResult) {
 	for _, rule := range rules {
 		if e := h.validate(rule); e != nil {
-			err = multierror.Append(err, e)
+			validate.Invalid++
+			validate.AppendError(e)
+		} else {
+			validate.Valid++
 		}
 	}
-	return err
+	return
 }
 
 func (h checkovYAML) validate(rule *policy.Rule) error {
@@ -91,7 +93,7 @@ func (checkovYAML) GetTestRunner(runOpts tools.RunOpts, target policy.Target) to
 	return getTestRunner(runOpts, target)
 }
 
-func (checkovYAML) FindRuleResult(findings assessments.Findings, id string) policy.PassFail {
+func (checkovYAML) FindRuleResult(findings assessments.Findings, id string) manager.PassFail {
 	return findRuleResult(findings, id)
 }
 

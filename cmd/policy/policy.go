@@ -10,6 +10,9 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 	"github.com/spf13/cobra"
+
+	_ "github.com/soluble-ai/soluble-cli/pkg/policy/checkov"
+	_ "github.com/soluble-ai/soluble-cli/pkg/policy/opal"
 )
 
 func Command() *cobra.Command {
@@ -32,17 +35,16 @@ func vetCommand() *cobra.Command {
 		Use:   "vet",
 		Short: "Vet custom policy for potential errors",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := m.LoadRules()
-			if err != nil {
+			if err := m.DetectPolicy(""); err != nil {
 				return err
 			}
-			for ruleType := range m.Rules {
-				log.Infof("Found %d {info:%s} custom rules", len(m.Rules[ruleType]), ruleType)
+			result := m.ValidateRules()
+			if result.Errors != nil {
+				return result.Errors
 			}
-			metrics, err := m.ValidateRules()
-			m.MustPrintStructResult(metrics)
-			log.Infof("Validated {primary:%d} custom rules", metrics.Count)
-			return err
+			m.MustPrintStructResult(result)
+			log.Infof("Validated {primary:%d} custom rules", result.Valid+result.Invalid)
+			return nil
 		},
 	}
 	m.Register(c)
@@ -67,8 +69,8 @@ func uploadCommand() *cobra.Command {
 			if err := m.LoadRules(); err != nil {
 				return err
 			}
-			if _, err := m.ValidateRules(); err != nil {
-				return err
+			if res := m.ValidateRules(); res.Errors != nil {
+				return res.Errors
 			}
 			if tarball == "" {
 				var err error
@@ -121,16 +123,16 @@ func testCommand() *cobra.Command {
 			if err := m.DetectPolicy(""); err != nil {
 				return err
 			}
-			if _, err := m.ValidateRules(); err != nil {
-				return err
+			if res := m.ValidateRules(); res.Errors != nil {
+				return res.Errors
 			}
 			metrics, err := m.TestRules()
 			m.MustPrintStructResult(metrics)
-			if metrics.Failures == 0 {
-				log.Infof("Ran {primary:%d} tests and all passed", metrics.Count)
+			if metrics.Failed == 0 {
+				log.Infof("Ran {primary:%d} tests and all passed", metrics.Passed)
 			} else {
 				log.Infof("Ran {primary:%d} tests with {success:%d} passed and {danger:%d} failed",
-					metrics.Count, metrics.Count-metrics.Failures, metrics.Failures)
+					metrics.Passed+metrics.Failed, metrics.Passed, metrics.Failed)
 			}
 			return err
 		},

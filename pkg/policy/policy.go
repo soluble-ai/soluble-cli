@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 
@@ -23,11 +22,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Metadata map[string]interface{}
+
+func (m Metadata) GetString(key string) string {
+	val, _ := m[key].(string)
+	return val
+}
+
 type Rule struct {
-	ID       string
-	Path     string
-	Metadata map[string]interface{}
-	Targets  []Target
+	ID         string
+	Path       string
+	Metadata   Metadata
+	Targets    []Target
+	TargetData map[Target]interface{}
 }
 
 type Target string
@@ -47,13 +54,10 @@ var allTargets = []Target{
 	Terraform, TerraformPlan, Cloudformation, Kubernetes, Helm, Docker, Secrets,
 }
 
-type PassFail *bool
-
 type RuleType interface {
 	GetName() string
 	GetCode() string
 	PrepareRules(rules []*Rule, dest string) error
-	FindRuleResult(findings assessments.Findings, id string) PassFail
 }
 
 var allRuleTypes = map[string]RuleType{}
@@ -69,6 +73,10 @@ func RegisterRuleType(ruleType RuleType) {
 
 func GetRuleType(ruleTypeName string) RuleType {
 	return allRuleTypes[ruleTypeName]
+}
+
+func (t Target) Path(rule *Rule) string {
+	return filepath.Join(rule.Path, string(t))
 }
 
 func (m *Store) LoadRules() error {
@@ -110,14 +118,15 @@ func (m *Store) LoadSingleRule(ruleType RuleType, path string) (*Rule, error) {
 		return nil, err
 	}
 	rule := &Rule{
-		ID:   id,
-		Path: path,
+		ID:         id,
+		Path:       path,
+		TargetData: make(map[Target]interface{}),
 	}
 	if err := yaml.Unmarshal(d, &rule.Metadata); err != nil {
-		return nil, fmt.Errorf("could not read %s - %w", rule.Path, err)
+		return nil, fmt.Errorf("the metadata for %s is invalid - %w", rule.Path, err)
 	}
 	if rule.Metadata == nil {
-		rule.Metadata = make(map[string]interface{})
+		rule.Metadata = make(Metadata)
 	}
 	rule.Metadata["ruleId"] = rule.ID
 	rule.Metadata["sid"] = rule.ID

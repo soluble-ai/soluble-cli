@@ -6,6 +6,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 )
@@ -32,7 +33,7 @@ func getTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
 	return t
 }
 
-func findRuleResult(findings assessments.Findings, id string) policy.PassFail {
+func findRuleResult(findings assessments.Findings, id string) manager.PassFail {
 	for _, finding := range findings {
 		if finding.Tool["check_id"] == id {
 			return &finding.Pass

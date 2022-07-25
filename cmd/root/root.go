@@ -46,7 +46,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	_ "github.com/soluble-ai/soluble-cli/pkg/policy/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
