@@ -21,6 +21,7 @@ type ruleText struct {
 	text        []byte
 	packageDecl *textRange
 	regoMetaDoc *textRange
+	inputType   string
 }
 
 func readRuleText(path string) (*ruleText, error) {
@@ -43,6 +44,7 @@ func (t *ruleText) parse() (*ruleText, error) {
 	}
 	// we only need to look at top-level statements
 	for _, stmt := range stmts {
+		// fmt.Printf("%T %s\n", stmt, stmt)
 		switch s := stmt.(type) {
 		case *ast.Package:
 			if len(s.Path) < 2 {
@@ -59,12 +61,21 @@ func (t *ruleText) parse() (*ruleText, error) {
 			}
 		case ast.Body:
 			for _, expr := range s {
+				// fmt.Printf("expr %T %s\n", expr, expr)
 				if expr.IsAssignment() {
 					terms := expr.Terms.([]*ast.Term)
-					if len(terms) > 0 && ast.Var("__rego__metadoc__").Equal(terms[1].Value) {
-						t.regoMetaDoc = &textRange{
-							start: expr.Location.Offset,
-							end:   expr.Location.Offset + len(expr.Location.Text),
+					if len(terms) == 3 {
+						switch {
+						case ast.Var("__rego__metadoc__").Equal(terms[1].Value):
+							t.regoMetaDoc = &textRange{
+								start: expr.Location.Offset,
+								end:   expr.Location.Offset + len(expr.Location.Text),
+							}
+						case ast.Var("input_type").Equal(terms[1].Value):
+							val, ok := terms[2].Value.(ast.String)
+							if ok {
+								t.inputType = string(val)
+							}
 						}
 					}
 				}
@@ -110,7 +121,7 @@ func (t *ruleText) write(w io.Writer, metadata policy.Metadata) error {
 func toRegoMetaDoc(newline bool, metadata policy.Metadata) []byte {
 	buf := &bytes.Buffer{}
 	if newline {
-		buf.WriteRune('\n')
+		buf.WriteString("\n\n")
 	}
 	buf.WriteString("__rego__metadoc__ := {")
 	first := true

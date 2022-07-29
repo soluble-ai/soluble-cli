@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser(t *testing.T) {
+func TestReadWithMetadoc(t *testing.T) {
 	assert := assert.New(t)
-	r, err := readRuleText("testdata/rule1.rego")
+	r, err := readRuleText("testdata/rule-with-metadoc.rego")
 	assert.NoError(err)
 	if !assert.NotNil(r) {
 		return
@@ -28,7 +28,24 @@ func TestParser(t *testing.T) {
 		"sid":      "c-opl-test-rule",
 		"severity": "High",
 	}))
-	dat, err := os.ReadFile("testdata/rule1-rewrite.rego")
+	dat, err := os.ReadFile("testdata/rule-with-metadoc-rewrite.rego")
+	assert.NoError(err)
+	assert.Equal(string(dat), s.String())
+}
+
+func TestNoMetadoc(t *testing.T) {
+	assert := assert.New(t)
+	r, err := readRuleText("testdata/rule-no-metadoc.rego")
+	assert.NoError(err)
+	if !assert.NotNil(r) {
+		return
+	}
+	assert.Equal("tf", r.inputType)
+	s := &strings.Builder{}
+	assert.NoError(r.write(s, policy.Metadata{
+		"sid": "c-opl-test-rule",
+	}))
+	dat, err := os.ReadFile("testdata/rule-no-metadoc-rewrite.rego")
 	assert.NoError(err)
 	assert.Equal(string(dat), s.String())
 }

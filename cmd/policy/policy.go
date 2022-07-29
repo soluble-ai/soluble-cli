@@ -42,8 +42,8 @@ func vetCommand() *cobra.Command {
 			if result.Errors != nil {
 				return result.Errors
 			}
-			m.MustPrintStructResult(result)
 			log.Infof("Validated {primary:%d} custom rules", result.Valid+result.Invalid)
+			m.MustPrintStructResult(result)
 			return nil
 		},
 	}
@@ -127,13 +127,13 @@ func testCommand() *cobra.Command {
 				return res.Errors
 			}
 			metrics, err := m.TestRules()
-			m.MustPrintStructResult(metrics)
 			if metrics.Failed == 0 {
 				log.Infof("Ran {primary:%d} tests and all passed", metrics.Passed)
 			} else {
 				log.Infof("Ran {primary:%d} tests with {success:%d} passed and {danger:%d} failed",
 					metrics.Passed+metrics.Failed, metrics.Passed, metrics.Failed)
 			}
+			m.MustPrintStructResult(metrics)
 			return err
 		},
 	}
