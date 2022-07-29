@@ -27,6 +27,7 @@ func (o *UploadOpts) Register(cmd *cobra.Command) {
 		uploadUsage = fmt.Sprintf("%s.  Use --upload=false to disable.", uploadUsage)
 	}
 	flags.BoolVar(&o.UploadEnabled, "upload", o.DefaultUploadEnabled, uploadUsage)
+	flags.Lookup("upload").Hidden = true
 	flags.StringVar(&o.GitPRBaseRef, "git-pr-base-ref", "", "Include in the upload a summary of the diffs from `ref` to HEAD.")
 	flags.BoolVar(&o.UploadErrors, "upload-errors", false, "Upload tool logs and diagnostics on failures")
 	flags.BoolVar(&o.CompressResults, "x-compress-results", false, "Compress results before uploading.")
