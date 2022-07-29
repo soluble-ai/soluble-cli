@@ -17,6 +17,13 @@ type opalRules string
 
 var Opal manager.RuleType = opalRules("opal")
 
+var inputTypeForTarget = map[policy.Target]string{
+	policy.Terraform:      "tf",
+	policy.Cloudformation: "cfn",
+	policy.Kubernetes:     "k8s",
+	policy.ARM:            "arm",
+}
+
 func (opalRules) GetName() string {
 	return "opal"
 }
@@ -63,6 +70,11 @@ func (opalRules) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) (val
 					fmt.Errorf("\"rule.rego\" is missing in %s", target.Path(rule)))
 				continue
 			}
+			if inputTypeForTarget[target] == "" {
+				validate.AppendError(
+					fmt.Errorf("opal does not support the %s target in %s", target, rule.Path))
+				continue
+			}
 			_, err := getRuleText(rule, target)
 			if err != nil {
 				validate.AppendError(err)
@@ -82,6 +94,12 @@ func getRuleText(rule *policy.Rule, target policy.Target) (*ruleText, error) {
 	rt, err := readRuleText(filepath.Join(target.Path(rule), "rule.rego"))
 	if err != nil {
 		return nil, err
+	}
+	if rt.inputType == "" && target == policy.Terraform {
+		// ok
+	} else if rt.inputType != inputTypeForTarget[target] {
+		return nil, fmt.Errorf("%s must have input_type := \"%s\" for the %s target",
+			rule.Path, inputTypeForTarget[target], target)
 	}
 	rule.TargetData[target] = rt
 	return rt, nil

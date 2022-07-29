@@ -47,6 +47,7 @@ const (
 	Helm           = Target("helm")
 	Docker         = Target("docker")
 	Secrets        = Target("secrets")
+	ARM            = Target("arm")
 	None           = Target("")
 )
 
