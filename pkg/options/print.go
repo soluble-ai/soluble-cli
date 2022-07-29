@@ -87,6 +87,12 @@ if printing tabular data.)
 
 The "count" format prints the number of rows in the result.
 
+The "template" format prints using a Go text template (see https://pkg.go.dev/text/template
+for usage.)  The sprig template functions are include (see http://masterminds.github.io/sprig/).
+The input document is the JSON result (use "--format json" to examine.)
+
+The "soluble print" command is useful for experimenting with output formats.
+
 Sorting:
 
 The tabular output can be sorted by one or more columns.  Examples:
