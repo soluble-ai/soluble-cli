@@ -22,6 +22,15 @@ The JSON document will be read from "file".  Use "-" to read from stdin.
 
 See help-print-options for more details.
 
+This command can avoid having to repeatedly run assessments to develop
+print formats.  For example:
+
+; soluble tf-scan -d ~/my-work --format json > assesments.json
+; soluble print --print-template '{{ range (index . 0).findings }}{{ printf "%s %s\n" .sid .severity }}{{ end }}' assessments.json
+ckv-aws-24 Critical
+ckv-aws-25 Critical
+ckv-aws-23 Low
+
 The table and csv printers must be supplied a JSON array to print, and
 each element in that array should be an object.  Use the --path flag to
 give the simple path to the array.  A quick example:
