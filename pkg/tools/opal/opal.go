@@ -64,6 +64,9 @@ func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
 			FilePath: loc.Path("path").AsText(),
 			Line:     loc.Path("line").AsInt(),
 			Title:    rr.Path("rule_summary").AsText(),
+			Tool: map[string]string{
+				"rule_id": rr.Path("rule_id").AsText(),
+			},
 		})
 	}
 }

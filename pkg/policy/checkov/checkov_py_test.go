@@ -13,7 +13,7 @@ import (
 func TestPreparePy(t *testing.T) {
 	assert := assert.New(t)
 	m := &manager.M{}
-	err := m.DetectPolicy("testdata")
+	err := m.DetectPolicy("testdata/policies/checkov-py")
 	if !assert.NoError(err) {
 		return
 	}
@@ -30,6 +30,8 @@ func TestPreparePy(t *testing.T) {
 	dat, err := os.ReadFile(filepath.Join(temp, "c-ckvpy-s3-naming-terraform.py"))
 	assert.NoError(err)
 	fmt.Println(string(dat))
-	_, err = m.ValidateRules()
-	assert.NoError(err)
+	validate := m.ValidateRules()
+	assert.NoError(validate.Errors)
+	assert.Equal(1, validate.Valid)
+	assert.Equal(0, validate.Invalid)
 }
