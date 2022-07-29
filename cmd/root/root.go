@@ -106,7 +106,7 @@ func Command() *cobra.Command {
 	flags.StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
 	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
 	log.AddFlags(flags)
-	flags.BoolVar(&options.Blurbed, "no-blurb", false, "Don't blurb about Soluble")
+	flags.BoolVar(&options.Blurbed, "no-blurb", false, "Don't blurb about Lacework")
 	flags.StringVar(&workingDir, "working-dir", "", "Change the working dir to `dir` before running")
 	flags.Lookup("working-dir").Hidden = true
 
