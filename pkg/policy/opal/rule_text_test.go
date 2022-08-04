@@ -1,6 +1,7 @@
 package opal
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -43,8 +44,11 @@ func TestNoMetadoc(t *testing.T) {
 	assert.Equal("tf", r.inputType)
 	s := &strings.Builder{}
 	assert.NoError(r.write(s, policy.Metadata{
-		"sid": "c-opl-test-rule",
+		"sid":         "c-opl-test-rule",
+		"title":       `This is a "great" example`,
+		"description": `This is a great "description"`,
 	}))
+	fmt.Println(s.String())
 	dat, err := os.ReadFile("testdata/rule-no-metadoc-rewrite.rego")
 	assert.NoError(err)
 	assert.Equal(string(dat), s.String())

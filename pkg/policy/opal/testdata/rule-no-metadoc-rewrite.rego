@@ -1,7 +1,9 @@
-package rules.foo
+package rules.c_opl_test_rule
 
 __rego__metadoc__ := {
-  "id": "c-opl-test-rule"
+  "description": "This is a great \"description\"",
+  "id": "c-opl-test-rule",
+  "title": "This is a \"great\" example"
 }
 
 default allow = false

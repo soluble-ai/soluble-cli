@@ -42,7 +42,7 @@ func (t *ruleText) parse() (*ruleText, error) {
 	if err != nil {
 		return nil, err
 	}
-	// we only need to look at top-level statements
+	// we only want to look at top-level statements
 	for _, stmt := range stmts {
 		// fmt.Printf("%T %s\n", stmt, stmt)
 		switch s := stmt.(type) {
@@ -89,40 +89,39 @@ func (t *ruleText) parse() (*ruleText, error) {
 }
 
 func (t *ruleText) write(w io.Writer, metadata policy.Metadata) error {
-	var (
-		tail    int
-		newline bool
-	)
-	switch {
-	case t.regoMetaDoc != nil:
+	var tail int
+	// write text up to package decl
+	if t.packageDecl.start > 0 {
+		if _, err := w.Write(t.text[0:t.packageDecl.start]); err != nil {
+			return err
+		}
+	}
+	// write new package declaration
+	packageName := strings.ReplaceAll(metadata.GetString("sid"), "-", "_")
+	if _, err := fmt.Fprintf(w, "package rules.%s", packageName); err != nil {
+		return err
+	}
+	if t.regoMetaDoc != nil {
 		// if we have __rego__metadoc__ then replace it
-		if _, err := w.Write(t.text[0:t.regoMetaDoc.start]); err != nil {
+		if _, err := w.Write(t.text[t.packageDecl.end:t.regoMetaDoc.start]); err != nil {
 			return err
 		}
 		tail = t.regoMetaDoc.end + 1
-	case t.packageDecl != nil:
-		// we've only got a package declaration, so we'll write
-		// the metadoc just after that
-		if _, err := w.Write(t.text[0:t.packageDecl.end]); err != nil {
+	} else {
+		if _, err := w.Write([]byte{'\n', '\n'}); err != nil {
 			return err
 		}
-		newline = true
 		tail = t.packageDecl.end + 1
-	default:
-		return fmt.Errorf("rule is missing package declaration")
 	}
-	if _, err := w.Write(toRegoMetaDoc(newline, metadata)); err != nil {
+	if _, err := w.Write(toRegoMetaDoc(metadata)); err != nil {
 		return err
 	}
 	_, err := w.Write(t.text[tail:])
 	return err
 }
 
-func toRegoMetaDoc(newline bool, metadata policy.Metadata) []byte {
+func toRegoMetaDoc(metadata policy.Metadata) []byte {
 	buf := &bytes.Buffer{}
-	if newline {
-		buf.WriteString("\n\n")
-	}
 	buf.WriteString("__rego__metadoc__ := {")
 	first := true
 	keys := []string{}

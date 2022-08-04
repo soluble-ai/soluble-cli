@@ -1,5 +1,5 @@
 # comments
-package rules.p1.p2
+package rules.c_opl_test_rule
 
 import data.d1.d2 as x
 
