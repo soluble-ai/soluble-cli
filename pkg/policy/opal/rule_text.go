@@ -82,16 +82,13 @@ func (t *ruleText) parse() (*ruleText, error) {
 			}
 		}
 	}
-	if t.packageDecl == nil {
-		return t, fmt.Errorf("a package declaration in %s is required", t.path)
-	}
 	return t, nil
 }
 
 func (t *ruleText) write(w io.Writer, metadata policy.Metadata) error {
-	var tail int
+	var tail []byte
 	// write text up to package decl
-	if t.packageDecl.start > 0 {
+	if t.packageDecl != nil && t.packageDecl.start > 0 {
 		if _, err := w.Write(t.text[0:t.packageDecl.start]); err != nil {
 			return err
 		}
@@ -106,17 +103,27 @@ func (t *ruleText) write(w io.Writer, metadata policy.Metadata) error {
 		if _, err := w.Write(t.text[t.packageDecl.end:t.regoMetaDoc.start]); err != nil {
 			return err
 		}
-		tail = t.regoMetaDoc.end + 1
+		tail = t.text[t.regoMetaDoc.end+1:]
 	} else {
 		if _, err := w.Write([]byte{'\n', '\n'}); err != nil {
 			return err
 		}
-		tail = t.packageDecl.end + 1
+		if t.packageDecl == nil {
+			tail = t.text
+		} else {
+			tail = t.text[t.packageDecl.end+1:]
+		}
 	}
 	if _, err := w.Write(toRegoMetaDoc(metadata)); err != nil {
 		return err
 	}
-	_, err := w.Write(t.text[tail:])
+	if t.packageDecl == nil {
+		_, err := w.Write([]byte{'\n'})
+		if err != nil {
+			return err
+		}
+	}
+	_, err := w.Write(tail)
 	return err
 }
 
