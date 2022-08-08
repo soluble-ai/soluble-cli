@@ -1,6 +1,6 @@
-# Soluble CLI
+# Lacework IAC CLI
 
-This is the command line interface for [Soluble](https://soluble.ai).
+This is the command line interface for [Lacework IAC Security](https://docs.lacework.com/iac/).
 
 ## Installation
 
@@ -27,7 +27,11 @@ Windows executables can be found on the releases page.
 
 ## Run Security Scans
 
-Run security scans on your code with:
+First, you'll need to signup with Lacework IAC:
+
+    soluble login
+
+Now you can run security scans on your code:
 
     # scan terraform IAC
     soluble terraform-scan -d ~/my-stuff
@@ -38,14 +42,4 @@ Run security scans on your code with:
     # scan Helm charts
     soluble helm-scan -d ~/my-stuff
 
-If you'd like to manage the findings of those tools with [Soluble](https://app.soluble.cloud), you'll have to authenticate the CLI with:
-
-    soluble login
-
-Then re-run the scan with with `--upload` flag, as in:
-
-    soluble terraform-scan -d ~/my-stuff --upload
-
-Some of the scans support multiple tools.  For example, `soluble terraform-scan` by default scans [terraform files](https://www.terraform.io/) with [checkov](https://github.com/bridgecrewio/checkov), and `soluble terraform-scan tfsec` scans with [tfsec](https://github.com/tfsec/tfsec).
-
-Use the builtin help e.g. `soluble help terraform-scan` to see the supported scanners and options.
+See https://docs.lacework.com/iac/ for more information.
