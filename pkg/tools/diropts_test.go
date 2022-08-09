@@ -15,7 +15,6 @@
 package tools
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -42,7 +41,7 @@ func TestDirectoryOpts(t *testing.T) {
 
 func TestNoRepo(t *testing.T) {
 	assert := assert.New(t)
-	dir, err := ioutil.TempDir("", "soluble-cli*")
+	dir, err := os.MkdirTemp("", "soluble-cli*")
 	assert.NoError(err)
 	defer os.RemoveAll(dir)
 	o := &DirectoryBasedToolOpts{

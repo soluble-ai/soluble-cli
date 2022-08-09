@@ -15,7 +15,6 @@
 package trivy
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -85,7 +84,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		return nil, err
 	}
 
-	dat, err := ioutil.ReadFile(outfile)
+	dat, err := os.ReadFile(outfile)
 	if err != nil {
 		return nil, err
 	}

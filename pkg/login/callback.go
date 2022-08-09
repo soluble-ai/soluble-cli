@@ -17,7 +17,7 @@ package login
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 
@@ -57,6 +57,7 @@ or using those ports.
 
 func (e *callbackEndpoint) serveOne() <-chan *jnode.Node {
 	e.r = make(chan *jnode.Node)
+	// #nosec:G112
 	e.s = &http.Server{
 		Handler: http.HandlerFunc(e.handleAuth),
 	}
@@ -82,7 +83,7 @@ func (e *callbackEndpoint) handleAuth(w http.ResponseWriter, req *http.Request) 
 	w.Header().Add("Access-Control-Max-Age", "600")
 	w.Header().Add("Content-type", "text/plain")
 	if req.Method == "POST" {
-		dat, err := ioutil.ReadAll(req.Body)
+		dat, err := io.ReadAll(req.Body)
 		if err != nil {
 			log.Errorf("Could not read oauth response: {danger:%s}", err.Error())
 			e.r <- nil

@@ -17,7 +17,7 @@ package archive
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -49,7 +49,7 @@ func TestUnzipTruncate(t *testing.T) {
 }
 
 func TestUnzipTree(t *testing.T) {
-	dir, err := ioutil.TempDir("", "unziptree*")
+	dir, err := os.MkdirTemp("", "unziptree*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func assertFileEquals(fs afero.Fs, path, content string) error {
 		return err
 	}
 	defer in.Close()
-	dat, err := ioutil.ReadAll(in)
+	dat, err := io.ReadAll(in)
 	if err != nil {
 		return err
 	}

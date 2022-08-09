@@ -15,7 +15,6 @@
 package model
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -29,7 +28,7 @@ func TestGitSource(t *testing.T) {
 	root, err := repotree.FindRepoRoot(".")
 	util.Must(err)
 	saveDir := config.ConfigDir
-	config.ConfigDir, err = ioutil.TempDir("", "test-git-source*")
+	config.ConfigDir, err = os.MkdirTemp("", "test-git-source*")
 	util.Must(err)
 	defer func() { _ = os.RemoveAll(config.ConfigDir); config.ConfigDir = saveDir }()
 	assert := assert.New(t)

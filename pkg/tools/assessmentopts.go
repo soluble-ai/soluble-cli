@@ -2,7 +2,6 @@ package tools
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -125,7 +124,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 		dir = d.Dir
 	}
 	// if the directory is empty, then treat that the same as no custom policies
-	fs, err := ioutil.ReadDir(dir)
+	fs, err := os.ReadDir(dir)
 	if err != nil {
 		return "", err
 	}

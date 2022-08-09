@@ -17,6 +17,7 @@ package armscan
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
 	"github.com/spf13/cobra"
 )
 
@@ -34,5 +35,8 @@ Use the sub-commands to explicitly choose a scanner to use.`
 	})
 	ckv.Short = "Scan ARM templates with checkov"
 	c.AddCommand(ckv)
+	c.AddCommand(tools.CreateCommand(&opal.Tool{
+		IACPlatform: tools.ARM,
+	}))
 	return c
 }

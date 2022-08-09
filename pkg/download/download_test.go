@@ -16,7 +16,6 @@ package download
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -108,7 +107,7 @@ func TestAPIServerArtifact(t *testing.T) {
 
 func setupManager() *Manager {
 	m := NewManager()
-	dir, err := ioutil.TempDir("", "downloadtest*")
+	dir, err := os.MkdirTemp("", "downloadtest*")
 	if err != nil {
 		panic(err)
 	}
@@ -125,7 +124,7 @@ func setupHTTP() {
 }
 
 func registerTestArchive(name string, auth bool) {
-	dat, err := ioutil.ReadFile(filepath.Join("testdata", name))
+	dat, err := os.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		panic(err)
 	}

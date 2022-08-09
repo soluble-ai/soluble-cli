@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -118,7 +117,7 @@ func (m *Manager) List() (result []*DownloadMeta) {
 			_, file := filepath.Split(r)
 			if file == "meta.json" {
 				var m DownloadMeta
-				data, err := ioutil.ReadFile(path)
+				data, err := os.ReadFile(path)
 				if err == nil {
 					if json.Unmarshal(data, &m) == nil {
 						result = append(result, &m)

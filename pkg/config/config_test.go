@@ -15,7 +15,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -25,7 +24,7 @@ import (
 
 func TestConfig(t *testing.T) {
 	assert := assert.New(t)
-	f, err := ioutil.TempFile("", "config")
+	f, err := os.CreateTemp("", "config")
 	if err != nil {
 		t.Fatal(err)
 	}

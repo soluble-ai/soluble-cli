@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -253,7 +252,7 @@ func Load() {
 	if configFileRead == "" {
 		configFileRead = ConfigFile
 	}
-	dat, err := ioutil.ReadFile(configFileRead)
+	dat, err := os.ReadFile(configFileRead)
 	if err != nil {
 		configFileRead = ""
 	} else {

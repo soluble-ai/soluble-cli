@@ -77,7 +77,7 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 	}
 	result, err := checkov.Run()
 	if result != nil {
-		result.IACPlatform = "kustomize"
+		result.IACPlatform = tools.Kustomize
 	}
 	return result, err
 }

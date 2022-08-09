@@ -17,7 +17,6 @@ package cloudsploit
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -70,7 +69,7 @@ func Command() *cobra.Command {
 func writeEnvFile(env map[string]string) (string, error) {
 	// Write the environment variables to a tmpdir with a bindmount
 	// (because we don't want to leak sensitive keys into `ps` and logs)
-	envFile, err := ioutil.TempFile("", "soluble-cloudsploit*")
+	envFile, err := os.CreateTemp("", "soluble-cloudsploit*")
 	if err != nil {
 		return "", fmt.Errorf("unable to create temporary file for cloudsploit: %w", err)
 	}

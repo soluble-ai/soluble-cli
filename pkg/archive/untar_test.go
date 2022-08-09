@@ -15,7 +15,6 @@
 package archive
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,7 +54,7 @@ func TestUntarTruncate(t *testing.T) {
 }
 
 func TestUntarSymlink(t *testing.T) {
-	dir, err := ioutil.TempDir("", "testuntar*")
+	dir, err := os.MkdirTemp("", "testuntar*")
 	if err != nil {
 		t.Fatal(err)
 	}
