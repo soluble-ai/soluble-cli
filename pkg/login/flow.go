@@ -17,7 +17,7 @@ package login
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -74,7 +74,7 @@ func (f *Flow) Run() (*Response, error) {
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("server returned %d", resp.StatusCode)
 	}
-	dat, err := ioutil.ReadAll(resp.Body)
+	dat, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("garbled response: %w", err)
 	}

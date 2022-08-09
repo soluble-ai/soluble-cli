@@ -1,6 +1,7 @@
 package opal
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -8,22 +9,76 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/spf13/cobra"
 )
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
+	IACPlatform tools.IACPlatform
+	VarFiles    []string
+
+	inputType *string
 }
 
 var _ tools.Single = (*Tool)(nil)
+
+func stringp(s string) *string {
+	if s != "" {
+		return &s
+	}
+	return nil
+}
 
 func (t *Tool) Name() string {
 	return "opal"
 }
 
+func (t *Tool) CommandTemplate() *cobra.Command {
+	return &cobra.Command{
+		Use:    "opal",
+		Short:  "Scan IAC for security issues",
+		Hidden: true,
+	}
+}
+
+func (t *Tool) Register(cmd *cobra.Command) {
+	t.DirectoryBasedToolOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.StringSliceVar(&t.VarFiles, "var-file", nil, "Pass additional variable `files` to opal")
+}
+
+func (t *Tool) Validate() error {
+	if t.inputType == nil {
+		switch t.IACPlatform {
+		case tools.ARM:
+			t.inputType = stringp("arm")
+		case tools.Kubernetes:
+			t.inputType = stringp("k8s")
+		case tools.Cloudformation:
+			t.inputType = stringp("cfn")
+		case tools.TerraformPlan:
+			t.inputType = stringp("tf-plan")
+		case tools.Terraform:
+			fallthrough
+		case "":
+			t.inputType = stringp("tf")
+		default:
+			return fmt.Errorf("opal does not support %s", t.IACPlatform)
+		}
+	}
+	for _, varFile := range t.VarFiles {
+		if !util.FileExists(varFile) {
+			return fmt.Errorf("var file %s does not exist", varFile)
+		}
+	}
+	return t.DirectoryBasedToolOpts.Validate()
+}
+
 func (t *Tool) Run() (*tools.Result, error) {
 	result := &tools.Result{
 		Directory:   t.GetDirectory(),
-		IACPlatform: "terraform",
+		IACPlatform: t.IACPlatform,
 	}
 	d, err := t.InstallTool(&download.Spec{Name: "opal"})
 	if err != nil {
@@ -36,6 +91,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	args := []string{"run", "--format", "json"}
 	if customPoliciesDir != "" {
 		args = append(args, "--include", customPoliciesDir)
+	}
+	if t.inputType != nil && *t.inputType != "" {
+		args = append(args, "--input-type", *t.inputType)
+	}
+	for _, varFile := range t.VarFiles {
+		args = append(args, "--var-file", varFile)
 	}
 	args = append(args, ".")
 	// #nosec G204

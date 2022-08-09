@@ -16,7 +16,6 @@ package archive
 
 import (
 	"io"
-	"io/ioutil"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -52,7 +51,7 @@ func TestTarball(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	c, _ := ioutil.ReadAll(f)
+	c, _ := io.ReadAll(f)
 	if string(c) != "hello, world\n" {
 		t.Error("bad content")
 	}

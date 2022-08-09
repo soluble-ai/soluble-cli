@@ -16,7 +16,7 @@ package util
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -33,7 +33,7 @@ func (ec *errorCloser) Close() error {
 func TestCloseAll(t *testing.T) {
 	ec2 := &errorCloser{"second", false}
 	ec3 := &errorCloser{"third", false}
-	err := CloseAll(ioutil.NopCloser(nil), ec2, ec3)
+	err := CloseAll(io.NopCloser(nil), ec2, ec3)
 	if err == nil {
 		t.Fatal(err)
 	}

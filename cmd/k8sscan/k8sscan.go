@@ -17,6 +17,7 @@ package k8sscan
 import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,11 @@ func Command() *cobra.Command {
 	c.Use = "kubernetes-scan"
 	c.Short = "Scan kubernetes manifests"
 	c.Aliases = []string{"k8s-scan"}
-	c.AddCommand(tools.CreateCommand(&checkov.Kubernetes{}))
+	c.AddCommand(
+		tools.CreateCommand(&checkov.Kubernetes{}),
+		tools.CreateCommand(&opal.Tool{
+			IACPlatform: tools.Kubernetes,
+		}),
+	)
 	return c
 }

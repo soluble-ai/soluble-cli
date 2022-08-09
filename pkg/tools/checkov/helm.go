@@ -78,7 +78,7 @@ func (h *Helm) Run() (*tools.Result, error) {
 	}
 	result, err := checkov.Run()
 	if result != nil {
-		result.IACPlatform = "helm"
+		result.IACPlatform = tools.Helm
 	}
 	return result, err
 }

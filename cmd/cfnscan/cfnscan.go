@@ -19,6 +19,7 @@ import (
 	cfnpythonlint "github.com/soluble-ai/soluble-cli/pkg/tools/cfn-python-lint"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/cfnnag"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +38,9 @@ Use the sub-commands to explicitly choose a scanner to use.`
 		tools.CreateCommand(&cfnpythonlint.Tool{}),
 		tools.CreateCommand(&checkov.Tool{
 			Framework: "cloudformation",
+		}),
+		tools.CreateCommand(&opal.Tool{
+			IACPlatform: tools.Cloudformation,
 		}),
 	)
 	return c

@@ -15,7 +15,6 @@
 package trivyfs
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -73,7 +72,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if !exec.ExpectExitCode(0) {
 		return result, nil
 	}
-	dat, err := ioutil.ReadFile(outfile)
+	dat, err := os.ReadFile(outfile)
 	if err != nil {
 		exec.SetFailureFromError(tools.GarbledResultFailure, err)
 		return result, nil

@@ -15,7 +15,6 @@
 package tools
 
 import (
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -43,7 +42,7 @@ func createFile(dir, path, content string) {
 
 func TestUpload(t *testing.T) {
 	assert := assert.New(t)
-	tempdir, _ := ioutil.TempDir("", "toolopt*")
+	tempdir, _ := os.MkdirTemp("", "toolopt*")
 	defer os.RemoveAll(tempdir)
 	createFile(tempdir, filepath.FromSlash(".soluble/config.yml"), "# config.yml\n")
 	createFile(tempdir, filepath.FromSlash(".git/config"), "# .git/config\n")

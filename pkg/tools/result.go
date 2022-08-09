@@ -33,6 +33,20 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
+type IACPlatform string
+
+const (
+	Terraform      = IACPlatform("terraform")
+	TerraformPlan  = IACPlatform("terraform_plan")
+	CDK            = IACPlatform("cdk")
+	Helm           = IACPlatform("helm")
+	Kustomize      = IACPlatform("kustomize")
+	Cloudformation = IACPlatform("cloudformation")
+	Dockerfile     = IACPlatform("dockerfile")
+	ARM            = IACPlatform("arm")
+	Kubernetes     = IACPlatform("kubernetes")
+)
+
 type Result struct {
 	Tool             Single
 	Data             *jnode.Node
@@ -43,7 +57,7 @@ type Result struct {
 	UploadOptions    []api.Option
 	ExecuteResult    *ExecuteResult
 	ModuleName       string
-	IACPlatform      string
+	IACPlatform      IACPlatform
 
 	Assessment    *assessments.Assessment
 	AssessmentRaw *jnode.Node
@@ -101,7 +115,7 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 	}
 	values := r.Values
 	if r.IACPlatform != "" {
-		values["IAC_PLATFORM"] = r.IACPlatform
+		values["IAC_PLATFORM"] = string(r.IACPlatform)
 	}
 	dir, _ := repotree.FindRepoRoot(r.Directory)
 	if dir != "" {

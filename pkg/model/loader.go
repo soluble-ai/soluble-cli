@@ -16,8 +16,8 @@ package model
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -108,7 +108,7 @@ func (m *modelLoader) loadModel(source Source, name string) error {
 		return err
 	}
 	defer f.Close()
-	src, err := ioutil.ReadAll(f)
+	src, err := io.ReadAll(f)
 	if err != nil {
 		return err
 	}

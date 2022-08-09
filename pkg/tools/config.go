@@ -16,7 +16,6 @@ package tools
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
@@ -31,7 +30,7 @@ type Config struct {
 
 func ReadConfigFile(path string) *Config {
 	c := &Config{}
-	d, err := ioutil.ReadFile(path)
+	d, err := os.ReadFile(path)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			log.Warnf("Could not read {warning:%s} - {warning:%s}", path, err)
