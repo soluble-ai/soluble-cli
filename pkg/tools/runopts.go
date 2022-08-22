@@ -110,10 +110,15 @@ func (o *RunOpts) InstallTool(spec *download.Spec) (*download.Download, error) {
 			OverrideExe: o.ToolPath,
 		}, nil
 	}
+	var versionInfo *jnode.Node
 	if strings.HasPrefix(spec.URL, "github.com/") {
 		slash := strings.LastIndex(spec.URL, "/")
-		n := o.getToolVersion(spec.URL[slash+1:])
-		if v := n.Path("version"); !v.IsMissing() {
+		versionInfo = o.getToolVersion(spec.URL[slash+1:])
+	} else if spec.Name != "" {
+		versionInfo = o.getToolVersion(spec.Name)
+	}
+	if versionInfo != nil {
+		if v := versionInfo.Path("version"); !v.IsMissing() {
 			spec.RequestedVersion = v.AsText()
 		}
 	}
@@ -127,8 +132,7 @@ func (o *RunOpts) getToolVersion(name string) *jnode.Node {
 			Put("image", o.ToolVersion).
 			Put("version", o.ToolVersion)
 	}
-	temp := log.SetTempLevel(log.Error - 1)
-	defer temp.Restore()
+	defer log.SetTempLevel(log.Error - 1).Restore()
 	n, err := o.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
 	if err != nil {
 		return jnode.MissingNode
