@@ -35,7 +35,7 @@ func TestGitSource(t *testing.T) {
 	s, err := GetGitSource("file://" + root)
 	assert.Nil(err)
 	assert.NotNil(s)
-	f, err := s.GetFileSystem().Open("cmd/root/models/aws.hcl")
+	f, err := s.GetFileSystem().Open("cmd/root/models/org.hcl")
 	assert.NoError(err)
 	assert.NotNil(f)
 	f.Close()
