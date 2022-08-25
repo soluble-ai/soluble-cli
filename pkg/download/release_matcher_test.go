@@ -31,8 +31,6 @@ func TestOsArch(t *testing.T) {
 		{"soluble_v0.4.19_linux_386.tar.gz", "linux", "386", true},
 		{"trivy_0.12.0_Linux-64bit.tar.gz", "linux", "amd64", true},
 		{"trivy_0.12.0_macOS-64bit.tar.gz", "darwin", "amd64", true},
-		{"terrascan_1.1.0_Linux_i386.tar.gz", "linux", "386", true},
-		{"terrascan_1.1.0_Darwin_x86_64.tar.gz", "darwin", "amd64", true},
 		{"tfsec-checkgen-darwin-amd64", "darwin", "amd64", false},
 		{"tfsec-darwin-amd64", "darwin", "amd64", true},
 	}
