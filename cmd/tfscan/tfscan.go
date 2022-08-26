@@ -18,7 +18,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/terrascan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfscore"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/tfsec"
 	"github.com/spf13/cobra"
@@ -39,7 +38,6 @@ Scans terraform code with checkov.  Use a sub-command to explicitly choose a sca
 	scan.Deprecated = "Use 'terraform-plan scan' instead"
 	c.AddCommand(
 		tools.CreateCommand(&tfsec.Tool{}),
-		tools.CreateCommand(&terrascan.Tool{}),
 		tools.CreateCommand(&checkov.Tool{
 			Framework: "terraform",
 		}),
