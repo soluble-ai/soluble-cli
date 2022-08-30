@@ -72,6 +72,14 @@ func (t *Tool) Validate() error {
 			return fmt.Errorf("var file %s does not exist", varFile)
 		}
 	}
+
+	if t.OutputFormat == "" {
+		t.OutputFormat = "json"
+
+	} else if t.OutputFormat != "json" {
+		return fmt.Errorf("Opal supports json output format only")
+	}
+
 	return t.DirectoryBasedToolOpts.Validate()
 }
 

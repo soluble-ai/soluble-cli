@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -90,4 +91,11 @@ func TestTfsec(t *testing.T) {
 	tool.Must(tool.Run())
 	n := tool.JSON()
 	assert.Greater(n.Get(0).Path("findings").Size(), 1)
+}
+
+func TestOpalDefaultOutputFormat(t *testing.T) {
+	assert := assert.New(t)
+	tool := test.NewTool(t, "tf-scan", "opal", "-d", "testdata", "--use-empty-config-file")
+	tool.Must(tool.Run())
+	assert.True(json.Valid([]byte(tool.Out.String())))
 }
