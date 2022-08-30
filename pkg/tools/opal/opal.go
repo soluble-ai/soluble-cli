@@ -77,7 +77,7 @@ func (t *Tool) Validate() error {
 		t.OutputFormat = "json"
 
 	} else if t.OutputFormat != "json" {
-		return fmt.Errorf("Opal supports json output format only")
+		return fmt.Errorf("opal supports json output format only")
 	}
 
 	return t.DirectoryBasedToolOpts.Validate()
