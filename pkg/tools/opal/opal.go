@@ -2,6 +2,7 @@ package opal
 
 import (
 	"fmt"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"os"
 	"os/exec"
 
@@ -80,6 +81,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Directory:   t.GetDirectory(),
 		IACPlatform: t.IACPlatform,
 	}
+
+	err := t.runTerraformGet()
+	if err != nil {
+		log.Warnf("{warning:terraform get} failed ")
+		result.AddValue("TERRAFORM_GET_FAILED", "true")
+	}
+
 	d, err := t.InstallTool(&download.Spec{Name: "opal"})
 	if err != nil {
 		return nil, err
