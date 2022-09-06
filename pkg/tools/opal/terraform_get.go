@@ -1,16 +1,17 @@
 package opal
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
+
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory/terraformsettings"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	"os"
-	"os/exec"
-	"path/filepath"
 )
 
-func (t *Tool) runTerraformGet() (error) {
+func (t *Tool) runTerraformGet() error {
 	inv := inventory.Do(t.GetDirectory())
 	for _, rootModule := range inv.TerraformModules.Values() {
 		dir := filepath.Join(t.GetDirectory(), rootModule)
@@ -31,7 +32,6 @@ func (t *Tool) runTerraformGet() (error) {
 	}
 	return nil
 }
-
 
 func (t *Tool) downloadTerraformExe(dir string) (string, error) {
 	settings := terraformsettings.Read(dir)
