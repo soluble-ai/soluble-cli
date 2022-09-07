@@ -18,6 +18,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 	IACPlatform tools.IACPlatform
 	VarFiles    []string
+	NoGet       bool
 
 	inputType *string
 }
@@ -47,6 +48,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringSliceVar(&t.VarFiles, "var-file", nil, "Pass additional variable `files` to opal")
+	flags.BoolVar(&t.NoGet, "no-get", false, "Don't run terraform get to download external modules")
 }
 
 func (t *Tool) Validate() error {
@@ -82,12 +84,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 		IACPlatform: t.IACPlatform,
 	}
 
-	err := t.runTerraformGet()
-	if err != nil {
-		log.Warnf("{warning:terraform get} failed ")
-		result.AddValue("TERRAFORM_GET_FAILED", "true")
+	if !t.NoGet {
+		err := t.runTerraformGet()
+		if err != nil {
+			log.Warnf("{warning:terraform get} failed ")
+			result.AddValue("TERRAFORM_GET_FAILED", "true")
+		}
 	}
-
 	d, err := t.InstallTool(&download.Spec{Name: "opal"})
 	if err != nil {
 		return nil, err
