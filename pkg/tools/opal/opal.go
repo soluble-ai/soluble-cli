@@ -16,8 +16,8 @@ import (
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
-	IACPlatform tools.IACPlatform
-	VarFiles    []string
+	IACPlatform  tools.IACPlatform
+	VarFiles     []string
 	TerraformGet bool
 
 	inputType *string
