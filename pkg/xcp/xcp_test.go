@@ -44,6 +44,13 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("ATLANTIS_TERRAFORM_VERSION", "yyy")
 	os.Setenv("PULL_NUM", "yyy")
 	os.Setenv("REPO_REL_DIR", "yyy")
+	os.Setenv("BUILD_ID", "27")
+	os.Setenv("JOB_BASE_NAME", "main")
+  os.Setenv("KUBERNETES_PORT", "tcp://172.20.0.1:443")
+	os.Setenv("RUN_ARTIFACTS_DISPLAY_URL", "https://ci.intouchhealth.io/")
+	os.Setenv("TF_VAR_adminpassword", "****")
+  os.Setenv("TF_VAR_adminusername", "***")
+	os.Setenv("ARM_TENANT_ID", "****")
 	env := GetCIEnv(".")
 	for k, v := range env {
 		if v == "xxx" {
@@ -54,6 +61,13 @@ func TestGetCIEnv(t *testing.T) {
 	// make sure atlantis env variables are available
 	assert.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
 	assert.True(contains(env, "ATLANTIS_PULL_NUM"))
+	assert.True(contains(env, "BUILD_ID"))
+	assert.True(contains(env, "JOB_BASE_NAME"))
+	assert.True(contains(env, "KUBERNETES_PORT"))
+	assert.True(contains(env, "RUN_ARTIFACTS_DISPLAY_URL"))
+	assert.False(contains(env, "TF_VAR_adminpassword"))
+	assert.False(contains(env, "TF_VAR_adminusername"))
+	assert.False(contains(env, "ARM_TENANT_ID"))
 
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
