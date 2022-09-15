@@ -46,10 +46,10 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("REPO_REL_DIR", "yyy")
 	os.Setenv("BUILD_ID", "27")
 	os.Setenv("JOB_BASE_NAME", "main")
-  os.Setenv("KUBERNETES_PORT", "tcp://172.20.0.1:443")
+	os.Setenv("KUBERNETES_PORT", "tcp://172.20.0.1:443")
 	os.Setenv("RUN_ARTIFACTS_DISPLAY_URL", "https://ci.intouchhealth.io/")
 	os.Setenv("TF_VAR_adminpassword", "****")
-  os.Setenv("TF_VAR_adminusername", "***")
+	os.Setenv("TF_VAR_adminusername", "***")
 	os.Setenv("ARM_TENANT_ID", "****")
 	env := GetCIEnv(".")
 	for k, v := range env {
