@@ -147,8 +147,7 @@ envLoop:
 			strings.HasPrefix(k, "ZODIAC_") ||
 			strings.HasPrefix(k, "BITBUCKET_") ||
 			strings.HasPrefix(k, "ATLANTIS_") ||
-			strings.HasPrefix(k, "JENKINS_") ||
-			strings.HasPrefix(k, "KUBERNETES_"){
+			strings.HasPrefix(k, "JENKINS_") {
 			values[k] = v
 
 			// and if we haven't set a CI system yet, set it
@@ -167,7 +166,9 @@ envLoop:
 			strings.HasPrefix(k, "BUILD_") ||
 			strings.HasPrefix(k, "STAGE_") ||
 			strings.HasPrefix(k, "RUN_") ||
-			strings.HasPrefix(k, "HUDSON_") {
+			strings.HasPrefix(k, "HUDSON_") ||
+			strings.HasPrefix(K, "WORKSPACE") ||
+			strings.HasPrefix(k, "KUBERNETES_") {
 		  	values[k] = v
 		}
 
