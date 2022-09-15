@@ -42,8 +42,8 @@ var (
 	substringOmitEnv = []string{
 		"SECRET", "KEY", "PRIVATE", "PASSWORD",
 		"PASSPHRASE", "CREDS", "TOKEN", "AUTH",
-		"ENC", "JWT",
-		"_USR", "_PSW", // Jenkins credentials()
+		"ENC", "JWT", "password", "username",
+		"CLIENT", "TENANT", "_USR", "_PSW", // Jenkins credentials()
 	}
 
 	// While we perform the redactions based on substrings above,
@@ -142,11 +142,11 @@ envLoop:
 			strings.HasPrefix(k, "GIT_PR_") || // iacbot
 			strings.HasPrefix(k, "CIRCLE_") ||
 			strings.HasPrefix(k, "GITLAB_") ||
-			strings.HasPrefix(k, "CI_") ||
 			strings.HasPrefix(k, "BUILDKITE_") ||
 			strings.HasPrefix(k, "ZODIAC_") ||
 			strings.HasPrefix(k, "BITBUCKET_") ||
-			strings.HasPrefix(k, "ATLANTIS_") {
+			strings.HasPrefix(k, "ATLANTIS_") ||
+			strings.HasPrefix(k, "JENKINS_") {
 			values[k] = v
 
 			// and if we haven't set a CI system yet, set it
@@ -158,9 +158,24 @@ envLoop:
 			}
 		}
 
+		// for some ci/cd tools such as jenkins some times we don't capture the
+		// right env variables based on how it is setup, so let's do best
+		// guessing on standard naming conventions and pass those as well
+		if strings.HasPrefix(k, "JOB_") ||
+			strings.HasPrefix(k, "BUILD_") ||
+			strings.HasPrefix(k, "STAGE_") ||
+			strings.HasPrefix(k, "RUN_") ||
+			strings.HasPrefix(k, "CI_") ||
+			strings.HasPrefix(k, "HUDSON_") ||
+			strings.HasPrefix(k, "WORKSPACE") ||
+			strings.HasPrefix(k, "KUBERNETES_") {
+			values[k] = v
+		}
+
 		// for atlantis they do not have a prefix in the key for most of them
 		// https://www.runatlantis.io/docs/custom-workflows.html#reference
-		if strings.EqualFold(k, "DIR") || strings.EqualFold(k, "WORKSPACE") ||
+		if strings.EqualFold(k, "DIR") ||
+			strings.EqualFold(k, "WORKSPACE") ||
 			strings.EqualFold(k, "PULL_NUM") ||
 			strings.EqualFold(k, "PULL_AUTHOR") ||
 			strings.EqualFold(k, "PROJECT_NAME") ||
