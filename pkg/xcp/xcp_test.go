@@ -50,7 +50,9 @@ func TestGetCIEnv(t *testing.T) {
 	os.Setenv("RUN_ARTIFACTS_DISPLAY_URL", "https://ci.intouchhealth.io/")
 	os.Setenv("TF_VAR_adminpassword", "****")
 	os.Setenv("TF_VAR_adminusername", "***")
+	os.Setenv("TF_VAR_adminusername", "***")
 	os.Setenv("ARM_TENANT_ID", "****")
+	os.Setenv("ARM_CLIENT_SECRET", "yyy")
 	env := GetCIEnv(".")
 	for k, v := range env {
 		if v == "xxx" {
@@ -66,6 +68,7 @@ func TestGetCIEnv(t *testing.T) {
 	assert.False(contains(env, "TF_VAR_adminpassword"))
 	assert.False(contains(env, "TF_VAR_adminusername"))
 	assert.False(contains(env, "ARM_TENANT_ID"))
+	assert.False(contains(env, "ARM_CLIENT_SECRET"))
 }
 
 func TestAtlantisCIEnv(t *testing.T) {
