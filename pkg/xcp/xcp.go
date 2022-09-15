@@ -167,7 +167,7 @@ envLoop:
 			strings.HasPrefix(k, "STAGE_") ||
 			strings.HasPrefix(k, "RUN_") ||
 			strings.HasPrefix(k, "HUDSON_") ||
-			strings.HasPrefix(K, "WORKSPACE") ||
+			strings.HasPrefix(k, "WORKSPACE") ||
 			strings.HasPrefix(k, "KUBERNETES_") {
 		  	values[k] = v
 		}
