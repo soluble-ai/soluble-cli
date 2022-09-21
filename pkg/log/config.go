@@ -68,4 +68,5 @@ func Configure() {
 	default:
 	}
 	color.Output = colorable.NewColorableStderr()
+	logStartupMessages()
 }
