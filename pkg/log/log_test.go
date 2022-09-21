@@ -19,9 +19,11 @@ import (
 	"testing"
 
 	"github.com/fatih/color"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLog(t *testing.T) {
+	Configure()
 	w := bytes.Buffer{}
 	color.Output = &w
 	color.NoColor = true
@@ -32,6 +34,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestTemp(t *testing.T) {
+	Configure()
 	w := bytes.Buffer{}
 	color.Output = &w
 	color.NoColor = true
@@ -47,4 +50,16 @@ func TestTemp(t *testing.T) {
 	if s := w.String(); s != "[ Info] There\n" {
 		t.Error(s)
 	}
+}
+
+func TestStartupLogging(t *testing.T) {
+	assert := assert.New(t)
+	configured = false
+	w := bytes.Buffer{}
+	color.Output = &w
+	color.NoColor = true
+	Infof("Before")
+	assert.Empty(w.String())
+	logStartupMessages()
+	assert.Equal(w.String(), "[ Info] Before\n")
 }

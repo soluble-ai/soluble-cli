@@ -30,6 +30,12 @@ const (
 	Trace
 )
 
+type startupMessage struct {
+	level    int
+	template string
+	args     []interface{}
+}
+
 var (
 	Level      = Info
 	levelNames = map[int]string{
@@ -39,19 +45,39 @@ var (
 		Debug:   "Debug",
 		Trace:   "Trace",
 	}
-	lock sync.Mutex
+	configured      bool
+	startupMessages []startupMessage
+	lock            sync.Mutex
 )
 
 func Log(level int, template string, args ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
+	if !configured {
+		// defer actually logging messages until logging has been
+		// configured
+		startupMessages = append(startupMessages, startupMessage{
+			level:    level,
+			template: template,
+			args:     args,
+		})
+		return
+	}
 	if level <= Level {
-		lock.Lock()
-		defer lock.Unlock()
 		colorize.Colorize("{secondary:[%s]} ", levelNames[level])
 		colorize.Colorize(template, args...)
 		if template[len(template)-1] != '\n' {
 			fmt.Fprintln(color.Output)
 		}
 	}
+}
+
+func logStartupMessages() {
+	configured = true
+	for _, m := range startupMessages {
+		Log(m.level, m.template, m.args...)
+	}
+	startupMessages = nil
 }
 
 func Infof(template string, args ...interface{}) {
