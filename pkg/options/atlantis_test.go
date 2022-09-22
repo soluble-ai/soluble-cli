@@ -13,7 +13,7 @@ import (
 func TestAtlantis(t *testing.T) {
 	assert := assert.New(t)
 	p := &PrintOpts{
-		OutputFormat: "atlantis",
+		OutputFormat: []string{"atlantis"},
 	}
 	n, err := util.ReadJSONFile("testdata/assessment.json.gz")
 	assert.NoError(err)

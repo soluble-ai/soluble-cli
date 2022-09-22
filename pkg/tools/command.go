@@ -79,26 +79,18 @@ func runTool(tool Interface) error {
 			log.Infof("Asessment uploaded, see {primary:%s} for more information", result.Assessment.URL)
 		}
 	}
-	var (
-		n   *jnode.Node
-		err error
-	)
-	// What we really want to work off here is a list of all the assessments.
-	// But the printer doesn't support a splat-like path i.e. *.findings to
-	// accumulate all the findings across the assessments.  So for the default
-	// or table output format we do that accumulation in code here.
-
-	switch {
-	case opts.OutputFormat == "" || opts.OutputFormat == "table" || opts.OutputFormat == "count":
-		if !opts.Wide {
-			opts.SetFormatter("title", print.TruncateFormatter(70, false))
-			opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
-		}
-		n, err = results.getFindingsJNode()
-	default:
-		n, err = results.getAssessmentsJNode()
+	if !opts.Wide {
+		opts.SetFormatter("title", print.TruncateFormatter(70, false))
+		opts.SetFormatter("filePath", print.TruncateFormatter(65, true))
 	}
-
+	// The table printer the printer doesn't support a splat-like path
+	// i.e. *.findings to accumulate all the findings across the assessments.
+	// So as a workaround we do this as a special case.
+	opts.PrintTableDataTransform = func(_ *jnode.Node) *jnode.Node {
+		n, _ := results.getFindingsJNode()
+		return n
+	}
+	n, err := results.getAssessmentsJNode()
 	if err != nil {
 		return err
 	}

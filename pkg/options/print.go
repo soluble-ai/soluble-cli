@@ -30,7 +30,7 @@ import (
 )
 
 type PrintOpts struct {
-	OutputFormat        string
+	OutputFormat        []string
 	DefaultOutputFormat string
 	NoHeaders           bool
 	Wide                bool
@@ -43,11 +43,16 @@ type PrintOpts struct {
 	DefaultSortBy       []string
 	Limit               int
 	Filter              []string
-	Template            string
+	Template            []string
 	Formatters          map[string]print.Formatter
 	ComputedColumns     map[string]print.ColumnFunction
 	DiffContextSize     int
-	outputSource        func() io.Writer
+
+	// This is a workaround for the inability of the table printer to
+	// accumluate results across an array.  See tools/command.go for how
+	// this is used.
+	PrintTableDataTransform func(*jnode.Node) *jnode.Node
+	outputSource            func() io.Writer
 }
 
 var _ Interface = &PrintOpts{}
@@ -62,10 +67,10 @@ func (p *PrintOpts) GetPrintOptionsGroup() *HiddenOptionsGroup {
 		Name: "print-options",
 		Long: "These options control how results are printed",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
-			flags.StringVar(&p.Template, "print-template", "",
-				"The go `template` to print with.  If the template begins with @, then read the template from a file.")
-			flags.StringVar(&p.OutputFormat, "format", "",
-				"Use this output `format` where format is one of: table, yaml, json, none, csv, atlantis, template, count, or value(name).")
+			flags.StringSliceVar(&p.Template, "print-template", nil,
+				"Print the output with a go `template`.  The template argument may begin with @ in which case the template is read from a file.  If the argument is in the format tmpl=file, then write the output to a file.  May be repeated.")
+			flags.StringSliceVar(&p.OutputFormat, "format", nil,
+				"Use this output `format` where format is one of: table, yaml, json, none, csv, atlantis, count, or value(name).  If the argument is in the form format=file, then write the output to a file.  May be repeated.")
 			flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
 			flags.StringSliceVar(&p.Filter, "filter", nil, "Print results that match a `filter`.  May be repeated.")
 			flags.BoolVar(&p.Wide, "wide", false, "Display more columns (table, csv)")
@@ -78,24 +83,51 @@ func (p *PrintOpts) GetPrintOptionsGroup() *HiddenOptionsGroup {
 		Example: `
 Output formats:
 
-The output format can be selected with the --format flag.  If --print-template is given
-the default format in "template".  For commands that support tabular data the default
-output format is "table"; otherwise the default is "yaml".
+The output format can be selected with the --format flag.  For commands that
+support tabular data the default output format is "table"; otherwise the
+default is "yaml".
 
-The "value(name)" format prints only the "name" attribute from the results (from each row
-if printing tabular data.)
+The "value(name)" format prints only the "name" attribute from the results
+(from each row if printing tabular data.)
 
 The "count" format prints the number of rows in the result.
 
-The "template" format prints using a Go text template (see https://pkg.go.dev/text/template
-for usage.)  The sprig template functions are include (see http://masterminds.github.io/sprig/).
-The input document is the JSON result (use "--format json" to examine.)
+Output format "none" suppresses printing.
+
+If the output format is in the format "format=file" then the output
+will be written to a file instead of on stdout.  Use "default=file" to
+write the default output format to a file.
+
+The --format flag may be given multiple times (or have a comma-separated 
+argument), in which case the result is printed once for each argument value.
+
+--print-template flag prints using a Go text template (see
+https://pkg.go.dev/text/template for usage.)  The sprig template functions
+are available (see http://masterminds.github.io/sprig/).  The input document 
+is the JSON result (use "--format json" to examine.)  If the argument
+is in the form "template=file" then the result written to a file instead
+of printed on stdout.
+
+--print-template may be specified more than once (or its argument may be comma
+separated), in which case the result is printed once for each value.
+
+If all --format and --print-template flags are being redirected to a file,
+then the default output will still be written to stdout.  To suppress this
+output use "--format=none".
+
+For example:
+
+... --format json=output.json \
+    --print-template '{{ len . }}'=len.txt
+
+Will write the JSON result to "output.json" and the length of the input 
+document to "len.txt", and write the default output to stdout.
 
 The "soluble print" command is useful for experimenting with output formats.
 
 Sorting:
 
-The tabular output can be sorted by one or more columns.  Examples:
+Tabular output can be sorted by one or more columns.  Examples:
 
  ... --sort-by col1,-col2    ;# ascending col1, descending col2, lexigraphical
  ... --sort-by 0col1         ;# ascending, numerical
@@ -116,14 +148,50 @@ func (p *PrintOpts) Register(cmd *cobra.Command) {
 	p.outputSource = cmd.OutOrStdout
 }
 
+func getFormatFileOutput(format string) (string, string) {
+	eq := strings.IndexRune(format, '=')
+	if eq >= 0 {
+		return format[0:eq], format[eq+1:]
+	}
+	return format, ""
+}
+
 func (p *PrintOpts) GetPrinter() (print.Interface, error) {
-	outputFormat := p.OutputFormat
-	if outputFormat == "" {
-		if p.Template != "" {
-			outputFormat = "template"
-		} else {
-			outputFormat = p.DefaultOutputFormat
+	cp := &chainedPrinter{}
+	fileCount := 0
+	for _, template := range p.Template {
+		template, file := getFormatFileOutput(template)
+		tp := &print.TemplatePrinter{Template: template}
+		cp.AddPrinter(tp, file)
+		if file != "" {
+			fileCount++
 		}
+	}
+	for _, format := range p.OutputFormat {
+		format, file := getFormatFileOutput(format)
+		pr, err := p.getSinglePrinter(format)
+		if err != nil {
+			return nil, err
+		}
+		cp.AddPrinter(pr, file)
+		if file != "" {
+			fileCount++
+		}
+	}
+	if fileCount == len(cp.Printers) {
+		// include the default output if everything is going to a file
+		pr, err := p.getSinglePrinter("default")
+		if err != nil {
+			return nil, err
+		}
+		cp.Printers = append(cp.Printers, pr)
+	}
+	return cp, nil
+}
+
+func (p *PrintOpts) getSinglePrinter(outputFormat string) (print.Interface, error) {
+	if outputFormat == "" || outputFormat == "default" {
+		outputFormat = p.DefaultOutputFormat
 	}
 	outputFormatType := outputFormat
 	switch {
@@ -148,53 +216,50 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 			return nil, fmt.Errorf("this command does not support --format csv")
 		}
 		p.Wide = true
-		return &print.CSVPrinter{
-			NoHeaders:   p.NoHeaders,
-			Columns:     p.getEffectiveColumns(),
-			PathSupport: p.getPathSupport(),
-			Formatters:  p.Formatters,
+		return &tableDataTransformPrinter{
+			Printer: &print.CSVPrinter{
+				NoHeaders:   p.NoHeaders,
+				Columns:     p.getEffectiveColumns(),
+				PathSupport: p.getPathSupport(),
+				Formatters:  p.Formatters,
+			},
+			Transform: p.PrintTableDataTransform,
 		}, nil
 	case "value":
-		vp := &print.ValuePrinter{
-			Format:      outputFormat,
-			PathSupport: p.getPathSupport(),
+		vp := &tableDataTransformPrinter{
+			Printer: &print.ValuePrinter{
+				Format:      outputFormat,
+				PathSupport: p.getPathSupport(),
+			},
+			Transform: p.PrintTableDataTransform,
 		}
 		return vp, nil
 	case "atlantis":
 		return &print.TemplatePrinter{
 			Template: templates.GetEmbeddedTemplate("atlantis.tmpl"),
 		}, nil
-	case "template":
-		if p.Template == "" {
-			return nil, fmt.Errorf("--print-template must be specified for --format template")
-		}
-		template := p.Template
-		if template[0] == '@' {
-			dat, err := os.ReadFile(template[1:])
-			if err != nil {
-				return nil, err
-			}
-			template = string(dat)
-		}
-		return &print.TemplatePrinter{
-			Template: template,
-		}, nil
 	case "table":
 		if p.Path == nil {
 			return nil, fmt.Errorf("this command does not support --format table")
 		}
-		return &print.TablePrinter{
-			NoHeaders:   p.NoHeaders,
-			Columns:     p.getEffectiveColumns(),
-			PathSupport: p.getPathSupport(),
-			Formatters:  p.Formatters,
+		return &tableDataTransformPrinter{
+			Printer: &print.TablePrinter{
+				NoHeaders:   p.NoHeaders,
+				Columns:     p.getEffectiveColumns(),
+				PathSupport: p.getPathSupport(),
+				Formatters:  p.Formatters,
+			},
+			Transform: p.PrintTableDataTransform,
 		}, nil
 	case "count":
 		if p.Path == nil {
 			return nil, fmt.Errorf("this command does not support --format count")
 		}
-		return &print.CountPrinter{
-			PathSupport: p.getPathSupport(),
+		return &tableDataTransformPrinter{
+			Printer: &print.CountPrinter{
+				PathSupport: p.getPathSupport(),
+			},
+			Transform: p.PrintTableDataTransform,
 		}, nil
 	case "diff":
 		if p.Path == nil || p.DiffColumn == "" {
@@ -212,10 +277,13 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 		if p.Path == nil {
 			return nil, fmt.Errorf("this command does not support --format vertical")
 		}
-		return &print.VerticalPrinter{
-			PathSupport: p.getPathSupport(),
-			Columns:     p.getEffectiveColumns(),
-			Formatters:  p.Formatters,
+		return &tableDataTransformPrinter{
+			Printer: &print.VerticalPrinter{
+				PathSupport: p.getPathSupport(),
+				Columns:     p.getEffectiveColumns(),
+				Formatters:  p.Formatters,
+			},
+			Transform: p.PrintTableDataTransform,
 		}, nil
 	default:
 		return nil, fmt.Errorf("this command does not support --format %s", p.OutputFormat)
