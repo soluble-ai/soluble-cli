@@ -100,12 +100,12 @@ func (o *AssessmentOpts) Validate() error {
 	return nil
 }
 
-// Prepare and return a directory that contains the custom rules for
-// a tool.  The ruleTypeName/moreRuleTypeNames signature requires at least
-// a single rule type to give a hint that the policy manager needs specific
+// Prepare and return a directory that contains the custom policies for
+// a tool.  The policyTypeName/morePolicyTypeNames signature requires at least
+// a single policy type to give a hint that the policy manager needs specific
 // support for any given tool, e.g. generate a directory with custom checkov
-// rules requires specific support in the policy manager for checkov.
-func (o *AssessmentOpts) GetCustomPoliciesDir(ruleTypeName string, moreRuleTypeNames ...string) (string, error) {
+// policies requires specific support in the policy manager for checkov.
+func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyTypeNames ...string) (string, error) {
 	if o.PreparedCustomPoliciesDir != "" {
 		return o.PreparedCustomPoliciesDir, nil
 	}
@@ -124,7 +124,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(ruleTypeName string, moreRuleTypeN
 	}
 	dir := o.CustomPoliciesDir
 	if dir == "" {
-		url := fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/rules.tgz", o.Tool.Name())
+		url := fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/policies.tgz", o.Tool.Name())
 		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
 			api.Organization), url)
 		if err != nil {
@@ -148,15 +148,15 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(ruleTypeName string, moreRuleTypeN
 			return "", err
 		}
 		exit.AddFunc(func() { _ = os.RemoveAll(dest) })
-		if err := store.LoadRulesOfType(policy.GetRuleType(ruleTypeName)); err != nil {
+		if err := store.LoadPoliciesOfType(policy.GetPolicyType(policyTypeName)); err != nil {
 			return "", err
 		}
-		for _, ruleTypeName := range moreRuleTypeNames {
-			if err := store.LoadRulesOfType(policy.GetRuleType(ruleTypeName)); err != nil {
+		for _, policyTypeName := range morePolicyTypeNames {
+			if err := store.LoadPoliciesOfType(policy.GetPolicyType(policyTypeName)); err != nil {
 				return "", err
 			}
 		}
-		if err := store.PrepareRules(dest); err != nil {
+		if err := store.PreparePolicies(dest); err != nil {
 			return "", err
 		}
 		md, err := store.GetPolicyUploadMetadata()

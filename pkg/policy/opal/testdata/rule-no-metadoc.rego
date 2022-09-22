@@ -1,4 +1,4 @@
-package rules.foo
+package policies.foo
 
 default allow = false
 
