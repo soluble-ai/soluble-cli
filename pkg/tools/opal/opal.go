@@ -18,7 +18,7 @@ type Tool struct {
 	tools.DirectoryBasedToolOpts
 	IACPlatform  tools.IACPlatform
 	VarFiles     []string
-	TerraformGet bool
+	EnableModuleDownload bool
 
 	inputType *string
 }
@@ -48,7 +48,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringSliceVar(&t.VarFiles, "var-file", nil, "Pass additional variable `files` to opal")
-	flags.BoolVar(&t.TerraformGet, "terraform-get", false, "Run terraform get to download external modules")
+	flags.BoolVar(&t.EnableModuleDownload, "enable-module-download", false, "Use --enable-module-download=true to enable.")
 }
 
 func (t *Tool) Validate() error {
@@ -84,7 +84,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		IACPlatform: t.IACPlatform,
 	}
 
-	if t.TerraformGet {
+	if t.EnableModuleDownload {
 		err := t.runTerraformGet()
 		if err != nil {
 			log.Warnf("{warning:terraform get} failed ")
