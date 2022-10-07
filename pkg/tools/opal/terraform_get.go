@@ -5,10 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory/terraformsettings"
-	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/util"
 )
 
 func (t *Tool) runTerraformGet() error {
@@ -16,7 +14,7 @@ func (t *Tool) runTerraformGet() error {
 	for _, rootModule := range inv.TerraformModules.Values() {
 		dir := filepath.Join(t.GetDirectory(), rootModule)
 
-		terraformExe, err := t.downloadTerraformExe(dir)
+		terraformExe, err := util.DownloadTerraformExe(dir)
 		if err != nil {
 			return err
 		}
@@ -31,17 +29,4 @@ func (t *Tool) runTerraformGet() error {
 		}
 	}
 	return nil
-}
-
-func (t *Tool) downloadTerraformExe(dir string) (string, error) {
-	settings := terraformsettings.Read(dir)
-	installer := &tools.RunOpts{}
-	d, err := installer.InstallTool(&download.Spec{
-		Name:             "terraform",
-		RequestedVersion: settings.GetTerraformVersion(),
-	})
-	if err != nil {
-		return "", err
-	}
-	return d.GetExePath("terraform"), nil
 }

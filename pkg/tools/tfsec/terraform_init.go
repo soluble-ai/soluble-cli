@@ -6,11 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
-	"github.com/soluble-ai/soluble-cli/pkg/inventory/terraformsettings"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
-	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	"github.com/soluble-ai/soluble-cli/pkg/tools/util"
 )
 
 type deletedFile struct {
@@ -62,7 +60,7 @@ func (t *Tool) runTerraformInit() (*terraformInit, error) {
 		if t.TerraformCommand != "" {
 			terraformArgs = strings.Split(t.TerraformCommand, " ")
 		} else {
-			terraformExe, err := t.downloadTerraformExe(dir)
+			terraformExe, err := util.DownloadTerraformExe(dir)
 			if err != nil {
 				return nil, err
 			}
@@ -83,19 +81,6 @@ func (t *Tool) runTerraformInit() (*terraformInit, error) {
 		}
 	}
 	return tfi, nil
-}
-
-func (t *Tool) downloadTerraformExe(dir string) (string, error) {
-	settings := terraformsettings.Read(dir)
-	installer := &tools.RunOpts{}
-	d, err := installer.InstallTool(&download.Spec{
-		Name:             "terraform",
-		RequestedVersion: settings.GetTerraformVersion(),
-	})
-	if err != nil {
-		return "", err
-	}
-	return d.GetExePath("terraform"), nil
 }
 
 func (tfi *terraformInit) restore() {
