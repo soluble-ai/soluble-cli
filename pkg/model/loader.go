@@ -35,7 +35,7 @@ type modelLoader struct {
 }
 
 func Load(source Source) error {
-	log.Debugf("Loading models from {info:%s}", source)
+	log.Debugf("Loading models from {primary:%s}", source)
 	m := &modelLoader{
 		parser: hclparse.NewParser(),
 	}

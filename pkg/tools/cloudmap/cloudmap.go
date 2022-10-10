@@ -89,7 +89,11 @@ func (t *Tool) Run() error {
 			xcp.WithFileFromReader("cloudmap", "cloudmap.json", bytes.NewReader(dat)),
 		}
 		options = exec.AppendUploadOptions(t.CompressResults, options)
-		_, err := t.GetAPIClient().XCPPost(t.GetOrganization(), "cloudmap", nil, values, options...)
+		api, err := t.GetAPIClient()
+		if err != nil {
+			return err
+		}
+		_, err = api.XCPPost(t.GetOrganization(), "cloudmap", nil, values, options...)
 		if err != nil {
 			return err
 		}

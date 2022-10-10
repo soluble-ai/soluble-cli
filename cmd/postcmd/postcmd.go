@@ -33,10 +33,14 @@ func Command() *cobra.Command {
 	}
 	c := &cobra.Command{
 		Use:   "post",
-		Short: "Send data to soluble",
+		Short: "Send data to lacework IAC",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result, err := opts.GetAPIClient().XCPPost(opts.GetOrganization(), module, files, values,
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := api.XCPPost(opts.GetOrganization(), module, files, values,
 				xcp.WithCIEnv(""))
 			if err != nil {
 				return err

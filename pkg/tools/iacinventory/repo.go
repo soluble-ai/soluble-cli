@@ -90,7 +90,11 @@ func (r *Repo) Run() error {
 		}
 		options = r.AppendUploadOptions(r.GetDirectory(), options)
 		log.Infof("Uploading {info:%s} of compressed tree data", util.Size(uint64(gzdat.Len())))
-		_, err := r.GetAPIClient().XCPPost(r.GetOrganization(), "repo-tree", nil, values, options...)
+		api, err := r.GetAPIClient()
+		if err != nil {
+			return err
+		}
+		_, err = api.XCPPost(r.GetOrganization(), "repo-tree", nil, values, options...)
 		if err != nil {
 			return err
 		}

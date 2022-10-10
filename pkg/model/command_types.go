@@ -28,7 +28,7 @@ type CommandType string
 type CommandMaker func(c *cobra.Command, cm *CommandModel) Command
 
 type Command interface {
-	GetAPIClient() *api.Client
+	GetAPIClient() (*api.Client, error)
 	GetUnauthenticatedAPIClient() *api.Client
 	PrintResult(n *jnode.Node)
 	GetCobraCommand() *cobra.Command
@@ -61,8 +61,8 @@ func (t CommandType) makeCommand(c *cobra.Command, cm *CommandModel) Command {
 	return commandTypes[string(t)](c, cm)
 }
 
-func (g *GroupCommand) GetAPIClient() *api.Client {
-	return nil
+func (g *GroupCommand) GetAPIClient() (*api.Client, error) {
+	return nil, nil
 }
 func (g *GroupCommand) GetUnauthenticatedAPIClient() *api.Client {
 	return nil

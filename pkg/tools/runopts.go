@@ -141,7 +141,10 @@ func (o *RunOpts) getToolVersion(name string) *jnode.Node {
 }
 
 func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Download, error) {
-	apiClient := o.GetAPIClient()
+	apiClient, err := o.GetAPIClient()
+	if err != nil {
+		return nil, err
+	}
 	m := download.NewManager()
 	return m.Install(&download.Spec{
 		Name:                       name,

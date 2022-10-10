@@ -79,11 +79,11 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 	return w
 }
 
-func (w *OptionsCommand) GetAPIClient() *api.Client {
+func (w *OptionsCommand) GetAPIClient() (*api.Client, error) {
 	if w.ClientOpts != nil {
 		return w.ClientOpts.GetAPIClient()
 	}
-	return nil
+	return nil, nil
 }
 
 func (w *OptionsCommand) GetUnauthenticatedAPIClient() *api.Client {

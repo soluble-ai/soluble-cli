@@ -110,14 +110,18 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil
 	}
-	if o.GetAPIClientConfig().APIToken == "" {
+	api, err := o.GetAPIClient()
+	if err != nil {
+		return "", err
+	}
+	if api.APIToken == "" && api.LaceworkAPIToken == "" {
 		return "", nil
 	}
 	dir := o.CustomPoliciesDir
 	if dir == "" {
 		url := fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/rules.tgz", o.Tool.Name())
 		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
-			o.GetAPIClientConfig().Organization), url)
+			api.Organization), url)
 		if err != nil {
 			return "", err
 		}

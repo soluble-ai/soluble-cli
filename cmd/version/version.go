@@ -23,7 +23,7 @@ import (
 func Command() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
-		Short: "Shows soluble CLI version",
+		Short: "Display the version of the lacework IAC CLI",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			colorize.Colorize("version: {info:%s}\n", v.Version)

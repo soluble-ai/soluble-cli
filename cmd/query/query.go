@@ -26,7 +26,7 @@ import (
 func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:    "query",
-		Short:  "List and run Soluble queries",
+		Short:  "List and run lacework IAC queries",
 		Hidden: true,
 	}
 	c.AddCommand(listCommand())
@@ -47,7 +47,11 @@ func listCommand() *cobra.Command {
 		Short: "List available queries",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result, err := opts.GetAPIClient().Get("/api/v1/org/{org}/queries")
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := api.Get("/api/v1/org/{org}/queries")
 			if err != nil {
 				return err
 			}
@@ -72,7 +76,11 @@ func listParametersCommand() *cobra.Command {
 		Short: "List the parameters of a query",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result, err := opts.GetAPIClient().Get("/api/v1/org/{org}/queries")
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := api.Get("/api/v1/org/{org}/queries")
 			if err != nil {
 				return err
 			}
@@ -110,7 +118,11 @@ func runCommand() *cobra.Command {
 			if textSearch != "" {
 				parameters["q"] = textSearch
 			}
-			result, err := opts.GetAPIClient().GetWithParams(path, parameters)
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := api.GetWithParams(path, parameters)
 			if err != nil {
 				return err
 			}
