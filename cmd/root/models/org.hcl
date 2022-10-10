@@ -5,10 +5,10 @@ command "group" "org" {
   command "print_client" "list" {
     short  = "List your organizations"
     method = "GET"
-    path   = "org"
+    path   = "users/profile"
     result {
-      path    = ["organizations"]
-      columns = ["isCurrent", "displayName", "name", "orgId", "createTs"]
+      path    = ["data", "organizations"]
+      columns = ["isCurrent", "displayName", "name", "orgId", "active"]
       computed_columns = {
         "isCurrent": "is_current_org"
       }
