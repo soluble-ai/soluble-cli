@@ -8,7 +8,7 @@ command "group" "org" {
     path   = "users/profile"
     result {
       path    = ["data", "organizations"]
-      columns = ["isCurrent", "displayName", "name", "orgId", "active", "createTs"]
+      columns = ["isCurrent", "displayName", "name", "orgId", "active"]
       computed_columns = {
         "isCurrent": "is_current_org"
       }
