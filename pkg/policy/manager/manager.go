@@ -1,9 +1,12 @@
 package manager
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -47,6 +50,37 @@ type ValidateResult struct {
 	Errors  error `json:"-"`
 	Valid   int   `json:"valid"`
 	Invalid int   `json:"invalid"`
+}
+
+type PolicyTemplate struct {
+	PolicyType string
+	CheckType  string //target
+	PolicyName string
+	PolicyDir  string
+	//optional
+	PolicyDesc     string
+	PolicyTitle    string
+	PolicySeverity string
+	PolicyCategory string
+	PolicyRsrcType string
+}
+
+func (pt *PolicyTemplate) ValidateInput() error {
+	//TODO add validation for optional input
+	if isValid := regexp.MustCompile(`^[a-z0-9-]*$`).MatchString(pt.PolicyName); !isValid {
+		return errors.New(fmt.Sprintf("Invalid policy-name: %v. policy-name must consist only of [a-z0-9-]", pt.PolicyName))
+	}
+
+	pt.PolicyType = strings.ToLower(pt.PolicyType)
+	if policy.GetRuleType(pt.PolicyType) == nil {
+		return errors.New(fmt.Sprintf("Invalid policy-type. policy-type is one of: %v", policy.ListRuleTypes()))
+	}
+
+	pt.CheckType = strings.ToLower(pt.CheckType)
+	if !policy.IsTarget(pt.CheckType) {
+		return errors.New(fmt.Sprintf("Invalid check-type. check-type is one of: %v", policy.ListTargets()))
+	}
+	return nil
 }
 
 func (vr *ValidateResult) AppendError(err error) {

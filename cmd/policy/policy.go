@@ -25,7 +25,45 @@ func Command() *cobra.Command {
 		vetCommand(),
 		uploadCommand(),
 		testCommand(),
+		createCommand(),
 	)
+	return c
+}
+
+func createCommand() *cobra.Command {
+	m := &manager.M{}
+	pt := &manager.PolicyTemplate{}
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create custom policy. Generates skeleton policy and metadata file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := pt.ValidateInput(); err != nil {
+				return err
+			}
+			if err := pt.CreateCustomPolicyTemplate(); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	m.Register(c)
+	flags := c.Flags()
+	flags.StringVar(&pt.PolicyName, "policy-name", "", "name of policy being created in format my_custom_policy")
+	_ = c.MarkFlagRequired("policy-name")
+	flags.StringVar(&pt.CheckType, "check-type", "", "policy target")
+	_ = c.MarkFlagRequired("check-type")
+	flags.StringVar(&pt.PolicyType, "policy-type", "", "policy type")
+	_ = c.MarkFlagRequired("policy-type")
+	flags.StringVar(&pt.PolicyDir, "policy-directory", "", "policy directory")
+	_ = c.MarkFlagRequired("policy-directory")
+
+	//Optional
+	flags.StringVar(&pt.PolicyDesc, "policy-description", "", "policy description")
+	flags.StringVar(&pt.PolicyTitle, "policy-title", "", "policy title")
+	flags.StringVar(&pt.PolicySeverity, "policy-severity", "", "policy severity")
+	flags.StringVar(&pt.PolicyCategory, "policy-category", "", "policy category")
+	flags.StringVar(&pt.PolicyRsrcType, "policy-resource-type", "", "policy resource type")
+
 	return c
 }
 
