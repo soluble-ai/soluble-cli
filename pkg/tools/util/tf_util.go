@@ -1,15 +1,16 @@
 package util
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory"
 	"github.com/soluble-ai/soluble-cli/pkg/inventory/terraformsettings"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
 func RunTerraformGet(dir string, opts tools.RunOpts) error {
