@@ -161,7 +161,10 @@ func (p *PrintOpts) GetPrinter() (print.Interface, error) {
 	fileCount := 0
 	for _, template := range p.Template {
 		template, file := getFormatFileOutput(template)
-		tp := &print.TemplatePrinter{Template: template}
+		tp, err := print.NewTemplatePrinter(template)
+		if err != nil {
+			return nil, err
+		}
 		cp.AddPrinter(tp, file)
 		if file != "" {
 			fileCount++
