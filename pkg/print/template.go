@@ -2,6 +2,7 @@ package print
 
 import (
 	"io"
+	"os"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -11,6 +12,19 @@ import (
 
 type TemplatePrinter struct {
 	Template string
+}
+
+func NewTemplatePrinter(template string) (*TemplatePrinter, error) {
+	if len(template) > 0 && template[0] == '@' {
+		dat, err := os.ReadFile(template[1:])
+		if err != nil {
+			return nil, err
+		}
+		template = string(dat)
+	}
+	return &TemplatePrinter{
+		Template: template,
+	}, nil
 }
 
 func (tp *TemplatePrinter) PrintResult(w io.Writer, result *jnode.Node) int {
