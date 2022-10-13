@@ -1,4 +1,4 @@
-package custompolicybuilder
+package test
 
 import (
 	"testing"
