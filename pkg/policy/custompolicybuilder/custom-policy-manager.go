@@ -66,6 +66,10 @@ func (pt *PolicyTemplate) ValidateCreateInput() error {
 			}
 		}
 	}
+	if _, err := os.Stat(pt.PolicyDir + "/" + pt.PolicyType + "/" + pt.PolicyName); !os.IsNotExist(err) {
+		return fmt.Errorf("custom policy '%v' already exists in directory '%v'",
+			pt.PolicyName, pt.PolicyDir+"/"+pt.PolicyType+"/"+pt.PolicyName)
+	}
 	return nil
 }
 
