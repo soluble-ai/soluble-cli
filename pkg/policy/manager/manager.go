@@ -64,6 +64,10 @@ type PolicyTemplate struct {
 	PolicyRsrcType string
 }
 
+var SeverityNames = util.NewStringSetWithValues([]string{
+	"info", "low", "medium", "high", "critical",
+})
+
 func (pt *PolicyTemplate) ValidateCreateInput() error {
 	// TODO add validation for optional input
 	if isValid := regexp.MustCompile(`^[a-z0-9-]*$`).MatchString(pt.PolicyName); !isValid {
@@ -78,6 +82,11 @@ func (pt *PolicyTemplate) ValidateCreateInput() error {
 	pt.CheckType = strings.ToLower(pt.CheckType)
 	if !policy.IsTarget(pt.CheckType) {
 		return fmt.Errorf("invalid check-type. check-type is one of: %v", policy.ListTargets())
+	}
+
+	pt.PolicySeverity = strings.ToLower(pt.PolicySeverity)
+	if !SeverityNames.Contains(pt.PolicySeverity) {
+		return fmt.Errorf("invalid severity '%v'. severity is one of %v: ", pt.PolicySeverity, SeverityNames.Values())
 	}
 
 	if pt.PolicyDir == "policies" {
@@ -97,6 +106,7 @@ func (pt *PolicyTemplate) ValidateCreateInput() error {
 			}
 		}
 	}
+
 	return nil
 }
 
