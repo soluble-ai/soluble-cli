@@ -32,11 +32,11 @@ func (pt *PolicyTemplate) CreateCustomPolicyTemplate() error {
 
 func (pt *PolicyTemplate) CreateDirectoryStructure() error {
 	// full directory path
-	pt.PolicyDir += "/" + pt.PolicyType + "/" + pt.PolicyName + "/" + pt.CheckType + "/tests"
-	if err := os.MkdirAll(pt.PolicyDir, os.ModePerm); err != nil {
+	pt.Dir += "/" + pt.Type + "/" + pt.Name + "/" + pt.CheckType + "/tests"
+	if err := os.MkdirAll(pt.Dir, os.ModePerm); err != nil {
 		return err
 	} else {
-		fmt.Println("created: ", pt.PolicyDir)
+		fmt.Println("created: ", pt.Dir)
 	}
 	return nil
 }
@@ -51,10 +51,10 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 	}
 
 	metadata := Metadata{
-		Category:    pt.PolicyCategory,
-		Description: doubleQuote(pt.PolicyDesc),
-		Severity:    pt.PolicySeverity,
-		Title:       doubleQuote(pt.PolicyTitle),
+		Category:    pt.Category,
+		Description: doubleQuote(pt.Desc),
+		Severity:    pt.Severity,
+		Title:       doubleQuote(pt.Title),
 	}
 
 	data, err := yaml.Marshal(&metadata)
@@ -63,7 +63,7 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 		log.Fatal(err)
 	}
 
-	metadataPath := strings.Split(pt.PolicyDir, pt.CheckType)[0] + "/metadata.yaml"
+	metadataPath := strings.Split(pt.Dir, pt.CheckType)[0] + "/metadata.yaml"
 	err2 := os.WriteFile(metadataPath, data, 0600)
 
 	if err2 != nil {
@@ -82,13 +82,13 @@ func doubleQuote(val string) yaml.Node {
 }
 
 func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
-	regoPath := strings.Split(pt.PolicyDir, "tests")[0] + "/policy.rego"
+	regoPath := strings.Split(pt.Dir, "tests")[0] + "/policy.rego"
 	regoTemplate :=
-		"package policies." + pt.PolicyName +
+		"package policies." + pt.Name +
 			"\n\ninput_type := \"" + inputTypeForTarget[policy.Target(pt.CheckType)] + "\""
 
-	if pt.PolicyRsrcType != "" {
-		regoTemplate += "\n\nresource_type := \"" + pt.PolicyRsrcType + "\""
+	if pt.RsrcType != "" {
+		regoTemplate += "\n\nresource_type := \"" + pt.RsrcType + "\""
 	}
 
 	regoTemplate +=

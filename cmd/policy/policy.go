@@ -26,12 +26,12 @@ func Command() *cobra.Command {
 		vetCommand(),
 		uploadCommand(),
 		testCommand(),
-		createCommand(),
+		CreateCommand(),
 	)
 	return c
 }
 
-func createCommand() *cobra.Command {
+func CreateCommand() *cobra.Command {
 	cpb := &custompolicybuilder.PolicyTemplate{}
 	c := &cobra.Command{
 		Use:   "create",

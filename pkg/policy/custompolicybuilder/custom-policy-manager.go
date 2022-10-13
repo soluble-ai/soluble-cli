@@ -12,16 +12,16 @@ import (
 )
 
 type PolicyTemplate struct {
-	PolicyType string
-	CheckType  string
-	PolicyName string
-	PolicyDir  string
+	Type      string
+	CheckType string
+	Name      string
+	Dir       string
 	// optional
-	PolicyDesc     string
-	PolicyTitle    string
-	PolicySeverity string
-	PolicyCategory string
-	PolicyRsrcType string
+	Desc     string
+	Title    string
+	Severity string
+	Category string
+	RsrcType string
 }
 
 var SeverityNames = util.NewStringSetWithValues([]string{
@@ -30,13 +30,13 @@ var SeverityNames = util.NewStringSetWithValues([]string{
 
 func (pt *PolicyTemplate) ValidateCreateInput() error {
 	// TODO add validation for optional input
-	if isValid := regexp.MustCompile(`^[a-z0-9-]*$`).MatchString(pt.PolicyName); !isValid {
-		return fmt.Errorf("invalid policy-name: %v. policy-name must consist only of [a-z0-9-]", pt.PolicyName)
+	if isValid := regexp.MustCompile(`^[a-z0-9-]*$`).MatchString(pt.Name); !isValid {
+		return fmt.Errorf("invalid name: %v. name must consist only of [a-z0-9-]", pt.Name)
 	}
 
-	pt.PolicyType = strings.ToLower(pt.PolicyType)
-	if policy.GetRuleType(pt.PolicyType) == nil {
-		return fmt.Errorf("invalid policy-type. policy-type is one of: %v", policy.ListRuleTypes())
+	pt.Type = strings.ToLower(pt.Type)
+	if policy.GetRuleType(pt.Type) == nil {
+		return fmt.Errorf("invalid type. type is one of: %v", policy.ListRuleTypes())
 	}
 
 	pt.CheckType = strings.ToLower(pt.CheckType)
@@ -44,48 +44,48 @@ func (pt *PolicyTemplate) ValidateCreateInput() error {
 		return fmt.Errorf("invalid check-type. check-type is one of: %v", policy.ListTargets())
 	}
 
-	pt.PolicySeverity = strings.ToLower(pt.PolicySeverity)
-	if !SeverityNames.Contains(pt.PolicySeverity) {
-		return fmt.Errorf("invalid severity '%v'. severity is one of %v: ", pt.PolicySeverity, SeverityNames.Values())
+	pt.Severity = strings.ToLower(pt.Severity)
+	if !SeverityNames.Contains(pt.Severity) {
+		return fmt.Errorf("invalid severity '%v'. severity is one of %v: ", pt.Severity, SeverityNames.Values())
 	}
 
-	if pt.PolicyDir == "policies" {
-		if _, err := os.Stat(pt.PolicyDir); os.IsNotExist(err) {
+	if pt.Dir == "policies" {
+		if _, err := os.Stat(pt.Dir); os.IsNotExist(err) {
 			return fmt.Errorf("could not find '%v' directory in current directory."+
-				"\ncreate 'policies' directory or use -d to target existing policies directory", pt.PolicyDir)
+				"\ncreate 'policies' directory or use -d to target existing policies directory", pt.Dir)
 		}
 	} else {
 		dir := "/policies"
-		if pt.PolicyDir[len(pt.PolicyDir)-len(dir):] != dir {
-			return fmt.Errorf("invalid directory path: %v", pt.PolicyDir+
+		if pt.Dir[len(pt.Dir)-len(dir):] != dir {
+			return fmt.Errorf("invalid directory path: %v", pt.Dir+
 				"\nprovide path to existing policies directory")
 		} else {
-			if _, err := os.Stat(pt.PolicyDir); os.IsNotExist(err) {
-				return fmt.Errorf("could not find directory: %v", pt.PolicyDir+
+			if _, err := os.Stat(pt.Dir); os.IsNotExist(err) {
+				return fmt.Errorf("could not find directory: %v", pt.Dir+
 					"\ntarget existing policies directory.")
 			}
 		}
 	}
-	if _, err := os.Stat(pt.PolicyDir + "/" + pt.PolicyType + "/" + pt.PolicyName); !os.IsNotExist(err) {
+	if _, err := os.Stat(pt.Dir + "/" + pt.Type + "/" + pt.Name); !os.IsNotExist(err) {
 		return fmt.Errorf("custom policy '%v' already exists in directory '%v'",
-			pt.PolicyName, pt.PolicyDir+"/"+pt.PolicyType+"/"+pt.PolicyName)
+			pt.Name, pt.Dir+"/"+pt.Type+"/"+pt.Name)
 	}
 	return nil
 }
 
 func (pt *PolicyTemplate) Register(c *cobra.Command) {
 	flags := c.Flags()
-	flags.StringVar(&pt.PolicyName, "name", "", "name of policy to create")
+	flags.StringVar(&pt.Name, "name", "", "name of policy to create")
 	_ = c.MarkFlagRequired("name")
-	flags.StringVar(&pt.CheckType, "check-type", "", "policy target")
+	flags.StringVar(&pt.CheckType, "check-type", "", " target")
 	_ = c.MarkFlagRequired("check-type")
-	flags.StringVar(&pt.PolicyType, "type", "", "policy type")
+	flags.StringVar(&pt.Type, "type", "", "policy type")
 	_ = c.MarkFlagRequired("type")
 	// Optional
-	flags.StringVarP(&pt.PolicyDir, "directory", "d", "policies", "path to custom policies directory")
-	flags.StringVar(&pt.PolicyDesc, "description", "", "policy description")
-	flags.StringVar(&pt.PolicyTitle, "title", "", "policy title")
-	flags.StringVar(&pt.PolicySeverity, "severity", "medium", "policy severity")
-	flags.StringVar(&pt.PolicyCategory, "category", "", "policy category")
-	flags.StringVar(&pt.PolicyRsrcType, "resource-type", "", "policy resource type")
+	flags.StringVarP(&pt.Dir, "directory", "d", "policies", "path to custom policies directory")
+	flags.StringVar(&pt.Desc, "description", "", "policy description")
+	flags.StringVar(&pt.Title, "title", "", "policy title")
+	flags.StringVar(&pt.Severity, "severity", "medium", "policy severity")
+	flags.StringVar(&pt.Category, "category", "", "policy category")
+	flags.StringVar(&pt.RsrcType, "resource-type", "", "policy resource type")
 }
