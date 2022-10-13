@@ -85,11 +85,10 @@ func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
 	regoPath := strings.Split(pt.PolicyDir, "tests")[0] + "/policy.rego"
 	regoTemplate :=
 		"package policies." + pt.PolicyName +
-			"\n\n" +
-			"input_type := \"" + inputTypeForTarget[policy.Target(pt.CheckType)] + "\""
+			"\n\ninput_type := \"" + inputTypeForTarget[policy.Target(pt.CheckType)] + "\""
 
 	if pt.PolicyRsrcType != "" {
-		regoTemplate += "\n\nresource_type = " + pt.PolicyRsrcType
+		regoTemplate += "\n\nresource_type := \"" + pt.PolicyRsrcType + "\""
 	}
 
 	regoTemplate +=
