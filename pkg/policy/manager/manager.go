@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -49,65 +47,6 @@ type ValidateResult struct {
 	Errors  error `json:"-"`
 	Valid   int   `json:"valid"`
 	Invalid int   `json:"invalid"`
-}
-
-type PolicyTemplate struct {
-	PolicyType string
-	CheckType  string
-	PolicyName string
-	PolicyDir  string
-	// optional
-	PolicyDesc     string
-	PolicyTitle    string
-	PolicySeverity string
-	PolicyCategory string
-	PolicyRsrcType string
-}
-
-var SeverityNames = util.NewStringSetWithValues([]string{
-	"info", "low", "medium", "high", "critical",
-})
-
-func (pt *PolicyTemplate) ValidateCreateInput() error {
-	// TODO add validation for optional input
-	if isValid := regexp.MustCompile(`^[a-z0-9-]*$`).MatchString(pt.PolicyName); !isValid {
-		return fmt.Errorf("invalid policy-name: %v. policy-name must consist only of [a-z0-9-]", pt.PolicyName)
-	}
-
-	pt.PolicyType = strings.ToLower(pt.PolicyType)
-	if policy.GetRuleType(pt.PolicyType) == nil {
-		return fmt.Errorf("invalid policy-type. policy-type is one of: %v", policy.ListRuleTypes())
-	}
-
-	pt.CheckType = strings.ToLower(pt.CheckType)
-	if !policy.IsTarget(pt.CheckType) {
-		return fmt.Errorf("invalid check-type. check-type is one of: %v", policy.ListTargets())
-	}
-
-	pt.PolicySeverity = strings.ToLower(pt.PolicySeverity)
-	if !SeverityNames.Contains(pt.PolicySeverity) {
-		return fmt.Errorf("invalid severity '%v'. severity is one of %v: ", pt.PolicySeverity, SeverityNames.Values())
-	}
-
-	if pt.PolicyDir == "policies" {
-		if _, err := os.Stat(pt.PolicyDir); os.IsNotExist(err) {
-			return fmt.Errorf("could not find '%v' directory in current directory."+
-				"\ncreate 'policies' directory or use -d to target existing policies directory", pt.PolicyDir)
-		}
-	} else {
-		dir := "/policies"
-		if pt.PolicyDir[len(pt.PolicyDir)-len(dir):] != dir {
-			return fmt.Errorf("invalid directory path: %v", pt.PolicyDir+
-				"\nprovide path to existing policies directory")
-		} else {
-			if _, err := os.Stat(pt.PolicyDir); os.IsNotExist(err) {
-				return fmt.Errorf("could not find directory: %v", pt.PolicyDir+
-					"\ntarget existing policies directory.")
-			}
-		}
-	}
-
-	return nil
 }
 
 func (vr *ValidateResult) AppendError(err error) {
