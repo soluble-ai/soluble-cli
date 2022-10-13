@@ -2,10 +2,11 @@ package manager
 
 import (
 	"fmt"
-	policies "github.com/soluble-ai/soluble-cli/pkg/policy"
 	"os"
 	"path/filepath"
 	"strings"
+
+	policies "github.com/soluble-ai/soluble-cli/pkg/policy"
 
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )

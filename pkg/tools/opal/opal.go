@@ -117,6 +117,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
+	result.Data = n
 	for _, rr := range n.Path("policy_results").Elements() {
 		loc := rr.Path("source_location").Get(0)
 		result.Findings = append(result.Findings, &assessments.Finding{
