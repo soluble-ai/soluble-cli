@@ -37,7 +37,7 @@ func createCommand() *cobra.Command {
 		Use:   "create",
 		Short: "Create custom policy. Generates skeleton policy and metadata file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := pt.ValidateInput(); err != nil {
+			if err := pt.ValidateCreateInput(); err != nil {
 				return err
 			}
 			if err := pt.CreateCustomPolicyTemplate(); err != nil {
@@ -46,23 +46,22 @@ func createCommand() *cobra.Command {
 			return nil
 		},
 	}
-	m.Register(c)
+	m.RunOpts.Register(c)
 	flags := c.Flags()
-	flags.StringVar(&pt.PolicyName, "policy-name", "", "name of policy being created in format my_custom_policy")
-	_ = c.MarkFlagRequired("policy-name")
+	flags.StringVar(&pt.PolicyName, "name", "", "name of policy to create")
+	_ = c.MarkFlagRequired("name")
 	flags.StringVar(&pt.CheckType, "check-type", "", "policy target")
 	_ = c.MarkFlagRequired("check-type")
-	flags.StringVar(&pt.PolicyType, "policy-type", "", "policy type")
-	_ = c.MarkFlagRequired("policy-type")
-	flags.StringVar(&pt.PolicyDir, "policy-directory", "", "policy directory")
-	_ = c.MarkFlagRequired("policy-directory")
+	flags.StringVar(&pt.PolicyType, "type", "", "policy type")
+	_ = c.MarkFlagRequired("type")
 
-	//Optional
-	flags.StringVar(&pt.PolicyDesc, "policy-description", "", "policy description")
-	flags.StringVar(&pt.PolicyTitle, "policy-title", "", "policy title")
-	flags.StringVar(&pt.PolicySeverity, "policy-severity", "", "policy severity")
-	flags.StringVar(&pt.PolicyCategory, "policy-category", "", "policy category")
-	flags.StringVar(&pt.PolicyRsrcType, "policy-resource-type", "", "policy resource type")
+	// Optional
+	flags.StringVarP(&pt.PolicyDir, "directory", "d", "policies", "path to custom policies directory")
+	flags.StringVar(&pt.PolicyDesc, "description", "", "policy description")
+	flags.StringVar(&pt.PolicyTitle, "title", "", "policy title")
+	flags.StringVar(&pt.PolicySeverity, "severity", "medium", "policy severity")
+	flags.StringVar(&pt.PolicyCategory, "category", "", "policy category")
+	flags.StringVar(&pt.PolicyRsrcType, "resource-type", "", "policy resource type")
 
 	return c
 }

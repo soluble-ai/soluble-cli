@@ -2,11 +2,12 @@ package manager
 
 import (
 	"fmt"
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	"gopkg.in/yaml.v3"
 )
 
 var inputTypeForTarget = map[policy.Target]string{
@@ -29,23 +30,13 @@ func (pt *PolicyTemplate) CreateCustomPolicyTemplate() error {
 	return nil
 }
 
-func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
-	regoPath := strings.Split(pt.PolicyDir, "tests")[0] + "/policy.rego"
-
-	regoTemplate := "package policy." + pt.PolicyName +
-		"\n\ninput_type = " + inputTypeForTarget[policy.Target(pt.CheckType)]
-
-	if pt.PolicyRsrcType != "" {
-		regoTemplate += "\n\nresource_type = " + pt.PolicyRsrcType
-	}
-
-	regoTemplate += "\n\ndefault allow = false" +
-		"\n\n# Add Rego Policy # \n"
-
-	err := os.WriteFile(regoPath, []byte(regoTemplate), 777)
-
-	if err != nil {
-		log.Fatal(err)
+func (pt *PolicyTemplate) CreateDirectoryStructure() error {
+	// full directory path
+	pt.PolicyDir += "/" + pt.PolicyType + "/" + pt.PolicyName + "/" + pt.CheckType + "/tests"
+	if err := os.MkdirAll(pt.PolicyDir, os.ModePerm); err != nil {
+		return err
+	} else {
+		fmt.Println("created: ", pt.PolicyDir)
 	}
 	return nil
 }
@@ -53,38 +44,18 @@ func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
 func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 	// metadata.yaml (in PolicyName dir)
 	type Metadata struct {
-		Category    string `yaml:"category"`
-		Description string `yaml:"description"`
-		Severity    string `yaml:"severity"`
-		Title       string `yaml:"title"`
-		Id          string `yaml:"id"`
+		Category    string    `yaml:"category"`
+		Description yaml.Node `yaml:"description"`
+		Severity    string    `yaml:"severity"`
+		Title       yaml.Node `yaml:"title"`
 	}
 
-	//Check optional flag
-	category := pt.PolicyCategory
-	if category == "" {
-		category = "General"
-	}
-	severity := pt.PolicySeverity
-	if severity == "" {
-		severity = "Medium"
-	}
-	desc := pt.PolicyDesc
-	if desc == "" {
-		desc = pt.PolicyName
-	}
-	title := pt.PolicyTitle
-	if title == "" {
-		title = pt.PolicyName
-	}
 	metadata := Metadata{
-		Category:    category,
-		Description: desc,
-		Severity:    severity,
-		Title:       pt.PolicyName,
-		Id:          pt.GeneratePolicyID(),
+		Category:    pt.PolicyCategory,
+		Description: doubleQuote(pt.PolicyDesc),
+		Severity:    pt.PolicySeverity,
+		Title:       doubleQuote(pt.PolicyTitle),
 	}
-	metadata.Severity = "sd"
 
 	data, err := yaml.Marshal(&metadata)
 
@@ -92,30 +63,43 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 		log.Fatal(err)
 	}
 
-	metadataPath := strings.Split(pt.PolicyDir, pt.CheckType)[0] + "/matadata.yaml"
-	err2 := os.WriteFile(metadataPath, data, 777)
+	metadataPath := strings.Split(pt.PolicyDir, pt.CheckType)[0] + "/metadata.yaml"
+	err2 := os.WriteFile(metadataPath, data, 0600)
 
 	if err2 != nil {
 		log.Fatal(err2)
 	}
-
-	fmt.Println("data written")
 	return nil
 }
 
-func (pt *PolicyTemplate) CreateDirectoryStructure() error {
-	// full directory path
-	pt.PolicyDir += "/policies/" + pt.PolicyType + "/" + pt.PolicyName + "/" + pt.CheckType + "/tests"
-	if err := os.MkdirAll(pt.PolicyDir, os.ModePerm); err != nil {
-		return err
-	} else {
-		fmt.Println("created: ", pt.PolicyDir)
+func doubleQuote(val string) yaml.Node {
+	node := yaml.Node{
+		Value: val,
+		Kind:  yaml.ScalarNode,
+		Style: yaml.DoubleQuotedStyle,
+	}
+	return node
+}
+
+func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
+	regoPath := strings.Split(pt.PolicyDir, "tests")[0] + "/policy.rego"
+	regoTemplate :=
+		"package policies." + pt.PolicyName +
+			"\n\n" +
+			"input_type := \"" + inputTypeForTarget[policy.Target(pt.CheckType)] + "\""
+
+	if pt.PolicyRsrcType != "" {
+		regoTemplate += "\n\nresource_type = " + pt.PolicyRsrcType
 	}
 
-	return nil
-}
+	regoTemplate +=
+		"\n\ndefault allow = false" +
+			"\n\n# Add Rego Policy # \n"
 
-func (pt *PolicyTemplate) GeneratePolicyID() string {
-	//example:  opal-1238741-s3-block-public-access
-	return pt.PolicyType + "-someidval123-" + pt.PolicyName
+	err := os.WriteFile(regoPath, []byte(regoTemplate), 0600)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nil
 }
