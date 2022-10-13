@@ -25,11 +25,13 @@ func updateAuthAction(command model.Command, result *jnode.Node) (*jnode.Node, e
 		return nil, err
 	}
 	opts := command.(*model.OptionsCommand).ClientOpts
-	cfg := opts.GetAPIClientConfig()
+	cfg, err := opts.GetAPIClientConfig()
+	if err != nil {
+		return nil, err
+	}
 	config.Config.APIServer = cfg.APIServer
 	config.Config.TLSNoVerify = cfg.TLSNoVerify
 	config.Config.APIToken = result.Path("token").AsText()
-	config.Config.Email = result.Path("user").Path("email").AsText()
 	config.Config.Organization = result.Path("user").Path("currentOrgId").AsText()
 	if err := config.Save(); err != nil {
 		return nil, err

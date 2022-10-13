@@ -286,7 +286,11 @@ func (cm *CommandModel) run(command Command, cmd *cobra.Command, args []string) 
 	if cm.Unauthenticated != nil && *cm.Unauthenticated {
 		apiClient = command.GetUnauthenticatedAPIClient()
 	} else {
-		apiClient = command.GetAPIClient()
+		var err error
+		apiClient, err = command.GetAPIClient()
+		if err != nil {
+			return err
+		}
 	}
 	options := cm.getOptions()
 	switch *cm.Method {

@@ -45,15 +45,19 @@ var (
 		Debug:   "Debug",
 		Trace:   "Trace",
 	}
-	configured      bool
+	deferring       bool
 	startupMessages []startupMessage
 	lock            sync.Mutex
 )
 
+func DeferUntilConfigured() {
+	deferring = true
+}
+
 func Log(level int, template string, args ...interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
-	if !configured {
+	if deferring {
 		// defer actually logging messages until logging has been
 		// configured
 		startupMessages = append(startupMessages, startupMessage{
@@ -73,7 +77,7 @@ func Log(level int, template string, args ...interface{}) {
 }
 
 func logStartupMessages() {
-	configured = true
+	deferring = false
 	for _, m := range startupMessages {
 		Log(m.level, m.template, m.args...)
 	}

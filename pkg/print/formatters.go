@@ -102,6 +102,9 @@ func getCellValue(n *jnode.Node, columnName string) *jnode.Node {
 }
 
 func defaultFormatter(n *jnode.Node) string {
+	if n.IsNull() {
+		return ""
+	}
 	return n.AsText()
 }
 

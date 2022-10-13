@@ -23,7 +23,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/cfnscan"
 	"github.com/soluble-ai/soluble-cli/cmd/cloudscan"
 	"github.com/soluble-ai/soluble-cli/cmd/codescan"
-	configcmd "github.com/soluble-ai/soluble-cli/cmd/config"
+	"github.com/soluble-ai/soluble-cli/cmd/configure"
 	"github.com/soluble-ai/soluble-cli/cmd/depscan"
 	"github.com/soluble-ai/soluble-cli/cmd/downloadcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/fingerprint"
@@ -45,7 +45,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/model"
-	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/autoscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/checkov"
@@ -61,10 +60,13 @@ var (
 )
 
 func Command() *cobra.Command {
+	// Defer logging until it's been configured
+	log.DeferUntilConfigured()
+
 	// rootCmd represents the base command when called without any subcommands
 	rootCmd := &cobra.Command{
-		Use:           binaryName(),
-		Long:          longName(),
+		Use:           config.RootCommandName(),
+		Long:          fmt.Sprintf("%s version %s", config.RootCommandName(), v.Version),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -87,11 +89,6 @@ func Command() *cobra.Command {
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if config.Config.GetAPIToken() == "" {
-				if cmd.Use != "version" {
-					options.SignupBlurb(nil, "Finding {primary:soluble} useful?", "")
-				}
-			}
 			if exit.Code != 0 {
 				if exit.Func != nil {
 					exit.Func()
@@ -106,7 +103,6 @@ func Command() *cobra.Command {
 	flags.StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
 	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
 	log.AddFlags(flags)
-	flags.BoolVar(&options.Blurbed, "no-blurb", false, "Don't blurb about Lacework")
 	flags.StringVar(&workingDir, "working-dir", "", "Change the working dir to `dir` before running")
 	flags.Lookup("working-dir").Hidden = true
 
@@ -126,7 +122,6 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 	checkovCommand.Hidden = true
 	rootCmd.AddCommand(
 		auth.Command(),
-		configcmd.Command(),
 		modelcmd.Command(),
 		version.Command(),
 		query.Command(),
@@ -151,6 +146,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		repoinventory.Command(),
 		kustomizescan.Command(),
 		print.Command(),
+		configure.Command(),
 	)
 }
 
@@ -207,25 +203,4 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 		cmd.Short += " (" + m.Source.String() + ")"
 	}
 	root.AddCommand(cmd)
-}
-
-// ** Internal Use Only **
-//
-// To integrate the Soluble CLI into the Lacework CLI we are planning to add it as a
-// component (an extension) so that customers can discover and use it out-of-the-box.
-//
-// These functions will allow us to inject the name of the component at runtime so that
-// all the help messages reflect the correct component name. If the environment variable
-// does not exist, this function defaults to the original name of the Soluble CLI.
-func binaryName() string {
-	if name := os.Getenv("LW_COMPONENT_NAME"); name != "" {
-		return name
-	}
-	return "soluble"
-}
-func longName() string {
-	if name := os.Getenv("LW_COMPONENT_NAME"); name != "" {
-		return fmt.Sprintf(`%s version %s`, name, v.Version)
-	}
-	return fmt.Sprintf(`Soluble CLI version %s`, v.Version)
 }

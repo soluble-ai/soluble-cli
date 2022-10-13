@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
+	cfg "github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
@@ -33,18 +34,7 @@ const (
 	orgToken = "{org}"
 )
 
-type Config struct {
-	Organization     string
-	APIToken         string
-	APIServer        string
-	APIPrefix        string
-	Debug            bool
-	TLSNoVerify      bool
-	Timeout          time.Duration
-	RetryCount       int
-	RetryWaitSeconds float64
-	Headers          []string
-}
+var UserAgent = "soluble-cli/" + version.Version
 
 type Option interface {
 	Apply(*resty.Request)
@@ -57,6 +47,21 @@ var HTTPError httpError
 type Client struct {
 	*resty.Client
 	Config
+}
+
+type Config struct {
+	Organization     string
+	Domain           string
+	APIToken         string
+	LaceworkAPIToken string
+	APIServer        string
+	APIPrefix        string
+	Debug            bool
+	TLSNoVerify      bool
+	Timeout          time.Duration
+	RetryCount       int
+	RetryWaitSeconds float64
+	Headers          []string
 }
 
 func (h httpError) Error() string {
@@ -77,11 +82,16 @@ func NewClient(config *Config) *Client {
 		Client: resty.New(),
 		Config: *config,
 	}
-	c.Token = config.APIToken
+	if config.LaceworkAPIToken != "" {
+		c.SetHeader("X-LW-Domain", config.Domain)
+		c.SetHeader("X-LW-Authorization", fmt.Sprintf("Token %s", config.LaceworkAPIToken))
+		log.Debugf("Using lacework authentication")
+	} else {
+		c.Token = config.APIToken
+	}
 	if c.APIPrefix == "" {
 		c.APIPrefix = "/api/v1"
 	}
-
 	apiServer := config.APIServer
 	c.SetBaseURL(apiServer)
 	if log.Level == log.Trace {
@@ -93,7 +103,7 @@ func NewClient(config *Config) *Client {
 			InsecureSkipVerify: true,
 		})
 	}
-	c.SetHeader("User-Agent", "soluble-cli/"+version.Version)
+	c.SetHeader("User-Agent", UserAgent)
 	c.EnableTrace()
 	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
 		info := r.Request.TraceInfo()
@@ -107,7 +117,8 @@ func NewClient(config *Config) *Client {
 				r.Request.URL, r.StatusCode(), t)
 			log.Errorf("{warning:%s}\n", r.String())
 			if r.StatusCode() == 401 || r.StatusCode() == 404 {
-				log.Infof("Are you not logged in?  Use {primary:soluble login} to login, or {primary:soluble auth profile} to verify")
+				log.Infof("Are you not logged in?  Use {info:%s auth profile} to verify.", cfg.CommandInvocation())
+				log.Infof("See {primary:https://docs.lacework.com/iac/} for more information.")
 			}
 			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
 		}
@@ -137,7 +148,8 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 	}
 	if strings.Contains(path, orgToken) {
 		if c.Organization == "" {
-			log.Errorf("An organization must be specified with --organization or configuring one with `cli-config set organization <org-id>`")
+			log.Errorf("An organization must be specified with --organization or configuring one with {info:%s configure --organization}",
+				cfg.CommandInvocation())
 			return fmt.Errorf("organization is required")
 		}
 		path = strings.ReplaceAll(path, orgToken, c.Organization)

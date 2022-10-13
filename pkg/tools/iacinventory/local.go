@@ -79,7 +79,11 @@ func (t *Local) Run() error {
 			xcp.WithFileFromReader("results_json", "results.json", bytes.NewReader(dat)),
 		}
 		options = t.AppendUploadOptions(t.GetDirectory(), options)
-		_, err = t.GetAPIClient().XCPPost(t.GetOrganization(), "local-inventory", nil, values, options...)
+		api, err := t.GetAPIClient()
+		if err != nil {
+			return err
+		}
+		_, err = api.XCPPost(t.GetOrganization(), "local-inventory", nil, values, options...)
 		if err != nil {
 			return err
 		}

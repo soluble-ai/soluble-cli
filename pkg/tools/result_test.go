@@ -62,7 +62,7 @@ func TestUpload(t *testing.T) {
 	opts.APIServer = "https://api.example.com"
 	opts.APIToken = "xxx"
 	opts.Organization = "9999"
-	httpmock.ActivateNonDefault(opts.GetAPIClient().GetClient().GetClient())
+	httpmock.ActivateNonDefault(opts.MustGetAPIClient().GetClient().GetClient())
 	httpmock.RegisterResponder("POST", "https://api.example.com/api/v1/xcp/test/data",
 		func(h *http.Request) (*http.Response, error) {
 			n := jnode.NewObjectNode()
@@ -77,7 +77,7 @@ func TestUpload(t *testing.T) {
 			assert.Equal(h.FormValue("FOO"), "hello")
 			return resp, err
 		})
-	assert.Nil(result.upload(opts.GetAPIClient(), "", "test", false, false))
+	assert.Nil(result.upload(opts.MustGetAPIClient(), "", "test", false, false))
 	assert.Equal("http://app.example.com/A1", result.Assessment.URL)
 }
 

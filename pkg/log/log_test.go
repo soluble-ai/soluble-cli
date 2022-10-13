@@ -54,7 +54,7 @@ func TestTemp(t *testing.T) {
 
 func TestStartupLogging(t *testing.T) {
 	assert := assert.New(t)
-	configured = false
+	DeferUntilConfigured()
 	w := bytes.Buffer{}
 	color.Output = &w
 	color.NoColor = true

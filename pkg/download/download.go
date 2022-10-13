@@ -297,7 +297,8 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
 			resp.StatusCode)
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusNotFound {
-			log.Infof("Not logged into soluble?  Use {primary:soluble login} to login.")
+			log.Infof("Not logged into lacework IAC?  Use {info:%s auth profile} to verify.",
+				config.CommandInvocation())
 		}
 		return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
 	}

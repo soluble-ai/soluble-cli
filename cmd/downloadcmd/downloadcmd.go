@@ -78,8 +78,11 @@ func installCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := download.NewManager()
 			var d *download.Download
-			var err error
-			spec.APIServer = opts.GetAPIClient()
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			spec.APIServer = api
 			if spec.RequestedVersion == "" {
 				n, err := getDefaultVersion(&opts, spec.Name)
 				if err != nil {

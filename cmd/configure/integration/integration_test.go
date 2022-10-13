@@ -11,7 +11,7 @@ import (
 
 func TestConfigShow(t *testing.T) {
 	assert := assert.New(t)
-	cmd := test.NewCommand(t, "config", "show")
+	cmd := test.NewCommand(t, "configure", "show")
 	cmd.Must(cmd.Run())
 	assert.NotEmpty(cmd.Out.Bytes())
 }

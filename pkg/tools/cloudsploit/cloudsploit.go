@@ -39,12 +39,16 @@ func Command() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
 			env := map[string]string{}
 			env["AWS_ACCESS_KEY_ID"] = creds.AccessKeyID
 			env["AWS_SECRET_ACCESS_KEY"] = creds.SecretAccessKey
 			env["AWS_SESSION_TOKEN"] = creds.SessionToken
-			env["SOLUBLE_API_SERVER"] = opts.GetAPIClientConfig().APIServer
-			env["SOLUBLE_API_TOKEN"] = opts.GetAPIClientConfig().APIToken
+			env["SOLUBLE_API_SERVER"] = api.APIServer
+			env["SOLUBLE_API_TOKEN"] = api.APIToken
 			envFile, err := writeEnvFile(env)
 			if err != nil {
 				return err

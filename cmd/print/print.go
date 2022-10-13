@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "print file",
 		Short: "Print a JSON document",
-		Long: `Print a JSON document with the common printing options.
+		Long: config.ExpandCommandInvocation(`Print a JSON document with the common printing options.
 
 The JSON document will be read from "file".  Use "-" to read from stdin.
 
@@ -25,8 +26,8 @@ See help-print-options for more details.
 This command can avoid having to repeatedly run assessments to develop
 print formats.  For example:
 
-; soluble tf-scan -d ~/my-work --format json > assesments.json
-; soluble print --print-template '{{ range (index . 0).findings }}{{ printf "%s %s\n" .sid .severity }}{{ end }}' assessments.json
+; {{.CommandInvocation}} tf-scan -d ~/my-work --format json > assesments.json
+; {{.CommandInvocation}} print --print-template {{ "'{{ range (index . 0).findings }}{{ printf \"%s %s\\n\" .sid .severity }}{{ end }}'" }} assessments.json
 ckv-aws-24 Critical
 ckv-aws-25 Critical
 ckv-aws-23 Low
@@ -35,11 +36,11 @@ The table and csv printers must be supplied a JSON array to print, and
 each element in that array should be an object.  Use the --path flag to
 give the simple path to the array.  A quick example:
 
-; echo '{ "results": [ { "X": 1, "Y": 2  } ] }' | soluble print --path results --columns X,Y -
+; echo '{ "results": [ { "X": 1, "Y": 2  } ] }' | {{.CommandInvocation}} print --path results --columns X,Y -
 X    Y
 1    2
 
-`,
+`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file := args[0]
