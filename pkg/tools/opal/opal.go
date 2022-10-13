@@ -96,7 +96,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	customPoliciesDir, err := t.GetCustomPoliciesDir()
+	customPoliciesDir, err := t.GetCustomPoliciesDir("opal")
 	if err != nil {
 		return nil, err
 	}
