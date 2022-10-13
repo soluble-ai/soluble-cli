@@ -68,5 +68,8 @@ func Command() *cobra.Command {
 	flags.BoolVar(&reset, "reset", false, "Re-authenticate, even if an auth token is already present")
 	flags.BoolVar(&headless, "headless", false, "Don't try and open a browser to complete the flow")
 	_ = flags.MarkHidden("app")
+	if config.IsRunningAsComponent() {
+		c.Hidden = true
+	}
 	return c
 }

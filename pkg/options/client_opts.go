@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
+	"github.com/soluble-ai/soluble-cli/pkg/api/credentials"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -46,9 +48,9 @@ func (opts *ClientOpts) SetContextValues(context map[string]string) {
 func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 	return &HiddenOptionsGroup{
 		Name: "client-options",
-		Long: "These flags control how the CLI connects to Soluble",
+		Long: "These flags control how the CLI connects to lacework IAC",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
-			flags.StringVar(&opts.APIServer, "api-server", "", "Soluble API server `url` (e.g. https://api.soluble.cloud)")
+			flags.StringVar(&opts.APIServer, "api-server", "", "The lacework IAC API server `url` (by default $SOLUBLE_API_URL if set, or https://api.soluble.cloud)")
 			flags.BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
 			flags.DurationVar(&opts.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
 				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
@@ -56,8 +58,9 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 			flags.Float64Var(&opts.RetryWaitSeconds, "api-retry-wait", 0,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
 			flags.StringSliceVar(&opts.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
-			flags.StringVar(&opts.Organization, "organization", "", "The organization `id` to use.")
-			flags.StringVar(&opts.APIToken, "api-token", "", "The authentication `token` (read from profile by default)")
+			flags.StringVar(&opts.Organization, "organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
+			flags.StringVar(&opts.APIToken, "api-token", "", "The legacy authentication `token` (read from profile by default)")
+			flags.StringVar(&opts.Domain, "api-domain", "", "The Lacework account domain")
 		},
 	}
 }
@@ -66,9 +69,12 @@ func (opts *ClientOpts) Register(cmd *cobra.Command) {
 	opts.GetClientOptionsGroup().Register(cmd)
 }
 
-func (opts *ClientOpts) GetAPIClientConfig() *api.Config {
-	cfg := opts.Config
+func (opts *ClientOpts) Validate() error {
+	return nil
+}
 
+func (opts *ClientOpts) GetAPIClientConfig() (*api.Config, error) {
+	cfg := opts.Config
 	if cfg.Organization == "" {
 		cfg.Organization = config.Config.Organization
 	}
@@ -84,7 +90,10 @@ func (opts *ClientOpts) GetAPIClientConfig() *api.Config {
 	if !cfg.TLSNoVerify {
 		cfg.TLSNoVerify = config.Config.TLSNoVerify
 	}
-	return &cfg
+	if err := credentials.ConfigureLaceworkAuth(&cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }
 
 func (opts *ClientOpts) GetOrganization() string {
@@ -94,30 +103,45 @@ func (opts *ClientOpts) GetOrganization() string {
 	return config.Config.Organization
 }
 
-func (opts *ClientOpts) GetAPIClient() *api.Client {
-	if opts.client == nil {
-		opts.client = api.NewClient(opts.GetAPIClientConfig())
+func (opts *ClientOpts) MustGetAPIClient() *api.Client {
+	c, err := opts.GetAPIClient()
+	if err != nil {
+		panic(err)
 	}
-	return opts.client
+	return c
+}
+
+func (opts *ClientOpts) GetAPIClient() (*api.Client, error) {
+	if opts.client == nil {
+		cfg, err := opts.GetAPIClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		opts.client = api.NewClient(cfg)
+	}
+	return opts.client, nil
 }
 
 func (opts *ClientOpts) GetUnauthenticatedAPIClient() *api.Client {
 	if opts.unauthClient == nil {
-		cfg := opts.GetAPIClientConfig()
+		cfg, _ := opts.GetAPIClientConfig()
 		cfg.APIToken = ""
+		cfg.Domain = ""
 		opts.unauthClient = api.NewClient(cfg)
 	}
 	return opts.unauthClient
 }
 
 func (opts *ClientOpts) IsAuthenticated() bool {
-	return opts.GetAPIClientConfig().APIToken != ""
+	cfg, _ := opts.GetAPIClientConfig()
+	return cfg != nil && (cfg.APIToken != "" || cfg.LaceworkAPIToken != "")
 }
 
 func (opts *ClientOpts) RequireAPIToken() error {
-	if opts.GetAPIClientConfig().APIToken == "" {
-		SignupBlurb(opts, "This command requires signing up with {primary:Soluble} (unless --upload=false).", "")
-		return fmt.Errorf("not authenticated with Soluble")
+	cfg, _ := opts.GetAPIClientConfig()
+	if cfg == nil || (cfg.APIToken == "" && cfg.LaceworkAPIToken == "") {
+		log.Warnf("This command requires signing up with {primary:Lacework} (unless --upload=false).")
+		return fmt.Errorf("not authenticated with Lacework")
 	}
 	return nil
 }

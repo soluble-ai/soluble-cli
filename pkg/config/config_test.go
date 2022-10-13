@@ -53,8 +53,7 @@ func TestConfig(t *testing.T) {
 		t.Error(Config)
 	}
 	_ = Set("tlsnoverify", "true")
-	_ = Set("email", "foo@example.com")
-	if !Config.TLSNoVerify || Config.Email != "foo@example.com" {
+	if !Config.TLSNoVerify {
 		t.Error(Config)
 	}
 	DeleteProfile("test")
@@ -64,6 +63,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestGetAppURL(t *testing.T) {
+	t.Setenv("SOLUBLE_API_SERVER", "") // github action sets this, so make sure it's not
 	c := &ProfileT{
 		APIServer: "https://api.example.com",
 	}

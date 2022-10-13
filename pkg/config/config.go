@@ -33,7 +33,7 @@ import (
 var GlobalConfig = &struct {
 	Profiles       map[string]*ProfileT
 	CurrentProfile string
-	ModelLocations []string
+	ModelLocations []string `json:",omitempty"`
 }{}
 
 // Config points to the current profile
@@ -48,12 +48,13 @@ var (
 const Redacted = "*** redacted ***"
 
 type ProfileT struct {
-	ProfileName  string `json:"-"`
-	APIServer    string
-	APIToken     string
-	TLSNoVerify  bool
-	Organization string
-	Email        string
+	ProfileName         string `json:"-"`
+	APIServer           string
+	APIToken            string `json:",omitempty"`
+	TLSNoVerify         bool   `json:",omitempty"`
+	Organization        string
+	LaceworkProfileName string           `json:",omitempty"`
+	Lacework            *LaceworkProfile `json:"-"`
 }
 
 func SelectProfile(name string) bool {
@@ -67,7 +68,6 @@ func SelectProfile(name string) bool {
 		result = true
 	}
 	GlobalConfig.CurrentProfile = name
-	Config.ProfileName = name
 	return result
 }
 
@@ -128,14 +128,28 @@ func (c *ProfileT) String() string {
 	dat, _ := json.Marshal(cfg)
 	_ = json.Unmarshal(dat, &m)
 	m["ConfigFile"] = configFileRead
+	if c.Lacework != nil {
+		lm := map[string]interface{}{}
+		m["Lacework"] = lm
+		if c.Lacework.Account != "" {
+			lm["account"] = c.Lacework.Account
+		}
+		if c.Lacework.APIKey != "" {
+			lm["api_key"] = c.Lacework.APIKey
+		}
+		if c.Lacework.APISecret != "" {
+			lm["api_secret"] = Redacted
+		}
+	}
 	s, _ := yaml.Marshal(m)
 	return string(s)
 }
 
 func (c *ProfileT) GetAppURL() string {
 	const httpAPI = "https://api."
-	if strings.HasPrefix(c.APIServer, httpAPI) {
-		return "https://app." + c.APIServer[len(httpAPI):]
+	apiServer := c.GetAPIServer()
+	if strings.HasPrefix(apiServer, httpAPI) {
+		return "https://app." + apiServer[len(httpAPI):]
 	}
 	return "https://app.soluble.cloud"
 }
@@ -146,6 +160,14 @@ func (c *ProfileT) GetAPIToken() string {
 		return token
 	}
 	return c.APIToken
+}
+
+func (c *ProfileT) GetOrganization() string {
+	org := os.Getenv("LW_IAC_ORGANIZATION")
+	if org != "" {
+		return org
+	}
+	return c.Organization
 }
 
 func (c *ProfileT) AssertAPITokenFromConfig() error {
@@ -161,6 +183,11 @@ func (c *ProfileT) GetAPIServer() string {
 		return server
 	}
 	return c.APIServer
+}
+
+func (c *ProfileT) SetLaceworkProfile(name string) {
+	c.LaceworkProfileName = name
+	c.Lacework = getLaceworkProfile(name, "")
 }
 
 func Save() error {
@@ -257,6 +284,10 @@ func Load() {
 		configFileRead = ""
 	} else {
 		_ = json.Unmarshal(dat, GlobalConfig)
+		for name, profile := range GlobalConfig.Profiles {
+			profile.ProfileName = name
+			profile.Lacework = getLaceworkProfile(profile.LaceworkProfileName, profile.ProfileName)
+		}
 	}
 	if GlobalConfig.Profiles == nil {
 		GlobalConfig.Profiles = map[string]*ProfileT{}
@@ -272,7 +303,6 @@ func Load() {
 
 func UpdateFromServerProfile(result *jnode.Node) bool {
 	changed := setIfChanged(&Config.Organization, result.Path("currentOrgId").AsText())
-	changed = setIfChanged(&Config.Email, result.Path("email").AsText()) || changed
 	return changed
 }
 

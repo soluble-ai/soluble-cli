@@ -29,10 +29,11 @@ func Command() *cobra.Command {
 		Use:   "auth",
 		Short: "Manage authentication",
 	}
-	c.AddCommand(profileCmd())
-	c.AddCommand(printTokenCmd())
-	c.AddCommand(setAccessTokenCmd())
-	c.AddCommand(setOrgCommand())
+	c.AddCommand(profileCmd(),
+		printTokenCmd(),
+		setAccessTokenCmd(),
+		setOrgCommand(),
+	)
 	return c
 }
 
@@ -40,10 +41,13 @@ func profileCmd() *cobra.Command {
 	opts := options.PrintClientOpts{}
 	c := &cobra.Command{
 		Use:   "profile",
-		Short: "Display the user's Soluble profile",
+		Short: "Display the user's IAC profile",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient := opts.GetAPIClient()
+			apiClient, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
 			result, err := apiClient.Get("/api/v1/users/profile")
 			if err != nil {
 				return err
@@ -68,7 +72,8 @@ func printTokenCmd() *cobra.Command {
 		Long: `Print the access token, e.g. for use with curl:
 		
 curl -H “Authorization: Bearer $(soluble print-access-token)” ...`,
-		Args: cobra.NoArgs,
+		Deprecated: "use 'lacework access-token' instead",
+		Args:       cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if config.Config.GetAPIToken() == "" {
 				return fmt.Errorf("not authenticated, use login to authenticate")
@@ -92,9 +97,15 @@ func setAccessTokenCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config.Config.APIToken = accessToken
-			cfg := opts.GetAPIClientConfig()
+			cfg, err := opts.GetAPIClientConfig()
+			if err != nil {
+				return err
+			}
 			log.Infof("Verifying access token with {primary:%s}", cfg.APIServer)
-			apiClient := opts.GetAPIClient()
+			apiClient, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
 			result, err := apiClient.Get("/api/v1/users/profile")
 			if err != nil {
 				return err
@@ -124,7 +135,11 @@ func setOrgCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			body := jnode.NewObjectNode()
 			body.Put("orgId", opts.Organization)
-			result, err := opts.GetAPIClient().Post("/api/v1/users/current-org", body)
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			result, err := api.Post("/api/v1/users/current-org", body)
 			if err != nil {
 				return err
 			}

@@ -51,7 +51,11 @@ func buildReportCommand() *cobra.Command {
 		Short: "Display any assessments generated during this build",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			assessments, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			assessments, err := assessments.FindCIEnvAssessments(api)
 			if err != nil {
 				return err
 			}
@@ -95,11 +99,15 @@ func updatePRCommand() *cobra.Command {
 		Args:   cobra.NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			assessments, err := assessments.FindCIEnvAssessments(opts.GetAPIClient())
+			api, err := opts.GetAPIClient()
 			if err != nil {
 				return err
 			}
-			return assessments.UpdatePR(opts.GetAPIClient())
+			assessments, err := assessments.FindCIEnvAssessments(api)
+			if err != nil {
+				return err
+			}
+			return assessments.UpdatePR(api)
 		},
 	}
 	opts.Register(c)
