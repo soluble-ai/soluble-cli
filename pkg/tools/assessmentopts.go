@@ -100,7 +100,12 @@ func (o *AssessmentOpts) Validate() error {
 	return nil
 }
 
-func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
+// Prepare and return a directory that contains the custom rules for
+// a tool.  The ruleTypeName/moreRuleTypeNames signature requires at least
+// a single rule type to give a hint that the policy manager needs specific
+// support for any given tool, e.g. generate a directory with custom checkov
+// rules requires specific support in the policy manager for checkov.
+func (o *AssessmentOpts) GetCustomPoliciesDir(ruleTypeName string, moreRuleTypeNames ...string) (string, error) {
 	if o.PreparedCustomPoliciesDir != "" {
 		return o.PreparedCustomPoliciesDir, nil
 	}
@@ -143,8 +148,13 @@ func (o *AssessmentOpts) GetCustomPoliciesDir() (string, error) {
 			return "", err
 		}
 		exit.AddFunc(func() { _ = os.RemoveAll(dest) })
-		if err := store.LoadRules(); err != nil {
+		if err := store.LoadRulesOfType(policy.GetRuleType(ruleTypeName)); err != nil {
 			return "", err
+		}
+		for _, ruleTypeName := range moreRuleTypeNames {
+			if err := store.LoadRulesOfType(policy.GetRuleType(ruleTypeName)); err != nil {
+				return "", err
+			}
 		}
 		if err := store.PrepareRules(dest); err != nil {
 			return "", err

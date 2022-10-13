@@ -78,14 +78,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.Config != "" {
 		dt.AppendArgs("-f", t.Config)
 	}
-	customPoliciesDir, err := t.GetCustomPoliciesDir()
-	if err != nil {
-		return nil, err
-	}
-	if customPoliciesDir != "" {
-		dt.AppendArgs("-f", customPoliciesDir)
-		dt.Mount(customPoliciesDir, "/policy")
-	}
 	dt.AppendArgs(t.extraArgs...)
 	dt.AppendArgs(".")
 	exec, err := t.RunDocker(dt)

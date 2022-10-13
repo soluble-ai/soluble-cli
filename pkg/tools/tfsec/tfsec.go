@@ -88,10 +88,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		tfsecVersion = getTfsecVersion(d.GetExePath("aquasecurity-tfsec"))
 	}
 	result.AddValue("TFSEC_VERSION", tfsecVersion)
-	customPoliciesDir, err := t.GetCustomPoliciesDir()
-	if err != nil {
-		return nil, err
-	}
 	args := []string{"--no-color", "-f", "json"}
 	if tfsecVersion != "" {
 		v, err := version.NewSemver(tfsecVersion)
@@ -99,9 +95,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 			args = append(args, "--include-ignored")
 			args = append(args, "--include-passed")
 		}
-	}
-	if customPoliciesDir != "" {
-		args = append(args, "--custom-check-dir", customPoliciesDir)
 	}
 	args = t.addTfVarsFileArg(args, "terraform.tfvars")
 	args = t.addTfVarsFileArg(args, "terraform.tfvars.json")

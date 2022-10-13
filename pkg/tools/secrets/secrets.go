@@ -57,14 +57,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		dt.AppendArgs("scan")
 	}
 	dt.AppendArgs("--all-files", "--no-verify")
-	customPoliciesDir, err := t.GetCustomPoliciesDir()
-	if err != nil {
-		return nil, err
-	}
-	if customPoliciesDir != "" {
-		dt.AppendArgs("--custom-plugins", customPoliciesDir)
-		dt.Mount(customPoliciesDir, "/policy")
-	}
 	dt.AppendArgs(t.args...)
 	exec, err := t.RunDocker(dt)
 	if err != nil {
