@@ -2,11 +2,12 @@ package test
 
 import (
 	"bytes"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/soluble-ai/soluble-cli/cmd/policy"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func setupDirPath(path string) error {
 	return err
 }
 
-//Clean up after test
+// Clean up after test
 func cleanUpPoliciesDir() {
 	os.RemoveAll("policies")
 }
@@ -65,7 +66,7 @@ func TestCreate_InvalidDirPath(t *testing.T) {
 
 func TestCreate_DirPathNotFound(t *testing.T) {
 	assert := assert.New(t)
-	err := executeCreate([] string{"--name", "unit_test_policy",
+	err := executeCreate([]string{"--name", "unit_test_policy",
 		"--check-type", "terraform",
 		"--type", "opal",
 		"-d", "./policies"})
@@ -74,7 +75,7 @@ func TestCreate_DirPathNotFound(t *testing.T) {
 
 func TestCreate_InvalidPolicyName(t *testing.T) {
 	assert := assert.New(t)
-	err := executeCreate([] string{"--name", "bad.policy-name",
+	err := executeCreate([]string{"--name", "bad.policy-name",
 		"--check-type", "terraform",
 		"--type", "opal"})
 	assert.EqualError(err, "invalid name: bad.policy-name. name must consist only of [a-z0-9-]")
@@ -82,7 +83,7 @@ func TestCreate_InvalidPolicyName(t *testing.T) {
 
 func TestCreate_InvalidPolicyType(t *testing.T) {
 	assert := assert.New(t)
-	err := executeCreate([] string{"--name", "unit_test_policy",
+	err := executeCreate([]string{"--name", "unit_test_policy",
 		"--check-type", "terraform",
 		"--type", "nope"})
 	assert.Error(err)
@@ -95,7 +96,7 @@ func TestCreate_InvalidPolicyType(t *testing.T) {
 
 func TestCreate_InvalidPolicyCheckType(t *testing.T) {
 	assert := assert.New(t)
-	err := executeCreate([] string{"--name", "unit_test_policy",
+	err := executeCreate([]string{"--name", "unit_test_policy",
 		"--check-type", "nope",
 		"--type", "opal"})
 	assert.EqualError(err, "invalid check-type. check-type is one of: [terraform terraform-plan cloudformation kubernetes helm docker secrets]")
@@ -103,7 +104,7 @@ func TestCreate_InvalidPolicyCheckType(t *testing.T) {
 
 func TestCreate_InvalidPolicySeverity(t *testing.T) {
 	assert := assert.New(t)
-	err := executeCreate([] string{"--name", "unit_test_policy",
+	err := executeCreate([]string{"--name", "unit_test_policy",
 		"--check-type", "terraform",
 		"--type", "opal",
 		"--severity", "nope"})
@@ -116,7 +117,7 @@ func TestCreate_CustPolicyExists(t *testing.T) {
 	if err := setupDirPath("policies/opal/unit_test_policy/terraform"); err != nil {
 		t.Fail()
 	}
-	err := executeCreate([] string{"--name", "unit_test_policy",
+	err := executeCreate([]string{"--name", "unit_test_policy",
 		"--check-type", "terraform",
 		"--type", "opal"})
 	assert.EqualError(err, "custom policy 'unit_test_policy' with check type 'terraform' already exists in directory 'policies/opal/unit_test_policy/terraform'")
@@ -129,7 +130,7 @@ func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 	if err := setupDirPath("policies"); err != nil {
 		t.Fail()
 	}
-	err := executeCreate([] string{"--name", "unit_test_cust_policy",
+	err := executeCreate([]string{"--name", "unit_test_cust_policy",
 		"--check-type", "terraform",
 		"--type", "opal",
 		"--description", "unit test policy",
@@ -152,6 +153,3 @@ func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 
 	cleanUpPoliciesDir()
 }
-
-
-
