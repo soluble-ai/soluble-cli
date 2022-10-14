@@ -43,6 +43,12 @@ func (pt *PolicyTemplate) CreateDirectoryStructure() error {
 
 func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 	// metadata.yaml (in PolicyName dir)
+	metadataPath := strings.Split(pt.Dir, pt.CheckType)[0] + "/metadata.yaml"
+	// shouldn't overwrite an existing metadata.yaml file
+	if _, err := os.Stat(metadataPath); !os.IsNotExist(err) {
+		return nil
+	}
+
 	type Metadata struct {
 		Category    string    `yaml:"category"`
 		Description yaml.Node `yaml:"description"`
@@ -63,7 +69,6 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 		log.Fatal(err)
 	}
 
-	metadataPath := strings.Split(pt.Dir, pt.CheckType)[0] + "/metadata.yaml"
 	err2 := os.WriteFile(metadataPath, data, os.ModePerm)
 
 	if err2 != nil {
