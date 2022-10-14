@@ -64,7 +64,7 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 	}
 
 	metadataPath := strings.Split(pt.Dir, pt.CheckType)[0] + "/metadata.yaml"
-	err2 := os.WriteFile(metadataPath, data, 0600)
+	err2 := os.WriteFile(metadataPath, data, os.ModePerm)
 
 	if err2 != nil {
 		log.Fatal(err2)
@@ -95,7 +95,7 @@ func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
 		"\n\ndefault allow = false" +
 			"\n\n# Add Rego Policy # \n"
 
-	err := os.WriteFile(regoPath, []byte(regoTemplate), 0600)
+	err := os.WriteFile(regoPath, []byte(regoTemplate), os.ModePerm)
 
 	if err != nil {
 		log.Fatal(err)

@@ -3,6 +3,7 @@ package custompolicybuilder
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -30,7 +31,7 @@ var SeverityNames = util.NewStringSetWithValues([]string{
 
 func (pt *PolicyTemplate) ValidateCreateInput() error {
 	// TODO add validation for optional input
-	if isValid := regexp.MustCompile(`^[a-z0-9-]*$`).MatchString(pt.Name); !isValid {
+	if isValid := regexp.MustCompile(`^[a-z0-9_]*$`).MatchString(pt.Name); !isValid {
 		return fmt.Errorf("invalid name: %v. name must consist only of [a-z0-9-]", pt.Name)
 	}
 
@@ -46,13 +47,13 @@ func (pt *PolicyTemplate) ValidateCreateInput() error {
 
 	pt.Severity = strings.ToLower(pt.Severity)
 	if !SeverityNames.Contains(pt.Severity) {
-		return fmt.Errorf("invalid severity '%v'. severity is one of %v: ", pt.Severity, SeverityNames.Values())
+		return fmt.Errorf("invalid severity '%v'. severity is one of: %v", pt.Severity, SeverityNames.Values())
 	}
 
 	if pt.Dir == "policies" {
 		if _, err := os.Stat(pt.Dir); os.IsNotExist(err) {
 			return fmt.Errorf("could not find '%v' directory in current directory."+
-				"\ncreate 'policies' directory or use -d to target existing policies directory", pt.Dir)
+				"\ncreate 'policies' directory or use -d to target an existing policies directory", pt.Dir)
 		}
 	} else {
 		dir := "/policies"
@@ -62,13 +63,14 @@ func (pt *PolicyTemplate) ValidateCreateInput() error {
 		} else {
 			if _, err := os.Stat(pt.Dir); os.IsNotExist(err) {
 				return fmt.Errorf("could not find directory: %v", pt.Dir+
-					"\ntarget existing policies directory.")
+					"\ntarget an existing policies directory.")
 			}
 		}
 	}
-	if _, err := os.Stat(pt.Dir + "/" + pt.Type + "/" + pt.Name); !os.IsNotExist(err) {
-		return fmt.Errorf("custom policy '%v' already exists in directory '%v'",
-			pt.Name, pt.Dir+"/"+pt.Type+"/"+pt.Name)
+	path := filepath.Join(pt.Dir, pt.Type, pt.Name, pt.CheckType)
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		return fmt.Errorf("custom policy '%v' with check type '%v' already exists in directory '%v'",
+			pt.Name, pt.CheckType, path)
 	}
 	return nil
 }
