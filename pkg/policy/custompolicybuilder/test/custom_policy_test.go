@@ -113,7 +113,6 @@ func TestCreate_InvalidPolicySeverity(t *testing.T) {
 
 func TestCreate_CustPolicyExists(t *testing.T) {
 	assert := assert.New(t)
-	//create dummy cust policy dir
 	if err := setupDirPath("policies/opal/unit_test_policy/terraform"); err != nil {
 		t.Fail()
 	}
@@ -126,7 +125,6 @@ func TestCreate_CustPolicyExists(t *testing.T) {
 
 func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 	assert := assert.New(t)
-	//create dummy cust policy dir
 	if err := setupDirPath("policies"); err != nil {
 		t.Fail()
 	}
@@ -145,8 +143,8 @@ func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 	actual := readMetadataFile(actualFilePath)
 	expected := readMetadataFile(expectedFilePath)
 
-	actData, err := yaml.Marshal(actual)
-	expData, err := yaml.Marshal(expected)
+	actData, _ := yaml.Marshal(actual)
+	expData, _ := yaml.Marshal(expected)
 
 	diff := bytes.Compare(actData, expData)
 	assert.Equal(0, diff)
