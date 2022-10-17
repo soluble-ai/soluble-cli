@@ -142,7 +142,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		o.customPoliciesDir = &zero
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
-		store := &policy.Store{Dir: dir}
+		store := &policy.Store{Dir: dir, Policies: make(map[policy.PolicyType][]*policy.Policy)}
 		dest, err := os.MkdirTemp("", "policy*")
 		if err != nil {
 			return "", err
