@@ -32,12 +32,13 @@ func Command() *cobra.Command {
 }
 
 func CreateCommand() *cobra.Command {
-	cpb := &custompolicybuilder.PolicyTemplate{}
+	// only available for opal
+	cpb := &custompolicybuilder.PolicyTemplate{Type: "opal"}
 	c := &cobra.Command{
 		Use:   "create",
 		Short: "Create custom policy. Generates skeleton policy and metadata file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cpb.ValidateCreateInput(); err != nil {
+			if err := cpb.PromptInput(); err != nil {
 				return err
 			}
 			if err := cpb.CreateCustomPolicyTemplate(); err != nil {
@@ -46,7 +47,6 @@ func CreateCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cpb.Register(c)
 	return c
 }
 

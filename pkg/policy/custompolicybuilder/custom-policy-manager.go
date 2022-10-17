@@ -5,89 +5,111 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
-	"github.com/soluble-ai/soluble-cli/pkg/util"
-	"github.com/spf13/cobra"
+	"github.com/AlecAivazis/survey/v2"
 )
 
 type PolicyTemplate struct {
-	Type      string
-	CheckType string
 	Name      string
+	CheckType string
 	Dir       string
-	// optional
-	Desc     string
-	Title    string
-	Severity string
-	Category string
-	RsrcType string
+	Type      string
+	Desc      string
+	Title     string
+	Severity  string
+	Category  string
+	RsrcType  string
 }
 
-var SeverityNames = util.NewStringSetWithValues([]string{
-	"info", "low", "medium", "high", "critical",
-})
-
-func (pt *PolicyTemplate) ValidateCreateInput() error {
-	// TODO add validation for optional input
-	if isValid := regexp.MustCompile(`^[a-z0-9_]*$`).MatchString(pt.Name); !isValid {
-		return fmt.Errorf("invalid name: %v. name must consist only of [a-z0-9-]", pt.Name)
+func (pt *PolicyTemplate) PromptInput() error {
+	var qs = []*survey.Question{
+		{
+			Name: "dir",
+			Prompt: &survey.Input{
+				Message: "Policies directory path",
+				Default: "policies"},
+			Validate: pt.validatePolicyDirectory(),
+		},
+		{
+			Name: "checkType",
+			Prompt: &survey.Select{
+				Message: "Select target:",
+				Options: []string{"terraform", "cloudformation", "kubernetes", "arm"},
+			},
+		},
+		{
+			Name: "name",
+			Prompt: &survey.Input{
+				Message: "policy name",
+				Help:    "Example policy name: my_policy_1"},
+			Validate: pt.validatePolicyName(),
+		},
+		{
+			Name:   "title",
+			Prompt: &survey.Input{Message: "Title"},
+		},
+		{
+			Name:   "desc",
+			Prompt: &survey.Input{Message: "Description"},
+		},
+		{
+			Name:   "category",
+			Prompt: &survey.Input{Message: "Category"},
+		},
+		{
+			Name:   "rsrcType",
+			Prompt: &survey.Input{Message: "ResourceType"},
+		},
+		{
+			Name: "severity",
+			Prompt: &survey.Select{
+				Message: "Select severity:",
+				Options: []string{"info", "low", "medium", "high", "critical"},
+			},
+		},
 	}
 
-	pt.Type = strings.ToLower(pt.Type)
-	if policy.GetRuleType(pt.Type) == nil {
-		return fmt.Errorf("invalid type. type is one of: %v", policy.ListRuleTypes())
-	}
-
-	pt.CheckType = strings.ToLower(pt.CheckType)
-	if !policy.IsTarget(pt.CheckType) {
-		return fmt.Errorf("invalid check-type. check-type is one of: %v", policy.ListTargets())
-	}
-
-	pt.Severity = strings.ToLower(pt.Severity)
-	if !SeverityNames.Contains(pt.Severity) {
-		return fmt.Errorf("invalid severity '%v'. severity is one of: %v", pt.Severity, SeverityNames.Values())
-	}
-
-	if pt.Dir == "policies" {
-		if _, err := os.Stat(pt.Dir); os.IsNotExist(err) {
-			return fmt.Errorf("could not find '%v' directory in current directory."+
-				"\ncreate 'policies' directory or use -d to target an existing policies directory", pt.Dir)
-		}
-	} else {
-		dir := "/policies"
-		if pt.Dir[len(pt.Dir)-len(dir):] != dir {
-			return fmt.Errorf("invalid directory path: %v", pt.Dir+
-				"\nprovide path to existing policies directory")
-		} else {
-			if _, err := os.Stat(pt.Dir); os.IsNotExist(err) {
-				return fmt.Errorf("could not find directory: %v", pt.Dir+
-					"\ntarget an existing policies directory.")
-			}
-		}
-	}
-	path := filepath.Join(pt.Dir, pt.Type, pt.Name, pt.CheckType)
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return fmt.Errorf("custom policy '%v' with check type '%v' already exists in directory '%v'",
-			pt.Name, pt.CheckType, path)
+	if err := survey.Ask(qs, pt); err == nil {
+		return err
 	}
 	return nil
 }
 
-func (pt *PolicyTemplate) Register(c *cobra.Command) {
-	flags := c.Flags()
-	flags.StringVar(&pt.Name, "name", "", "name of policy to create")
-	_ = c.MarkFlagRequired("name")
-	flags.StringVar(&pt.CheckType, "check-type", "", " target")
-	_ = c.MarkFlagRequired("check-type")
-	flags.StringVar(&pt.Type, "type", "", "policy type")
-	_ = c.MarkFlagRequired("type")
-	// Optional
-	flags.StringVarP(&pt.Dir, "directory", "d", "policies", "path to custom policies directory")
-	flags.StringVar(&pt.Desc, "description", "", "policy description")
-	flags.StringVar(&pt.Title, "title", "", "policy title")
-	flags.StringVar(&pt.Severity, "severity", "medium", "policy severity")
-	flags.StringVar(&pt.Category, "category", "", "policy category")
-	flags.StringVar(&pt.RsrcType, "resource-type", "", "policy resource type")
+func (pt *PolicyTemplate) validatePolicyName() func(interface{}) error {
+	return func(inputName interface{}) error {
+		if isValid := regexp.MustCompile(`(^[a-z][a-z0-9_]*$)`).MatchString(inputName.(string)); !isValid {
+			return fmt.Errorf("\nname must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscored")
+		}
+
+		// avoid overwriting existing policy
+		path := filepath.Join(pt.Dir, pt.Type, inputName.(string), pt.CheckType)
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			return fmt.Errorf("custom policy '%v' with check type '%v' already exists", inputName, pt.CheckType)
+		}
+		return nil
+	}
+
+}
+func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
+	return func(inputDir interface{}) error {
+		dir := inputDir.(string)
+		if inputDir == "policies" {
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				return fmt.Errorf("could not find '%v' directory in current directory."+
+					"\ncreate 'policies' directory or use -d to target an existing policies directory", dir)
+			}
+		} else {
+			pdir := "/policies"
+			if dir[len(dir)-len(pdir):] != pdir {
+				return fmt.Errorf("invalid directory path: %v", dir+
+					"\nprovide path to existing policies directory")
+			} else {
+				if _, err := os.Stat(dir); os.IsNotExist(err) {
+					return fmt.Errorf("could not find directory: %v", dir+
+						"\ntarget an existing policies directory.")
+				}
+			}
+		}
+		return nil
+	}
 }
