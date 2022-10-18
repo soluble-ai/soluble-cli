@@ -20,7 +20,7 @@ import (
 
 type checkovPython string
 
-var CheckovPython manager.RuleType = checkovPython("checkov-py")
+var CheckovPython manager.PolicyType = checkovPython("checkov-py")
 
 func (checkovPython) GetName() string {
 	return "checkov-py"
@@ -30,15 +30,15 @@ func (checkovPython) GetCode() string {
 	return "ckvpy"
 }
 
-func (checkovPython) PrepareRules(rules []*policy.Rule, dst string) error {
-	var ruleFiles []string
-	for _, rule := range rules {
-		for _, target := range rule.Targets {
-			name, err := preparePythonRule(rule, target, dst)
+func (checkovPython) PreparePolicies(policies []*policy.Policy, dst string) error {
+	var policyFiles []string
+	for _, policy := range policies {
+		for _, target := range policy.Targets {
+			name, err := preparePythonPolicy(policy, target, dst)
 			if err != nil {
 				return err
 			}
-			ruleFiles = append(ruleFiles, name)
+			policyFiles = append(policyFiles, name)
 		}
 	}
 	f, err := os.Create(filepath.Join(dst, "__init__.py"))
@@ -47,23 +47,23 @@ func (checkovPython) PrepareRules(rules []*policy.Rule, dst string) error {
 	}
 	defer f.Close()
 	fmt.Fprintf(f, "__all__ = [")
-	for i, ruleFile := range ruleFiles {
+	for i, policyFile := range policyFiles {
 		if i > 0 {
 			fmt.Fprintf(f, ",")
 		}
-		fmt.Fprintf(f, " '%s'", ruleFile)
+		fmt.Fprintf(f, " '%s'", policyFile)
 	}
 	fmt.Fprintf(f, "]\n")
 	return nil
 }
 
-func preparePythonRule(rule *policy.Rule, target policy.Target, dst string) (string, error) {
-	s, err := os.Open(fmt.Sprintf("%s/%s/rule.py", rule.Path, target))
+func preparePythonPolicy(policy *policy.Policy, target policy.Target, dst string) (string, error) {
+	s, err := os.Open(fmt.Sprintf("%s/%s/policy.py", policy.Path, target))
 	if err != nil {
 		return "", err
 	}
 	defer s.Close()
-	name := fmt.Sprintf("%s-%s.py", rule.ID, target)
+	name := fmt.Sprintf("%s-%s.py", policy.ID, target)
 	d, err := os.Create(filepath.Join(dst, name))
 	if err != nil {
 		return "", err
@@ -72,23 +72,23 @@ func preparePythonRule(rule *policy.Rule, target policy.Target, dst string) (str
 	if _, err := io.Copy(d, s); err != nil {
 		return "", err
 	}
-	fmt.Fprintf(d, "\ncheck.id = \"%s\"\n", rule.ID)
-	fmt.Fprintf(d, "\ncheck.name = \"%s\"\n", quote(rule.Metadata.GetString("title")))
+	fmt.Fprintf(d, "\ncheck.id = \"%s\"\n", policy.ID)
+	fmt.Fprintf(d, "\ncheck.name = \"%s\"\n", quote(policy.Metadata.GetString("title")))
 	return name, nil
 }
 
 var checkAssignmentRe = regexp.MustCompile("^check *=")
 
-func (h checkovPython) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) (validate manager.ValidateResult) {
-	for _, rule := range rules {
-		if e := h.validate(rule); e != nil {
+func (h checkovPython) ValidatePolicies(runOpts tools.RunOpts, policies []*policy.Policy) (validate manager.ValidateResult) {
+	for _, policy := range policies {
+		if e := h.validate(policy); e != nil {
 			validate.Errors = multierror.Append(validate.Errors, e)
 		}
 	}
 	if validate.Errors != nil {
 		return
 	}
-	// We're going to run checkov against these rules just to
+	// We're going to run checkov against these policies just to
 	// determine if they load w/o failure
 	temp, err := os.MkdirTemp("", "checkov-py*")
 	if err != nil {
@@ -101,7 +101,7 @@ func (h checkovPython) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule
 		validate.AppendError(err)
 		return
 	}
-	if err := h.PrepareRules(rules, policyDir); err != nil {
+	if err := h.PreparePolicies(policies, policyDir); err != nil {
 		validate.AppendError(err)
 		return
 	}
@@ -115,25 +115,25 @@ func (h checkovPython) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule
 		validate.AppendError(err)
 		return
 	}
-	log.Infof("Verifying that checkov can load {info:checkov-py} rules")
+	log.Infof("Verifying that checkov can load {info:checkov-py} policies")
 	result, err := t.Run()
 	if err != nil {
 		validate.AppendError(err)
 		return validate
 	}
-	validate.Valid = len(rules)
+	validate.Valid = len(policies)
 	if result.ExecuteResult != nil {
 		if strings.Contains(result.ExecuteResult.CombinedOutput, "Traceback") {
-			// Look for individual rules
-			for _, rule := range rules {
-				if strings.Contains(result.ExecuteResult.CombinedOutput, rule.ID) {
-					err = multierror.Append(fmt.Errorf("the python rule in %s does not load in checkov", rule.Path))
+			// Look for individual policies
+			for _, policy := range policies {
+				if strings.Contains(result.ExecuteResult.CombinedOutput, policy.ID) {
+					err = multierror.Append(fmt.Errorf("the python policy in %s does not load in checkov", policy.Path))
 					validate.Valid--
 					validate.Invalid++
 				}
 			}
 			if err == nil {
-				err = fmt.Errorf("{info:checkov} has crashed with these custom {info:checkov-py} rules")
+				err = fmt.Errorf("{info:checkov} has crashed with these custom {info:checkov-py} policies")
 			}
 			validate.AppendError(err)
 		}
@@ -141,18 +141,18 @@ func (h checkovPython) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule
 	return
 }
 
-func (h checkovPython) validate(rule *policy.Rule) error {
+func (h checkovPython) validate(policy *policy.Policy) error {
 	var err error
-	for _, target := range rule.Targets {
-		if verr := validateSupportedTarget(rule, target); err != nil {
+	for _, target := range policy.Targets {
+		if verr := validateSupportedTarget(policy, target); err != nil {
 			err = multierror.Append(err, verr)
 		}
-		rulePy := filepath.Join(target.Path(rule), "rule.py")
-		if !util.FileExists(rulePy) {
+		policyPy := filepath.Join(target.Path(policy), "policy.py")
+		if !util.FileExists(policyPy) {
 			continue
 		}
 		foundCheck := false
-		_ = util.ForEachLine(rulePy, func(line string) bool {
+		_ = util.ForEachLine(policyPy, func(line string) bool {
 			if checkAssignmentRe.FindString(line) != "" {
 				foundCheck = true
 				return false
@@ -160,7 +160,7 @@ func (h checkovPython) validate(rule *policy.Rule) error {
 			return true
 		})
 		if !foundCheck {
-			err = multierror.Append(err, fmt.Errorf("%s did not contain an assignment to 'check'", rulePy))
+			err = multierror.Append(err, fmt.Errorf("%s did not contain an assignment to 'check'", policyPy))
 		}
 	}
 	return err
@@ -170,10 +170,10 @@ func (checkovPython) GetTestRunner(runOpts tools.RunOpts, target policy.Target) 
 	return getTestRunner(runOpts, target)
 }
 
-func (checkovPython) FindRuleResult(findings assessments.Findings, id string) manager.PassFail {
-	return findRuleResult(findings, id)
+func (checkovPython) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
+	return findPolicyResult(findings, id)
 }
 
 func init() {
-	policy.RegisterRuleType(CheckovPython)
+	policy.RegisterPolicyType(CheckovPython)
 }

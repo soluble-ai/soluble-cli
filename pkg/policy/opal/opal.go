@@ -6,35 +6,35 @@ import (
 	"path/filepath"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	policies "github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
-type opalRules string
+type opalPolicies string
 
-var Opal manager.RuleType = opalRules("opal")
+var Opal manager.PolicyType = opalPolicies("opal")
 
-var inputTypeForTarget = map[policy.Target]string{
-	policy.Terraform:      "tf",
-	policy.Cloudformation: "cfn",
-	policy.Kubernetes:     "k8s",
-	policy.ARM:            "arm",
+var inputTypeForTarget = map[policies.Target]string{
+	policies.Terraform:      "tf",
+	policies.Cloudformation: "cfn",
+	policies.Kubernetes:     "k8s",
+	policies.ARM:            "arm",
 }
 
-func (opalRules) GetName() string {
+func (opalPolicies) GetName() string {
 	return "opal"
 }
-func (opalRules) GetCode() string {
+func (opalPolicies) GetCode() string {
 	return "opl"
 }
 
-func (opalRules) PrepareRules(rules []*policy.Rule, dest string) error {
-	for _, rule := range rules {
-		for _, target := range rule.Targets {
-			if err := prepareRule(rule, target, dest); err != nil {
+func (opalPolicies) PreparePolicies(policies []*policies.Policy, dest string) error {
+	for _, policy := range policies {
+		for _, target := range policy.Targets {
+			if err := preparePolicy(policy, target, dest); err != nil {
 				return err
 			}
 		}
@@ -42,40 +42,40 @@ func (opalRules) PrepareRules(rules []*policy.Rule, dest string) error {
 	return nil
 }
 
-func prepareRule(rule *policy.Rule, target policy.Target, dest string) error {
-	rt, err := getRuleText(rule, target)
+func preparePolicy(policy *policies.Policy, target policies.Target, dest string) error {
+	rt, err := getPolicyText(policy, target)
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(filepath.Join(dest, fmt.Sprintf("%s.rego", rule.ID)))
+	f, err := os.Create(filepath.Join(dest, fmt.Sprintf("%s.rego", policy.ID)))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return rt.write(f, rule.Metadata)
+	return rt.write(f, policy.Metadata)
 }
 
-func (opalRules) GetTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
+func (opalPolicies) GetTestRunner(runOpts tools.RunOpts, target policies.Target) tools.Single {
 	t := &opal.Tool{}
 	t.RunOpts = runOpts
 	return t
 }
 
-func (opalRules) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) (validate manager.ValidateResult) {
-	for _, rule := range rules {
-		for _, target := range rule.Targets {
-			ruleRegoPath := filepath.Join(target.Path(rule), "rule.rego")
-			if !util.FileExists(ruleRegoPath) {
+func (opalPolicies) ValidatePolicies(runOpts tools.RunOpts, policies []*policies.Policy) (validate manager.ValidateResult) {
+	for _, policy := range policies {
+		for _, target := range policy.Targets {
+			policyRegoPath := filepath.Join(target.Path(policy), "policy.rego")
+			if !util.FileExists(policyRegoPath) {
 				validate.AppendError(
-					fmt.Errorf("\"rule.rego\" is missing in %s", target.Path(rule)))
+					fmt.Errorf("\"policy.rego\" is missing in %s", target.Path(policy)))
 				continue
 			}
 			if inputTypeForTarget[target] == "" {
 				validate.AppendError(
-					fmt.Errorf("opal does not support the %s target in %s", target, rule.Path))
+					fmt.Errorf("opal does not support the %s target in %s", target, policy.Path))
 				continue
 			}
-			_, err := getRuleText(rule, target)
+			_, err := getPolicyText(policy, target)
 			if err != nil {
 				validate.AppendError(err)
 				validate.Invalid++
@@ -87,27 +87,27 @@ func (opalRules) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) (val
 	return
 }
 
-func getRuleText(rule *policy.Rule, target policy.Target) (*ruleText, error) {
-	if td := rule.TargetData[target]; td != nil {
-		return td.(*ruleText), nil
+func getPolicyText(policy *policies.Policy, target policies.Target) (*policyText, error) {
+	if td := policy.TargetData[target]; td != nil {
+		return td.(*policyText), nil
 	}
-	rt, err := readRuleText(filepath.Join(target.Path(rule), "rule.rego"))
+	rt, err := readPolicyText(filepath.Join(target.Path(policy), "policy.rego"))
 	if err != nil {
 		return nil, err
 	}
-	if rt.inputType == "" && target == policy.Terraform {
+	if rt.inputType == "" && target == policies.Terraform {
 		// ok
 	} else if rt.inputType != inputTypeForTarget[target] {
 		return nil, fmt.Errorf("%s must have input_type := \"%s\" for the %s target",
-			rule.Path, inputTypeForTarget[target], target)
+			policy.Path, inputTypeForTarget[target], target)
 	}
-	rule.TargetData[target] = rt
+	policy.TargetData[target] = rt
 	return rt, nil
 }
 
-func (opalRules) FindRuleResult(findings assessments.Findings, id string) manager.PassFail {
+func (opalPolicies) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
 	for _, f := range findings {
-		if f.Tool != nil && f.Tool["rule_id"] == id {
+		if f.Tool != nil && f.Tool["policy_id"] == id {
 			pass := f.Pass
 			return &pass
 		}
@@ -116,5 +116,5 @@ func (opalRules) FindRuleResult(findings assessments.Findings, id string) manage
 }
 
 func init() {
-	policy.RegisterRuleType(Opal)
+	policies.RegisterPolicyType(Opal)
 }

@@ -12,31 +12,31 @@ import (
 
 func TestReadWithMetadoc(t *testing.T) {
 	assert := assert.New(t)
-	r, err := readRuleText("testdata/rule-with-metadoc.rego")
+	r, err := readPolicyText("testdata/policy-with-metadoc.rego")
 	assert.NoError(err)
 	if !assert.NotNil(r) {
 		return
 	}
 	assert.Equal(11, r.packageDecl.start)
-	assert.Equal(30, r.packageDecl.end)
-	assert.Equal("package rules.p1.p2", string(r.text[r.packageDecl.start:r.packageDecl.end]))
-	assert.Equal(56, r.regoMetaDoc.start)
-	assert.Equal(281, r.regoMetaDoc.end)
+	assert.Equal(33, r.packageDecl.end)
+	assert.Equal("package policies.p1.p2", string(r.text[r.packageDecl.start:r.packageDecl.end]))
+	assert.Equal(59, r.regoMetaDoc.start)
+	assert.Equal(284, r.regoMetaDoc.end)
 	regoMetaDoc := string(r.text[r.regoMetaDoc.start:r.regoMetaDoc.end])
 	assert.True(strings.HasPrefix(regoMetaDoc, "__rego__metadoc__ :="), regoMetaDoc)
 	s := &strings.Builder{}
 	assert.NoError(r.write(s, policy.Metadata{
-		"sid":      "c-opl-test-rule",
+		"sid":      "c-opl-test-policy",
 		"severity": "High",
 	}))
-	dat, err := os.ReadFile("testdata/rule-with-metadoc-rewrite.rego")
+	dat, err := os.ReadFile("testdata/policy-with-metadoc-rewrite.rego")
 	assert.NoError(err)
 	assert.Equal(string(dat), s.String())
 }
 
 func TestNoMetadoc(t *testing.T) {
 	assert := assert.New(t)
-	r, err := readRuleText("testdata/rule-no-metadoc.rego")
+	r, err := readPolicyText("testdata/policy-no-metadoc.rego")
 	assert.NoError(err)
 	if !assert.NotNil(r) {
 		return
@@ -44,12 +44,12 @@ func TestNoMetadoc(t *testing.T) {
 	assert.Equal("tf", r.inputType)
 	s := &strings.Builder{}
 	assert.NoError(r.write(s, policy.Metadata{
-		"sid":         "c-opl-test-rule",
+		"sid":         "c-opl-test-policy",
 		"title":       `This is a "great" example`,
 		"description": `This is a great "description"`,
 	}))
 	fmt.Println(s.String())
-	dat, err := os.ReadFile("testdata/rule-no-metadoc-rewrite.rego")
+	dat, err := os.ReadFile("testdata/policy-no-metadoc-rewrite.rego")
 	assert.NoError(err)
 	assert.Equal(string(dat), s.String())
 }
@@ -61,7 +61,7 @@ func TestQuote(t *testing.T) {
 
 func TestReadNoPackage(t *testing.T) {
 	assert := assert.New(t)
-	r, err := readRuleText("testdata/rule-no-package.rego")
+	r, err := readPolicyText("testdata/policy-no-package.rego")
 	assert.NoError(err)
 	if !assert.NotNil(r) {
 		return
@@ -72,7 +72,7 @@ func TestReadNoPackage(t *testing.T) {
 	}))
 	s := b.String()
 	fmt.Println(s)
-	dat, err := os.ReadFile("testdata/rule-no-package-rewrite.rego")
+	dat, err := os.ReadFile("testdata/policy-no-package-rewrite.rego")
 	assert.NoError(err)
 	assert.Equal(string(dat), s)
 }

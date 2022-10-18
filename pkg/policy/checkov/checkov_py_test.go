@@ -17,20 +17,20 @@ func TestPreparePy(t *testing.T) {
 	if !assert.NoError(err) {
 		return
 	}
-	if assert.Len(m.Rules[CheckovPython], 1) {
-		rule := m.Rules[CheckovPython][0]
-		assert.NotNil(rule)
+	if assert.Len(m.Policies[CheckovPython], 1) {
+		policy := m.Policies[CheckovPython][0]
+		assert.NotNil(policy)
 	}
 	temp, err := os.MkdirTemp("", "checkov-py-test")
 	if !assert.NoError(err) {
 		return
 	}
 	defer os.RemoveAll(temp)
-	assert.NoError(m.PrepareRules(temp))
+	assert.NoError(m.PreparePolicies(temp))
 	dat, err := os.ReadFile(filepath.Join(temp, "c-ckvpy-s3-naming-terraform.py"))
 	assert.NoError(err)
 	fmt.Println(string(dat))
-	validate := m.ValidateRules()
+	validate := m.ValidatePolicies()
 	assert.NoError(validate.Errors)
 	assert.Equal(1, validate.Valid)
 	assert.Equal(0, validate.Invalid)

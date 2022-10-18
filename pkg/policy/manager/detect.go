@@ -6,20 +6,22 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	policies "github.com/soluble-ai/soluble-cli/pkg/policy"
+
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
-// Finds and loads rules in a directory.  The directory may be any directory
-// in the policies tree.  Only rules underneath the directory will be loaded.
+// TODO update from policys to policies
+// Finds and loads policies in a directory.  The directory may be any directory
+// in the policies tree.  Only policies underneath the directory will be loaded.
 // Policy directories have the following layout:
 //
 // policies/
-// policies/<rule-tyoe>
-// policies/<rule-type>/<rule> (must contain metadata.yaml)
-// policies/<rule-type>/<rule>/<target>
+// policies/<policy-tyoe>
+// policies/<policy-type>/<policy> (must contain metadata.yaml)
+// policies/<policy-type>/<policy>/<target>
 //
-// <target> is optional depending on <rule-type>.
+// <target> is optional depending on <policy-type>.
 func (m *M) DetectPolicy(dir string) error {
 	if dir != "" {
 		m.Dir = dir
@@ -35,45 +37,45 @@ func (m *M) DetectPolicy(dir string) error {
 		return fmt.Errorf("%s is not a directory", m.Dir)
 	}
 	if util.DirExists(filepath.Join(m.Dir, "policies")) {
-		if err := m.LoadRules(); err != nil {
+		if err := m.LoadPolicies(); err != nil {
 			return err
 		}
 	} else {
 		dir := m.Dir
 		m.Dir = ""
-		m.Rules = nil
+		m.Policies = nil
 		elements := strings.Split(dir, string(os.PathSeparator))
 		for i := len(elements) - 1; i > 0; i-- {
 			// work backwards through path elements of dir, looking for
 			// "policies" directory
 			if elements[i] == "policies" {
-				var ruleType policy.RuleType
+				var policyType policies.PolicyType
 				m.Dir = strings.Join(elements[0:i], string(os.PathSeparator))
-				m.Rules = make(map[policy.RuleType][]*policy.Rule)
+				m.Policies = make(map[policies.PolicyType][]*policies.Policy)
 				// look at the path elements past "policies" to see where
 				// we are
 				n := len(elements) - i
 				if n > 1 {
-					ruleType = policy.GetRuleType(elements[i+1])
-					if ruleType == nil {
-						return fmt.Errorf("unsupported rule type %s", elements[i+1])
+					policyType = policies.GetPolicyType(elements[i+1])
+					if policyType == nil {
+						return fmt.Errorf("unsupported policy type %s", elements[i+1])
 					}
 				}
 				if n > 2 {
-					rulePath := strings.Join(elements[0:i+3], string(os.PathSeparator))
-					_, err := m.LoadSingleRule(ruleType, rulePath)
+					policyPath := strings.Join(elements[0:i+3], string(os.PathSeparator))
+					_, err := m.LoadSinglePolicy(policyType, policyPath)
 					if err != nil {
 						return err
 					}
 					break
 				}
-				if ruleType != nil {
-					if err := m.LoadRulesOfType(ruleType); err != nil {
+				if policyType != nil {
+					if err := m.LoadPoliciesOfType(policyType); err != nil {
 						return err
 					}
 					break
 				}
-				if err := m.LoadRules(); err != nil {
+				if err := m.LoadPolicies(); err != nil {
 					return err
 				}
 				break

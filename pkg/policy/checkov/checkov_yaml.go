@@ -17,7 +17,7 @@ import (
 
 type checkovYAML string
 
-var CheckovYAML manager.RuleType = checkovYAML("checkov")
+var CheckovYAML manager.PolicyType = checkovYAML("checkov")
 
 func (checkovYAML) GetName() string {
 	return "checkov"
@@ -27,20 +27,20 @@ func (checkovYAML) GetCode() string {
 	return "ckv"
 }
 
-func (h checkovYAML) PrepareRules(rules []*policy.Rule, dst string) error {
-	for _, rule := range rules {
-		for _, target := range rule.Targets {
-			ruleBody, err := h.readRule(rule, target)
+func (h checkovYAML) PreparePolicies(policies []*policy.Policy, dst string) error {
+	for _, policy := range policies {
+		for _, target := range policy.Targets {
+			policyBody, err := h.readPolicy(policy, target)
 			if err != nil {
 				return err
 			}
-			util.GenericSet(&ruleBody, "metadata/id", rule.ID)
-			util.GenericSet(&ruleBody, "metadata/name", rule.Metadata["title"])
-			d, err := yaml.Marshal(ruleBody)
+			util.GenericSet(&policyBody, "metadata/id", policy.ID)
+			util.GenericSet(&policyBody, "metadata/name", policy.Metadata["title"])
+			d, err := yaml.Marshal(policyBody)
 			if err != nil {
 				return err
 			}
-			if err := os.WriteFile(filepath.Join(dst, fmt.Sprintf("%s-%s.yaml", target, rule.ID)), d, 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(dst, fmt.Sprintf("%s-%s.yaml", target, policy.ID)), d, 0600); err != nil {
 				return err
 			}
 		}
@@ -48,24 +48,24 @@ func (h checkovYAML) PrepareRules(rules []*policy.Rule, dst string) error {
 	return nil
 }
 
-func (checkovYAML) readRule(rule *policy.Rule, target policy.Target) (map[string]interface{}, error) {
-	d, err := os.ReadFile(filepath.Join(target.Path(rule), "rule.yaml"))
+func (checkovYAML) readPolicy(policy *policy.Policy, target policy.Target) (map[string]interface{}, error) {
+	d, err := os.ReadFile(filepath.Join(target.Path(policy), "policy.yaml"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	var ruleBody map[string]interface{}
-	if err := yaml.Unmarshal(d, &ruleBody); err != nil {
-		return nil, fmt.Errorf("the YAML rule in %s/%s/rule.yaml is not legal yaml - %w", rule.Path, target, err)
+	var policyBody map[string]interface{}
+	if err := yaml.Unmarshal(d, &policyBody); err != nil {
+		return nil, fmt.Errorf("the YAML policy in %s/%s/policy.yaml is not legal yaml - %w", policy.Path, target, err)
 	}
-	return ruleBody, nil
+	return policyBody, nil
 }
 
-func (h checkovYAML) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) (validate manager.ValidateResult) {
-	for _, rule := range rules {
-		if e := h.validate(rule); e != nil {
+func (h checkovYAML) ValidatePolicies(runOpts tools.RunOpts, policies []*policy.Policy) (validate manager.ValidateResult) {
+	for _, policy := range policies {
+		if e := h.validate(policy); e != nil {
 			validate.Invalid++
 			validate.AppendError(e)
 		} else {
@@ -75,13 +75,13 @@ func (h checkovYAML) ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) 
 	return
 }
 
-func (h checkovYAML) validate(rule *policy.Rule) error {
+func (h checkovYAML) validate(policy *policy.Policy) error {
 	var err error
-	for _, target := range rule.Targets {
-		if verr := validateSupportedTarget(rule, target); verr != nil {
+	for _, target := range policy.Targets {
+		if verr := validateSupportedTarget(policy, target); verr != nil {
 			err = multierror.Append(err, verr)
 		}
-		_, terr := h.readRule(rule, target)
+		_, terr := h.readPolicy(policy, target)
 		if terr != nil {
 			err = multierror.Append(err, terr)
 		}
@@ -93,10 +93,10 @@ func (checkovYAML) GetTestRunner(runOpts tools.RunOpts, target policy.Target) to
 	return getTestRunner(runOpts, target)
 }
 
-func (checkovYAML) FindRuleResult(findings assessments.Findings, id string) manager.PassFail {
-	return findRuleResult(findings, id)
+func (checkovYAML) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
+	return findPolicyResult(findings, id)
 }
 
 func init() {
-	policy.RegisterRuleType(CheckovYAML)
+	policy.RegisterPolicyType(CheckovYAML)
 }
