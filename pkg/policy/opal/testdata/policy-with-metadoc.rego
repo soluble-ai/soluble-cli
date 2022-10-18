@@ -1,5 +1,5 @@
 # comments
-package rules.p1.p2
+package policies.p1.p2
 
 import data.d1.d2 as x
 
@@ -17,5 +17,5 @@ resource_type := "aws_security_group"
 default deny = false
 
 deny {
-  rule = input.ingress[_]
+  policy = input.ingress[_]
 }

@@ -16,7 +16,7 @@ type textRange struct {
 	start, end int
 }
 
-type ruleText struct {
+type policyText struct {
 	path        string
 	text        []byte
 	packageDecl *textRange
@@ -24,19 +24,19 @@ type ruleText struct {
 	inputType   string
 }
 
-func readRuleText(path string) (*ruleText, error) {
+func readPolicyText(path string) (*policyText, error) {
 	dat, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	t := &ruleText{
+	t := &policyText{
 		path: path,
 		text: dat,
 	}
 	return t.parse()
 }
 
-func (t *ruleText) parse() (*ruleText, error) {
+func (t *policyText) parse() (*policyText, error) {
 	parser := ast.NewParser().WithFilename(t.path).WithReader(bytes.NewReader(t.text))
 	stmts, _, err := parser.Parse()
 	if err != nil {
@@ -50,8 +50,8 @@ func (t *ruleText) parse() (*ruleText, error) {
 			if len(s.Path) < 2 {
 				return nil, fmt.Errorf("%s:%d: invalid package declaration", s.Location.File, s.Location.Row)
 			}
-			if !ast.Var("data").Equal(s.Path[0].Value) || !ast.String("rules").Equal(s.Path[1].Value) {
-				return nil, fmt.Errorf("%s:%d: the package for a rule must start with \"rules\"",
+			if !ast.Var("data").Equal(s.Path[0].Value) || !ast.String("policies").Equal(s.Path[1].Value) {
+				return nil, fmt.Errorf("%s:%d: the package for a policy must start with \"policies\"",
 					s.Location.File, s.Location.Row)
 			}
 			last := s.Path[len(s.Path)-1]
@@ -85,7 +85,7 @@ func (t *ruleText) parse() (*ruleText, error) {
 	return t, nil
 }
 
-func (t *ruleText) write(w io.Writer, metadata policy.Metadata) error {
+func (t *policyText) write(w io.Writer, metadata policy.Metadata) error {
 	var tail []byte
 	// write text up to package decl
 	if t.packageDecl != nil && t.packageDecl.start > 0 {
@@ -95,7 +95,7 @@ func (t *ruleText) write(w io.Writer, metadata policy.Metadata) error {
 	}
 	// write new package declaration
 	packageName := strings.ReplaceAll(metadata.GetString("sid"), "-", "_")
-	if _, err := fmt.Fprintf(w, "package rules.%s", packageName); err != nil {
+	if _, err := fmt.Fprintf(w, "package policies.%s", packageName); err != nil {
 		return err
 	}
 	if t.regoMetaDoc != nil {

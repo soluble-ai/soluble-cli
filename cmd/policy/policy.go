@@ -38,11 +38,11 @@ func vetCommand() *cobra.Command {
 			if err := m.DetectPolicy(""); err != nil {
 				return err
 			}
-			result := m.ValidateRules()
+			result := m.ValidatePolicies()
 			if result.Errors != nil {
 				return result.Errors
 			}
-			log.Infof("Validated {primary:%d} custom rules", result.Valid+result.Invalid)
+			log.Infof("Validated {primary:%d} custom policies", result.Valid+result.Invalid)
 			m.MustPrintStructResult(result)
 			return nil
 		},
@@ -66,15 +66,15 @@ func uploadCommand() *cobra.Command {
 					return err
 				}
 			}
-			if err := m.LoadRules(); err != nil {
+			if err := m.LoadPolicies(); err != nil {
 				return err
 			}
-			if res := m.ValidateRules(); res.Errors != nil {
+			if res := m.ValidatePolicies(); res.Errors != nil {
 				return res.Errors
 			}
 			if tarball == "" {
 				var err error
-				tarball, err = util.TempFile("rules*.tar.gz")
+				tarball, err = util.TempFile("policies*.tar.gz")
 				if err != nil {
 					return err
 				}
@@ -91,7 +91,7 @@ func uploadCommand() *cobra.Command {
 				defer f.Close()
 				options := []api.Option{
 					xcp.WithCIEnv(m.Dir),
-					xcp.WithFileFromReader("tarball", "rules.tar.gz", f),
+					xcp.WithFileFromReader("tarball", "policies.tar.gz", f),
 				}
 				options = uploadOpts.AppendUploadOptions(m.Dir, options)
 				api, err := m.GetAPIClient()
@@ -112,7 +112,7 @@ func uploadCommand() *cobra.Command {
 	uploadOpts.DefaultUploadEnabled = true
 	uploadOpts.Register(c)
 	flags.StringVar(&tarball, "save-tarball", "", "Save the upload tarball to `file`.  By default the tarball is written to a temporary file.")
-	flags.Lookup("upload").Usage = "Upload rules to lacework.  Use --upload=false to skip uploading."
+	flags.Lookup("upload").Usage = "Upload policies to lacework.  Use --upload=false to skip uploading."
 	flags.Lookup("upload-errors").Hidden = true // doesn't make sense here
 	_ = c.MarkFlagRequired("directory")
 	return c
@@ -127,10 +127,10 @@ func testCommand() *cobra.Command {
 			if err := m.DetectPolicy(""); err != nil {
 				return err
 			}
-			if res := m.ValidateRules(); res.Errors != nil {
+			if res := m.ValidatePolicies(); res.Errors != nil {
 				return res.Errors
 			}
-			metrics, err := m.TestRules()
+			metrics, err := m.TestPolicies()
 			if metrics.Failed == 0 {
 				log.Infof("Ran {primary:%d} tests and all passed", metrics.Passed)
 			} else {

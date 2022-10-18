@@ -3,7 +3,7 @@ package checkov
 import (
 	"testing"
 
-	"github.com/soluble-ai/soluble-cli/pkg/policy"
+	policies "github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,16 +15,16 @@ func TestDetectPolicy(t *testing.T) {
 	} {
 		m := &manager.M{}
 		err := m.DetectPolicy(dir)
-		assertFoundRule(t, m, dir, err)
+		assertFoundPolicy(t, m, dir, err)
 	}
 }
 
-func assertFoundRule(t *testing.T, m *manager.M, dir string, err error) {
+func assertFoundPolicy(t *testing.T, m *manager.M, dir string, err error) {
 	t.Helper()
 	assert := assert.New(t)
 	assert.NoError(err)
-	if assert.NotNil(m) && assert.Len(m.Rules[CheckovYAML], 1, dir) {
-		rule := m.Rules[CheckovYAML][0]
-		assert.ElementsMatch(rule.Targets, []policy.Target{policy.Terraform})
+	if assert.NotNil(m) && assert.Len(m.Policies[CheckovYAML], 1, dir) {
+		policy := m.Policies[CheckovYAML][0]
+		assert.ElementsMatch(policy.Targets, []policies.Target{policies.Terraform})
 	}
 }

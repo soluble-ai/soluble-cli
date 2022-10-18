@@ -117,16 +117,17 @@ func (t *Tool) Run() (*tools.Result, error) {
 }
 
 func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
-	for _, rr := range n.Path("rule_results").Elements() {
+	result.Data = n
+	for _, rr := range n.Path("policy_results").Elements() {
 		loc := rr.Path("source_location").Get(0)
 		result.Findings = append(result.Findings, &assessments.Finding{
-			Severity: rr.Path("rule_severity").AsText(),
-			Pass:     rr.Path("rule_result").AsText() == "PASS",
+			Severity: rr.Path("policy_severity").AsText(),
+			Pass:     rr.Path("policy_result").AsText() == "PASS",
 			FilePath: loc.Path("path").AsText(),
 			Line:     loc.Path("line").AsInt(),
-			Title:    rr.Path("rule_summary").AsText(),
+			Title:    rr.Path("policy_summary").AsText(),
 			Tool: map[string]string{
-				"rule_id": rr.Path("rule_id").AsText(),
+				"policy_id": rr.Path("policy_id").AsText(),
 			},
 		})
 	}

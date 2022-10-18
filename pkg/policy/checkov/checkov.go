@@ -16,13 +16,13 @@ var supportedTargets = []policy.Target{
 	policy.Secrets,
 }
 
-func validateSupportedTarget(rule *policy.Rule, target policy.Target) error {
+func validateSupportedTarget(policy *policy.Policy, target policy.Target) error {
 	for _, st := range supportedTargets {
 		if target == st {
 			return nil
 		}
 	}
-	return fmt.Errorf("the rule %s contains an unsupported target %s", rule.Path, target)
+	return fmt.Errorf("the policy %s contains an unsupported target %s", policy.Path, target)
 }
 
 func getTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
@@ -33,7 +33,7 @@ func getTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
 	return t
 }
 
-func findRuleResult(findings assessments.Findings, id string) manager.PassFail {
+func findPolicyResult(findings assessments.Findings, id string) manager.PassFail {
 	for _, finding := range findings {
 		if finding.Tool["check_id"] == id {
 			return &finding.Pass

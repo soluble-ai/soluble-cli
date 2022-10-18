@@ -16,13 +16,13 @@ import (
 
 type PassFail *bool
 
-type RuleType interface {
-	policy.RuleType
-	ValidateRules(runOpts tools.RunOpts, rules []*policy.Rule) ValidateResult
+type PolicyType interface {
+	policy.PolicyType
+	ValidatePolicies(runOpts tools.RunOpts, policies []*policy.Policy) ValidateResult
 	GetTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single
 	// Find a test result.  This must be tool-specific because the
 	// findings have not been normalized.
-	FindRuleResult(findings assessments.Findings, id string) PassFail
+	FindPolicyResult(findings assessments.Findings, id string) PassFail
 }
 
 type M struct {
@@ -31,12 +31,12 @@ type M struct {
 }
 
 type TestMetrics struct {
-	Rules  []RuleTestMetrics `json:"rules,omitempty"`
-	Passed int               `json:"passed"`
-	Failed int               `json:"failed"`
+	Policies []PolicyTestMetrics `json:"policies,omitempty"`
+	Passed   int                 `json:"passed"`
+	Failed   int                 `json:"failed"`
 }
 
-type RuleTestMetrics struct {
+type PolicyTestMetrics struct {
 	Path     string        `json:"path"`
 	Target   policy.Target `json:"target"`
 	TestType string        `json:"test_type"`
@@ -60,15 +60,15 @@ func (m *M) Register(cmd *cobra.Command) {
 	_ = cmd.MarkFlagRequired("directory")
 }
 
-func (m *M) ValidateRules() ValidateResult {
+func (m *M) ValidatePolicies() ValidateResult {
 	var result ValidateResult
-	for _, ruleType := range policy.GetRuleTypes() {
-		rules := m.Rules[ruleType]
-		log.Debugf("{primary:%s} has {info:%d} rules", ruleType.GetName(), len(rules))
-		if len(rules) == 0 {
+	for _, policyType := range policy.GetPolicyTypes() {
+		policies := m.Policies[policyType]
+		log.Debugf("{primary:%s} has {info:%d} policies", policyType.GetName(), len(policies))
+		if len(policies) == 0 {
 			continue
 		}
-		typeResult := ruleType.(RuleType).ValidateRules(m.RunOpts, rules)
+		typeResult := policyType.(PolicyType).ValidatePolicies(m.RunOpts, policies)
 		if typeResult.Errors != nil {
 			result.Errors = multierror.Append(result.Errors, typeResult.Errors)
 		}
@@ -78,24 +78,24 @@ func (m *M) ValidateRules() ValidateResult {
 	return result
 }
 
-func (m *M) TestRules() (TestMetrics, error) {
+func (m *M) TestPolicies() (TestMetrics, error) {
 	metrics := TestMetrics{}
-	dest, err := os.MkdirTemp("", "testrules*")
+	dest, err := os.MkdirTemp("", "testpolicies*")
 	if err != nil {
 		return metrics, err
 	}
 	defer os.RemoveAll(dest)
-	for ruleType, rules := range m.Rules {
-		if err := ruleType.PrepareRules(rules, dest); err != nil {
+	for policyType, policies := range m.Policies {
+		if err := policyType.PreparePolicies(policies, dest); err != nil {
 			return metrics, err
 		}
 	}
 	err = nil
-	for _, ruleType := range policy.GetRuleTypes() {
-		rules := m.Rules[ruleType]
-		for _, rule := range rules {
-			for _, target := range rule.Targets {
-				if terr := m.testRuleTarget(&metrics, ruleType, rule, target, dest); terr != nil {
+	for _, policyType := range policy.GetPolicyTypes() {
+		policies := m.Policies[policyType]
+		for _, policy := range policies {
+			for _, target := range policy.Targets {
+				if terr := m.testPolicyTarget(&metrics, policyType, policy, target, dest); terr != nil {
 					err = multierror.Append(err, terr)
 				}
 			}
@@ -104,19 +104,19 @@ func (m *M) TestRules() (TestMetrics, error) {
 	return metrics, err
 }
 
-func (m *M) testRuleTarget(metrics *TestMetrics, ruleType policy.RuleType, rule *policy.Rule, target policy.Target, dest string) error {
-	mRuleType, ok := ruleType.(RuleType)
+func (m *M) testPolicyTarget(metrics *TestMetrics, policyType policy.PolicyType, policy *policy.Policy, target policy.Target, dest string) error {
+	mPolicyType, ok := policyType.(PolicyType)
 	if !ok {
 		return nil
 	}
 	failures := 0
 tests:
 	for _, passFailName := range []string{"pass", "fail"} {
-		testDir := getTestsDir(target, rule, passFailName)
+		testDir := getTestsDir(target, policy, passFailName)
 		if !util.DirExists(testDir) {
 			continue
 		}
-		tool := mRuleType.GetTestRunner(m.RunOpts, target)
+		tool := mPolicyType.GetTestRunner(m.RunOpts, target)
 		opts := tool.GetAssessmentOptions()
 		opts.Tool = tool
 		opts.DisableCustomPolicies = true
@@ -129,14 +129,14 @@ tests:
 		if err != nil {
 			return err
 		}
-		passFailResult := mRuleType.FindRuleResult(result.Findings, rule.ID)
+		passFailResult := mPolicyType.FindPolicyResult(result.Findings, policy.ID)
 		if passFailResult != nil {
 			ok := *passFailResult
 			if passFailName == "fail" {
 				ok = !ok
 			}
-			p := rule.Path
-			if rp, err := filepath.Rel(m.Dir, rule.Path); err == nil {
+			p := policy.Path
+			if rp, err := filepath.Rel(m.Dir, policy.Path); err == nil {
 				p = rp
 			}
 			if ok {
@@ -147,7 +147,7 @@ tests:
 				failures++
 				metrics.Failed++
 			}
-			metrics.Rules = append(metrics.Rules, RuleTestMetrics{
+			metrics.Policies = append(metrics.Policies, PolicyTestMetrics{
 				Path:     p,
 				Target:   target,
 				TestType: passFailName,
@@ -165,9 +165,9 @@ tests:
 	return nil
 }
 
-func getTestsDir(t policy.Target, rule *policy.Rule, passFailName string) string {
+func getTestsDir(t policy.Target, policy *policy.Policy, passFailName string) string {
 	if t != "" {
-		return filepath.Join(rule.Path, string(t), "tests", passFailName)
+		return filepath.Join(policy.Path, string(t), "tests", passFailName)
 	}
-	return filepath.Join(rule.Path, "tests", passFailName)
+	return filepath.Join(policy.Path, "tests", passFailName)
 }

@@ -29,7 +29,7 @@ func (m Metadata) GetString(key string) string {
 	return val
 }
 
-type Rule struct {
+type Policy struct {
 	ID         string
 	Path       string
 	Metadata   Metadata
@@ -55,56 +55,56 @@ var allTargets = []Target{
 	Terraform, TerraformPlan, Cloudformation, Kubernetes, Helm, Docker, Secrets,
 }
 
-type RuleType interface {
+type PolicyType interface {
 	GetName() string
 	GetCode() string
-	PrepareRules(rules []*Rule, dest string) error
+	PreparePolicies(policies []*Policy, dest string) error
 }
 
-var allRuleTypes = map[string]RuleType{}
+var allPolicyTypes = map[string]PolicyType{}
 
 type Store struct {
-	Dir   string
-	Rules map[RuleType][]*Rule
+	Dir      string
+	Policies map[PolicyType][]*Policy
 }
 
-func RegisterRuleType(ruleType RuleType) {
-	allRuleTypes[ruleType.GetName()] = ruleType
+func RegisterPolicyType(policyType PolicyType) {
+	allPolicyTypes[policyType.GetName()] = policyType
 }
 
-func GetRuleType(ruleTypeName string) RuleType {
-	return allRuleTypes[ruleTypeName]
+func GetPolicyType(policyTypeName string) PolicyType {
+	return allPolicyTypes[policyTypeName]
 }
 
-func (t Target) Path(rule *Rule) string {
-	return filepath.Join(rule.Path, string(t))
+func (t Target) Path(policy *Policy) string {
+	return filepath.Join(policy.Path, string(t))
 }
 
-func (m *Store) LoadRules() error {
-	m.Rules = make(map[RuleType][]*Rule)
-	for _, ruleType := range GetRuleTypes() {
-		if err := m.LoadRulesOfType(ruleType); err != nil {
+func (m *Store) LoadPolicies() error {
+	m.Policies = make(map[PolicyType][]*Policy)
+	for _, policyType := range GetPolicyTypes() {
+		if err := m.LoadPoliciesOfType(policyType); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *Store) LoadRulesOfType(ruleType RuleType) error {
-	ruleTypeDir := filepath.Join(m.Dir, "policies", ruleType.GetName())
-	dirs, err := os.ReadDir(ruleTypeDir)
+func (m *Store) LoadPoliciesOfType(policyType PolicyType) error {
+	policyTypeDir := filepath.Join(m.Dir, "policies", policyType.GetName())
+	dirs, err := os.ReadDir(policyTypeDir)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	for _, ruleDir := range dirs {
-		if !ruleDir.IsDir() {
+	for _, policyDir := range dirs {
+		if !policyDir.IsDir() {
 			continue
 		}
-		dirName := ruleDir.Name()
+		dirName := policyDir.Name()
 		if dirName[0] == '.' {
 			continue
 		}
-		_, err := m.LoadSingleRule(ruleType, filepath.Join(ruleTypeDir, dirName))
+		_, err := m.LoadSinglePolicy(policyType, filepath.Join(policyTypeDir, dirName))
 		if err != nil {
 			return err
 		}
@@ -112,49 +112,49 @@ func (m *Store) LoadRulesOfType(ruleType RuleType) error {
 	return nil
 }
 
-func (m *Store) LoadSingleRule(ruleType RuleType, path string) (*Rule, error) {
-	id := fmt.Sprintf("c-%s-%s", ruleType.GetCode(), strings.ReplaceAll(filepath.Base(path), "_", "-"))
+func (m *Store) LoadSinglePolicy(policyType PolicyType, path string) (*Policy, error) {
+	id := fmt.Sprintf("c-%s-%s", policyType.GetCode(), strings.ReplaceAll(filepath.Base(path), "_", "-"))
 	d, err := os.ReadFile(filepath.Join(path, "metadata.yaml"))
 	if err != nil {
 		return nil, err
 	}
-	rule := &Rule{
+	policy := &Policy{
 		ID:         id,
 		Path:       path,
 		TargetData: make(map[Target]interface{}),
 	}
-	if err := yaml.Unmarshal(d, &rule.Metadata); err != nil {
-		return nil, fmt.Errorf("the metadata for %s is invalid - %w", rule.Path, err)
+	if err := yaml.Unmarshal(d, &policy.Metadata); err != nil {
+		return nil, fmt.Errorf("the metadata for %s is invalid - %w", policy.Path, err)
 	}
-	if rule.Metadata == nil {
-		rule.Metadata = make(Metadata)
+	if policy.Metadata == nil {
+		policy.Metadata = make(Metadata)
 	}
-	rule.Metadata["ruleId"] = rule.ID
-	rule.Metadata["sid"] = rule.ID
-	log.Debugf("Loaded %s from %s\n", rule.ID, rule.Path)
-	m.Rules[ruleType] = append(m.Rules[ruleType], rule)
+	policy.Metadata["policyId"] = policy.ID
+	policy.Metadata["sid"] = policy.ID
+	log.Debugf("Loaded %s from %s\n", policy.ID, policy.Path)
+	m.Policies[policyType] = append(m.Policies[policyType], policy)
 	for _, target := range allTargets {
-		targetDir := filepath.Join(rule.Path, string(target))
+		targetDir := filepath.Join(policy.Path, string(target))
 		if util.DirExists(targetDir) {
-			rule.Targets = append(rule.Targets, target)
+			policy.Targets = append(policy.Targets, target)
 		}
 	}
-	return rule, nil
+	return policy, nil
 }
 
-func (m *Store) PrepareRules(dest string) error {
+func (m *Store) PreparePolicies(dest string) error {
 	var err error
-	for ruleType, rules := range m.Rules {
-		if perr := ruleType.PrepareRules(rules, dest); perr != nil {
+	for policyType, policies := range m.Policies {
+		if perr := policyType.PreparePolicies(policies, dest); perr != nil {
 			err = multierror.Append(err, perr)
 		}
 	}
 	return err
 }
 
-func (m *Store) RuleCount() (count int) {
-	for _, rules := range m.Rules {
-		count += len(rules)
+func (m *Store) PolicyCount() (count int) {
+	for _, policies := range m.Policies {
+		count += len(policies)
 	}
 	return
 }
@@ -167,7 +167,7 @@ func (m *Store) CreateTarBall(path string) error {
 	defer f.Close()
 	gz := gzip.NewWriter(f)
 	w := tar.NewWriter(gz)
-	if err := m.writeRules(w); err != nil {
+	if err := m.writePolicies(w); err != nil {
 		return err
 	}
 	if err := m.writeUploadMetadata(w); err != nil {
@@ -176,7 +176,7 @@ func (m *Store) CreateTarBall(path string) error {
 	if err := w.Close(); err != nil {
 		return err
 	}
-	log.Infof("Created tarball with {info:%d} rules", m.RuleCount())
+	log.Infof("Created tarball with {info:%d} policies", m.PolicyCount())
 	return gz.Close()
 }
 
@@ -202,15 +202,15 @@ func (m *Store) writeUploadMetadata(w *tar.Writer) error {
 	return nil
 }
 
-func (m *Store) writeRules(w *tar.Writer) error {
-	for _, ruleType := range GetRuleTypes() {
-		rules := m.Rules[ruleType]
-		for _, rule := range rules {
-			log.Infof("Including {info:%s} from {primary:%s}", rule.ID, rule.Path)
-			if err := m.writeRuleFiles(w, rule); err != nil {
+func (m *Store) writePolicies(w *tar.Writer) error {
+	for _, policyType := range GetPolicyTypes() {
+		policies := m.Policies[policyType]
+		for _, policy := range policies {
+			log.Infof("Including {info:%s} from {primary:%s}", policy.ID, policy.Path)
+			if err := m.writePolicyFiles(w, policy); err != nil {
 				return err
 			}
-			if err := m.writeRuleMetadata(w, rule); err != nil {
+			if err := m.writePolicyMetadata(w, policy); err != nil {
 				return err
 			}
 		}
@@ -218,18 +218,18 @@ func (m *Store) writeRules(w *tar.Writer) error {
 	return nil
 }
 
-func (m *Store) writeRuleMetadata(w *tar.Writer, rule *Rule) error {
-	dat, err := yaml.Marshal(rule.Metadata)
+func (m *Store) writePolicyMetadata(w *tar.Writer, policy *Policy) error {
+	dat, err := yaml.Marshal(policy.Metadata)
 	if err != nil {
 		return err
 	}
-	rpath, err := filepath.Rel(m.Dir, rule.Path)
+	policyPath, err := filepath.Rel(m.Dir, policy.Path)
 	if err != nil {
 		return err
 	}
 	h := &tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     fmt.Sprintf("%s/metadata.yaml", rpath),
+		Name:     fmt.Sprintf("%s/metadata.yaml", policyPath),
 		Size:     int64(len(dat)),
 		ModTime:  time.Now(),
 		Mode:     0644,
@@ -243,8 +243,8 @@ func (m *Store) writeRuleMetadata(w *tar.Writer, rule *Rule) error {
 	return nil
 }
 
-func (m *Store) writeRuleFiles(w *tar.Writer, rule *Rule) error {
-	return filepath.Walk(rule.Path, func(path string, info fs.FileInfo, err error) error {
+func (m *Store) writePolicyFiles(w *tar.Writer, policy *Policy) error {
+	return filepath.Walk(policy.Path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -311,9 +311,9 @@ func (m *Store) GetPolicyUploadMetadata() (map[string]string, error) {
 	return res, err
 }
 
-func GetRuleTypes() (res []RuleType) {
-	for _, ruleType := range allRuleTypes {
-		res = append(res, ruleType)
+func GetPolicyTypes() (res []PolicyType) {
+	for _, policyType := range allPolicyTypes {
+		res = append(res, policyType)
 	}
 	// sort so that validate and test run in the same
 	// order each time

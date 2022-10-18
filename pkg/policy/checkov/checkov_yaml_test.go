@@ -16,23 +16,23 @@ func TestCheckov(t *testing.T) {
 	m := &manager.M{}
 	err := m.DetectPolicy("testdata")
 	assert.NoError(t, err)
-	assert.Len(t, m.Rules[CheckovYAML], 1)
-	rule := m.Rules[CheckovYAML][0]
-	assert.NotNil(t, rule)
-	assert.True(t, strings.HasSuffix(rule.Path, "testdata/policies/checkov/team_tag"), rule.Path)
-	assert.Equal(t, "c-ckv-team-tag", rule.ID)
+	assert.Len(t, m.Policies[CheckovYAML], 1)
+	policy := m.Policies[CheckovYAML][0]
+	assert.NotNil(t, policy)
+	assert.True(t, strings.HasSuffix(policy.Path, "testdata/policies/checkov/team_tag"), policy.Path)
+	assert.Equal(t, "c-ckv-team-tag", policy.ID)
 	tmp, err := os.MkdirTemp("", "test*")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmp)
-	assert.NoError(t, m.PrepareRules(tmp))
+	assert.NoError(t, m.PreparePolicies(tmp))
 	d, err := os.ReadFile(filepath.Join(tmp, "terraform-c-ckv-team-tag.yaml"))
 	assert.NoError(t, err)
 	fmt.Println(string(d))
-	var ruleBody map[string]interface{}
-	assert.NoError(t, yaml.Unmarshal(d, &ruleBody))
-	ruleMetadata, _ := ruleBody["metadata"].(map[string]interface{})
-	assert.NotNil(t, ruleMetadata)
-	assert.Equal(t, "c-ckv-team-tag", ruleMetadata["id"])
-	validate := m.ValidateRules()
+	var policyBody map[string]interface{}
+	assert.NoError(t, yaml.Unmarshal(d, &policyBody))
+	policyMetadata, _ := policyBody["metadata"].(map[string]interface{})
+	assert.NotNil(t, policyMetadata)
+	assert.Equal(t, "c-ckv-team-tag", policyMetadata["id"])
+	validate := m.ValidatePolicies()
 	assert.NoError(t, validate.Errors)
 }
