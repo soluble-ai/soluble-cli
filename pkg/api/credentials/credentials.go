@@ -116,7 +116,7 @@ func (p *ProfileCredentials) RefreshToken(domain string, keyID string, secretKey
 	req.Header.Set("User-Agent", api.UserAgent)
 	req.Header.Set("X-LW-UAKS", secretKey)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := api.RClient.GetClient().Do(req)
 	if err != nil {
 		return err
 	}

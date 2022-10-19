@@ -17,7 +17,6 @@ package auth
 import (
 	"fmt"
 
-	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -32,7 +31,6 @@ func Command() *cobra.Command {
 	c.AddCommand(profileCmd(),
 		printTokenCmd(),
 		setAccessTokenCmd(),
-		setOrgCommand(),
 	)
 	return c
 }
@@ -51,11 +49,6 @@ func profileCmd() *cobra.Command {
 			result, err := apiClient.Get("/api/v1/users/profile")
 			if err != nil {
 				return err
-			}
-			if config.UpdateFromServerProfile(result) {
-				if err := config.Save(); err != nil {
-					return err
-				}
 			}
 			opts.PrintResult(result)
 			return nil
@@ -106,13 +99,12 @@ func setAccessTokenCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := apiClient.Get("/api/v1/users/profile")
+			_, err = apiClient.Get("/api/v1/users/profile")
 			if err != nil {
 				return err
 			}
 			config.Config.APIServer = cfg.APIServer
 			config.Config.TLSNoVerify = cfg.TLSNoVerify
-			config.UpdateFromServerProfile(result)
 			if err := config.Save(); err != nil {
 				return err
 			}
@@ -123,37 +115,5 @@ func setAccessTokenCmd() *cobra.Command {
 	opts.Register(c)
 	c.Flags().StringVar(&accessToken, "access-token", "", "The access token from ")
 	_ = c.MarkFlagRequired("access-token")
-	return c
-}
-
-func setOrgCommand() *cobra.Command {
-	opts := options.PrintClientOpts{}
-	c := &cobra.Command{
-		Use:   "set-org",
-		Short: "Change the user's current organization",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			body := jnode.NewObjectNode()
-			body.Put("orgId", opts.Organization)
-			api, err := opts.GetAPIClient()
-			if err != nil {
-				return err
-			}
-			result, err := api.Post("/api/v1/users/current-org", body)
-			if err != nil {
-				return err
-			}
-			if config.UpdateFromServerProfile(result) {
-				if err := config.Save(); err != nil {
-					return err
-				}
-			}
-			log.Infof("Current org set to {info:%s}", config.Config.Organization)
-			return nil
-		},
-	}
-	opts.Register(c)
-	c.Flags().Lookup("organization").Hidden = false
-	_ = c.MarkFlagRequired("organization")
 	return c
 }

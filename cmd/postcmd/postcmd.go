@@ -40,7 +40,7 @@ func Command() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := api.XCPPost(opts.GetOrganization(), module, files, values,
+			result, err := api.XCPPost(module, files, values,
 				xcp.WithCIEnv(""))
 			if err != nil {
 				return err

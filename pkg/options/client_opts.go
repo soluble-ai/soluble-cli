@@ -76,7 +76,7 @@ func (opts *ClientOpts) Validate() error {
 func (opts *ClientOpts) GetAPIClientConfig() (*api.Config, error) {
 	cfg := opts.Config
 	if cfg.Organization == "" {
-		cfg.Organization = config.Config.Organization
+		cfg.Organization = config.Config.GetOrganization()
 	}
 	if cfg.APIToken == "" {
 		cfg.APIToken = config.Config.GetAPIToken()

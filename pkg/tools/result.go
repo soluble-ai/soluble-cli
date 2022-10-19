@@ -167,7 +167,7 @@ func (r *Result) upload(client *api.Client, org, name string, compressFiles bool
 	} else {
 		log.Debugf("Uploading results of {primary:%s}", name)
 	}
-	n, err := client.XCPPost(org, moduleName, nil, values, options...)
+	n, err := client.XCPPost(moduleName, nil, values, options...)
 	if err != nil {
 		return err
 	}

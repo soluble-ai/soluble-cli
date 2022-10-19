@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/cmd/test"
@@ -14,8 +15,9 @@ func TestAuthProfile(t *testing.T) {
 	cmd := test.NewCommand(t, "auth", "profile", "--format", "json")
 	cmd.Must(cmd.Run())
 	n := cmd.JSON()
+	fmt.Println(n)
 	assert := assert.New(t)
 	assert.NotNil(n)
-	assert.NotEmpty(n.Path("currentOrgId"), n)
-	assert.GreaterOrEqual(n.Path("organizations").Size(), 1)
+	assert.NotEmpty(n.Path("data").Path("currentOrgId"), n)
+	assert.GreaterOrEqual(n.Path("data").Path("organizations").Size(), 1)
 }

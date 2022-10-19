@@ -98,8 +98,7 @@ func uploadCommand() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				_, err = api.XCPPost(m.GetOrganization(),
-					"custom/policy", nil, nil, options...)
+				_, err = api.XCPPost("custom/policy", nil, nil, options...)
 				if err != nil {
 					return err
 				}
