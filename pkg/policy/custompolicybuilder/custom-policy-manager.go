@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 )
@@ -88,7 +89,6 @@ func (pt *PolicyTemplate) validatePolicyName() func(interface{}) error {
 		}
 		return nil
 	}
-
 }
 func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 	return func(inputDir interface{}) error {
@@ -99,8 +99,13 @@ func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 					"\ncreate 'policies' directory or use -d to target an existing policies directory", dir)
 			}
 		} else {
-			pdir := "/policies"
-			if dir[len(dir)-len(pdir):] != pdir {
+			split := strings.LastIndex(dir, "/")
+			if split == -1 {
+				return fmt.Errorf("invalid directory: %v", dir+
+					"\ntarget an existing policies directory.")
+			}
+			last := dir[split:]
+			if last != "/policies" {
 				return fmt.Errorf("invalid directory path: %v", dir+
 					"\nprovide path to existing policies directory")
 			} else {
