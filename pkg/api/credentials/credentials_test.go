@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,8 +52,8 @@ func TestLoadCredentials(t *testing.T) {
 
 func TestRefresh(t *testing.T) {
 	assert := assert.New(t)
-	httpmock.Activate()
-	defer httpmock.Deactivate()
+	httpmock.ActivateNonDefault(api.RClient.GetClient())
+	t.Cleanup(httpmock.Deactivate)
 	dir, err := os.MkdirTemp("", "cli*")
 	if !assert.NoError(err) {
 		return

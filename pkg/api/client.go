@@ -64,6 +64,8 @@ type Config struct {
 	Headers          []string
 }
 
+var RClient = resty.New() // exposed for use with httpmock
+
 func (h httpError) Error() string {
 	return string(h)
 }
@@ -79,7 +81,7 @@ func (h httpError) Is(err error) bool {
 
 func NewClient(config *Config) *Client {
 	c := &Client{
-		Client: resty.New(),
+		Client: RClient,
 		Config: *config,
 	}
 	if config.LaceworkAPIToken != "" {
@@ -154,6 +156,9 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 		}
 		path = strings.ReplaceAll(path, orgToken, c.Organization)
 	}
+	if c.Organization != "" {
+		c.SetHeader("X-SOLUBLE-ORG-ID", c.Organization)
+	}
 	if len(path) > 0 && path[0] != '/' {
 		path = fmt.Sprintf("%s/%s", c.APIPrefix, path)
 	}
@@ -223,7 +228,7 @@ func (c *Client) GetClient() *resty.Client {
 	return c.Client
 }
 
-func (c *Client) XCPPost(orgID string, module string, files []string, values map[string]string, options ...Option) (*jnode.Node, error) {
+func (c *Client) XCPPost(module string, files []string, values map[string]string, options ...Option) (*jnode.Node, error) {
 	if module == "" {
 		return nil, fmt.Errorf("module parameter is required")
 	}
@@ -236,7 +241,7 @@ func (c *Client) XCPPost(orgID string, module string, files []string, values map
 		defer f.Close()
 		req.SetFileReader(fmt.Sprintf("file_%d", i), filepath.Base(file), f)
 	}
-	req.SetHeader("X-SOLUBLE-ORG-ID", orgID)
+
 	req.SetMultipartFormData(values)
 	result := jnode.NewObjectNode()
 	req.SetResult(result)

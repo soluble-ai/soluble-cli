@@ -83,7 +83,7 @@ func (t *Local) Run() error {
 		if err != nil {
 			return err
 		}
-		_, err = api.XCPPost(t.GetOrganization(), "local-inventory", nil, values, options...)
+		_, err = api.XCPPost("local-inventory", nil, values, options...)
 		if err != nil {
 			return err
 		}

@@ -17,12 +17,8 @@ func GetDomain(account string) string {
 }
 
 func ConfigureLaceworkAuth(cfg *api.Config) error {
-	laceworkProfile := config.Config.Lacework
 	if cfg.Domain == "" {
-		account := os.Getenv("LW_ACCOUNT")
-		if account == "" && laceworkProfile != nil {
-			account = laceworkProfile.Account
-		}
+		account := config.Config.GetLaceworkAccount()
 		if account != "" {
 			cfg.Domain = GetDomain(account)
 		}
@@ -39,8 +35,10 @@ func ConfigureLaceworkAuth(cfg *api.Config) error {
 		creds := Load()
 		pc := creds.Find(config.Config.ProfileName)
 		if pc.IsNearExpiration() {
-			if laceworkProfile != nil {
-				if err := pc.RefreshToken(GetDomain(laceworkProfile.Account), laceworkProfile.APIKey, laceworkProfile.APISecret); err != nil {
+			apiKey := config.Config.GetLaceworkAPIKey()
+			apiSecret := config.Config.GetLaceworkAPISecret()
+			if apiKey != "" && apiSecret != "" {
+				if err := pc.RefreshToken(cfg.Domain, apiKey, apiSecret); err != nil {
 					return err
 				}
 				if err := creds.Save(); err != nil {

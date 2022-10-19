@@ -93,7 +93,7 @@ func (t *Tool) Run() error {
 		if err != nil {
 			return err
 		}
-		_, err = api.XCPPost(t.GetOrganization(), "cloudmap", nil, values, options...)
+		_, err = api.XCPPost("cloudmap", nil, values, options...)
 		if err != nil {
 			return err
 		}
