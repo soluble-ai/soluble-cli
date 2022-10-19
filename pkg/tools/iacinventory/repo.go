@@ -94,7 +94,7 @@ func (r *Repo) Run() error {
 		if err != nil {
 			return err
 		}
-		_, err = api.XCPPost(r.GetOrganization(), "repo-tree", nil, values, options...)
+		_, err = api.XCPPost("repo-tree", nil, values, options...)
 		if err != nil {
 			return err
 		}

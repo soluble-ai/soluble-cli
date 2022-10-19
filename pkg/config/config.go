@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"gopkg.in/yaml.v3"
@@ -53,8 +52,8 @@ type ProfileT struct {
 	APIToken            string `json:",omitempty"`
 	TLSNoVerify         bool   `json:",omitempty"`
 	Organization        string
-	LaceworkProfileName string           `json:",omitempty"`
-	Lacework            *LaceworkProfile `json:"-"`
+	LaceworkProfileName string `json:",omitempty"`
+	lacework            *LaceworkProfile
 }
 
 func SelectProfile(name string) bool {
@@ -128,16 +127,16 @@ func (c *ProfileT) String() string {
 	dat, _ := json.Marshal(cfg)
 	_ = json.Unmarshal(dat, &m)
 	m["ConfigFile"] = configFileRead
-	if c.Lacework != nil {
+	if c.lacework != nil {
 		lm := map[string]interface{}{}
 		m["Lacework"] = lm
-		if c.Lacework.Account != "" {
-			lm["account"] = c.Lacework.Account
+		if c.lacework.Account != "" {
+			lm["account"] = c.lacework.Account
 		}
-		if c.Lacework.APIKey != "" {
-			lm["api_key"] = c.Lacework.APIKey
+		if c.lacework.APIKey != "" {
+			lm["api_key"] = c.lacework.APIKey
 		}
-		if c.Lacework.APISecret != "" {
+		if c.lacework.APISecret != "" {
 			lm["api_secret"] = Redacted
 		}
 	}
@@ -185,9 +184,52 @@ func (c *ProfileT) GetAPIServer() string {
 	return c.APIServer
 }
 
+func (c *ProfileT) GetLaceworkProfile() *LaceworkProfile {
+	return c.lacework
+}
+
+func (c *ProfileT) GetLaceworkAccount() string {
+	account := os.Getenv("LW_ACCOUNT")
+	if account != "" {
+		return account
+	}
+	if c.lacework != nil {
+		return c.lacework.Account
+	}
+	return ""
+}
+
+func (c *ProfileT) GetLaceworkAPIKey() string {
+	key := os.Getenv("LW_API_KEY")
+	if key != "" {
+		return key
+	}
+	if c.lacework != nil {
+		return c.lacework.APIKey
+	}
+	return ""
+}
+
+func (c *ProfileT) GetLaceworkAPISecret() string {
+	secret := os.Getenv("LW_API_SECRET")
+	if secret != "" {
+		return secret
+	}
+	if c.lacework != nil {
+		return c.lacework.APISecret
+	}
+	return ""
+}
+
 func (c *ProfileT) SetLaceworkProfile(name string) {
+	if name == "" {
+		name = "default"
+	}
 	c.LaceworkProfileName = name
-	c.Lacework = getLaceworkProfile(name, "")
+	c.lacework = getLaceworkProfile(name)
+	if c.lacework != nil {
+		log.Debugf("Found lacework profile {info:%s}", name)
+	}
 }
 
 func Save() error {
@@ -245,6 +287,16 @@ func Set(name, value string) error {
 	return err
 }
 
+// Reset loaded configuration to unloaded
+func Reset() {
+	configFileRead = ""
+	ConfigDir = ""
+	ConfigFile = ""
+	laceworkProfiles = nil
+	GlobalConfig.Profiles = nil
+	GlobalConfig.CurrentProfile = ""
+}
+
 func Load() {
 	if ConfigDir == "" {
 		ConfigDir = os.Getenv("SOLUBLE_CONFIG_DIR")
@@ -279,6 +331,7 @@ func Load() {
 	if configFileRead == "" {
 		configFileRead = ConfigFile
 	}
+	GlobalConfig.Profiles = map[string]*ProfileT{}
 	dat, err := os.ReadFile(configFileRead)
 	if err != nil {
 		configFileRead = ""
@@ -286,11 +339,8 @@ func Load() {
 		_ = json.Unmarshal(dat, GlobalConfig)
 		for name, profile := range GlobalConfig.Profiles {
 			profile.ProfileName = name
-			profile.Lacework = getLaceworkProfile(profile.LaceworkProfileName, profile.ProfileName)
+			profile.lacework = getLaceworkProfile(profile.LaceworkProfileName)
 		}
-	}
-	if GlobalConfig.Profiles == nil {
-		GlobalConfig.Profiles = map[string]*ProfileT{}
 	}
 	Config = GlobalConfig.Profiles[GlobalConfig.CurrentProfile]
 	if Config == nil {
@@ -299,19 +349,6 @@ func Load() {
 	if Config.ProfileName == "" {
 		Config.ProfileName = GlobalConfig.CurrentProfile
 	}
-}
-
-func UpdateFromServerProfile(result *jnode.Node) bool {
-	changed := setIfChanged(&Config.Organization, result.Path("currentOrgId").AsText())
-	return changed
-}
-
-func setIfChanged(c *string, v string) bool {
-	if *c != v {
-		*c = v
-		return true
-	}
-	return false
 }
 
 func GetModelLocations() []string {
