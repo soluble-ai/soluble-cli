@@ -10,13 +10,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var inputTypeForTarget = map[policy.Target]string{
-	policy.Terraform:      "tf",
-	policy.Cloudformation: "cfn",
-	policy.Kubernetes:     "k8s",
-	policy.ARM:            "arm",
-}
-
 func (pt *PolicyTemplate) CreateCustomPolicyTemplate() error {
 	if err := pt.CreateDirectoryStructure(); err != nil {
 		return err
@@ -32,7 +25,7 @@ func (pt *PolicyTemplate) CreateCustomPolicyTemplate() error {
 
 func (pt *PolicyTemplate) CreateDirectoryStructure() error {
 	// full directory path
-	pt.Dir += "/" + pt.Type + "/" + pt.Name + "/" + pt.CheckType + "/tests"
+	pt.Dir += "/" + pt.Tool + "/" + pt.Name + "/" + pt.CheckType + "/tests"
 	if err := os.MkdirAll(pt.Dir, os.ModePerm); err != nil {
 		return err
 	} else {
@@ -51,14 +44,20 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 
 	type Metadata struct {
 		Category    string    `yaml:"category"`
+		CheckTool   string    `yaml:"checkTool"`
+		CheckType   string    `yaml:"checkType"`
 		Description yaml.Node `yaml:"description"`
+		Provider    string    `yaml:"provider"`
 		Severity    string    `yaml:"severity"`
 		Title       yaml.Node `yaml:"title"`
 	}
 
 	metadata := Metadata{
 		Category:    pt.Category,
+		CheckTool:   pt.Tool,
+		CheckType:   pt.CheckType,
 		Description: doubleQuote(pt.Desc),
+		Provider:    pt.Provider,
 		Severity:    pt.Severity,
 		Title:       doubleQuote(pt.Title),
 	}
@@ -90,7 +89,7 @@ func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
 	regoPath := strings.Split(pt.Dir, "tests")[0] + "/policy.rego"
 	regoTemplate :=
 		"package policies." + pt.Name +
-			"\n\ninput_type := \"" + inputTypeForTarget[policy.Target(pt.CheckType)] + "\""
+			"\n\ninput_type := \"" + policy.InputTypeForTarget[policy.Target(pt.CheckType)] + "\""
 
 	if pt.RsrcType != "" {
 		regoTemplate += "\n\nresource_type := \"" + pt.RsrcType + "\""

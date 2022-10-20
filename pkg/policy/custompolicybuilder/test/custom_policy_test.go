@@ -42,10 +42,12 @@ func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 		Name:      "unit_test_cust_policy",
 		CheckType: "terraform",
 		Dir:       "policies",
-		Type:      "opal",
+		Tool:      "opal",
 		Desc:      "unit test policy",
 		Severity:  "info",
 		Title:     "unit test custom policy",
+		Provider:  "aws",
+		Category:  "general",
 	}
 	assert := assert.New(t)
 	if err := setupDirPath("policies"); err != nil {

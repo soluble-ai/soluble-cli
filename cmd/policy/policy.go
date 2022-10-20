@@ -33,7 +33,7 @@ func Command() *cobra.Command {
 
 func CreateCommand() *cobra.Command {
 	// only available for opal
-	cpb := &custompolicybuilder.PolicyTemplate{Type: "opal"}
+	cpb := &custompolicybuilder.PolicyTemplate{Tool: "opal"}
 	c := &cobra.Command{
 		Use:   "create",
 		Short: "Create custom policy. Generates skeleton policy and metadata file",

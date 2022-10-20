@@ -17,13 +17,6 @@ type opalPolicies string
 
 var Opal manager.PolicyType = opalPolicies("opal")
 
-var inputTypeForTarget = map[policies.Target]string{
-	policies.Terraform:      "tf",
-	policies.Cloudformation: "cfn",
-	policies.Kubernetes:     "k8s",
-	policies.ARM:            "arm",
-}
-
 func (opalPolicies) GetName() string {
 	return "opal"
 }
@@ -70,7 +63,7 @@ func (opalPolicies) ValidatePolicies(runOpts tools.RunOpts, policies []*policies
 					fmt.Errorf("\"policy.rego\" is missing in %s", target.Path(policy)))
 				continue
 			}
-			if inputTypeForTarget[target] == "" {
+			if policies.InputTypeForTarget[target] == "" {
 				validate.AppendError(
 					fmt.Errorf("opal does not support the %s target in %s", target, policy.Path))
 				continue
@@ -97,9 +90,9 @@ func getPolicyText(policy *policies.Policy, target policies.Target) (*policyText
 	}
 	if rt.inputType == "" && target == policies.Terraform {
 		// ok
-	} else if rt.inputType != inputTypeForTarget[target] {
+	} else if rt.inputType != policies.InputTypeForTarget[target] {
 		return nil, fmt.Errorf("%s must have input_type := \"%s\" for the %s target",
-			policy.Path, inputTypeForTarget[target], target)
+			policy.Path, policies.InputTypeForTarget[target], target)
 	}
 	policy.TargetData[target] = rt
 	return rt, nil
