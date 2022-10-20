@@ -54,8 +54,8 @@ func (opalPolicies) GetTestRunner(runOpts tools.RunOpts, target policies.Target)
 	return t
 }
 
-func (opalPolicies) ValidatePolicies(runOpts tools.RunOpts, policies []*policies.Policy) (validate manager.ValidateResult) {
-	for _, policy := range policies {
+func (opalPolicies) ValidatePolicies(runOpts tools.RunOpts, opalPolicies []*policies.Policy) (validate manager.ValidateResult) {
+	for _, policy := range opalPolicies {
 		for _, target := range policy.Targets {
 			policyRegoPath := filepath.Join(target.Path(policy), "policy.rego")
 			if !util.FileExists(policyRegoPath) {

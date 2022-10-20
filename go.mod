@@ -3,8 +3,8 @@ module github.com/soluble-ai/soluble-cli
 go 1.18
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.17.8
 	github.com/AlecAivazis/survey/v2 v2.3.6
+	github.com/aws/aws-sdk-go-v2/config v1.17.8
 	github.com/fatih/color v1.13.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/gobwas/glob v0.2.3
@@ -32,6 +32,12 @@ require (
 	github.com/zclconf/go-cty v1.11.1
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
+	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 )
 
 require (
