@@ -181,6 +181,10 @@ func (c *ProfileT) GetAPIServer() string {
 	if server != "" {
 		return server
 	}
+	server = os.Getenv("LW_IAC_API_URL")
+	if server != "" {
+		return server
+	}
 	return c.APIServer
 }
 

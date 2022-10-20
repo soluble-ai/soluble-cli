@@ -30,6 +30,9 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 	cfg.APIToken = ""
 	laceworkProfileName := c.laceworkProfileName
 	if laceworkProfileName == "" {
+		laceworkProfileName = cfg.LaceworkProfileName
+	}
+	if laceworkProfileName == "" {
 		lwp := config.GetDefaultLaceworkProfile()
 		if lwp != nil {
 			laceworkProfileName = lwp.Name
@@ -37,6 +40,13 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 			lwps := config.GetLaceworkProfiles()
 			if len(lwps) == 1 {
 				laceworkProfileName = lwps[0].Name
+			} else {
+				log.Errorf("You have multiple lacework profiles configured.  Choose a specific one with --lacework-profile.")
+				log.Infof("Your lacework profiles are:")
+				for _, lwp := range lwps {
+					log.Infof("   {primary:%s} {info:(%s)}", lwp.Name, lwp.Account)
+				}
+				return nil, fmt.Errorf("choose a lacework profile with --lacework-profile")
 			}
 		}
 	}

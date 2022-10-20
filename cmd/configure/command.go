@@ -109,7 +109,7 @@ func setProfileCmd() *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:     "set-profile <profile>",
-		Aliases: []string{"new-profile"},
+		Aliases: []string{"new", "switch-profile"},
 		Short:   "Set the current IAC profile (or create a new one)",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -136,18 +136,20 @@ func setProfileCmd() *cobra.Command {
 func updateProfileCmd() *cobra.Command {
 	opts := newProfileOpts()
 	var del bool
-	var name string
 	var rename string
 	c := &cobra.Command{
-		Use:   "update-profile",
+		Use:   "update-profile [ <name> ]",
 		Short: "Rename or delete a profile",
-		Args:  cobra.NoArgs,
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if name == "" {
+			var name string
+			if len(args) == 1 {
+				name = args[0]
+			} else {
 				name = config.GlobalConfig.CurrentProfile
-				if name == "" {
-					return fmt.Errorf("--name must be given if no current profile is set")
-				}
+			}
+			if name == "" {
+				return fmt.Errorf("no profile specificed and no current profile is set")
 			}
 			switch {
 			case del:
@@ -172,7 +174,6 @@ func updateProfileCmd() *cobra.Command {
 	}
 	opts.Register(c)
 	c.Flags().BoolVar(&del, "delete", false, "Delete the named profile")
-	c.Flags().StringVar(&name, "name", "", "The profile to rename or delete")
 	c.Flags().StringVar(&rename, "rename", "", "The new name of the profile")
 	return c
 }
