@@ -28,29 +28,33 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 	cfg := config.Config
 	// we do not want to use the legacy token
 	cfg.APIToken = ""
-	laceworkProfileName := c.laceworkProfileName
-	if laceworkProfileName == "" {
-		laceworkProfileName = cfg.LaceworkProfileName
-	}
-	if laceworkProfileName == "" {
-		lwp := config.GetDefaultLaceworkProfile()
-		if lwp != nil {
-			laceworkProfileName = lwp.Name
-		} else {
-			lwps := config.GetLaceworkProfiles()
-			if len(lwps) == 1 {
-				laceworkProfileName = lwps[0].Name
+	if cfg.GetLaceworkAccount() == "" {
+		// If we don't have an account then we'll get it (along with
+		// the api key and secret) from a lacework profile
+		laceworkProfileName := c.laceworkProfileName
+		if laceworkProfileName == "" {
+			laceworkProfileName = cfg.LaceworkProfileName
+		}
+		if laceworkProfileName == "" {
+			lwp := config.GetDefaultLaceworkProfile()
+			if lwp != nil {
+				laceworkProfileName = lwp.Name
 			} else {
-				log.Errorf("You have multiple lacework profiles configured.  Choose a specific one with --lacework-profile.")
-				log.Infof("Your lacework profiles are:")
-				for _, lwp := range lwps {
-					log.Infof("   {primary:%s} {info:(%s)}", lwp.Name, lwp.Account)
+				lwps := config.GetLaceworkProfiles()
+				if len(lwps) == 1 {
+					laceworkProfileName = lwps[0].Name
+				} else {
+					log.Errorf("You have multiple lacework profiles configured.  Choose a specific one with --lacework-profile.")
+					log.Infof("Your lacework profiles are:")
+					for _, lwp := range lwps {
+						log.Infof("   {primary:%s} {info:(%s)}", lwp.Name, lwp.Account)
+					}
+					return nil, fmt.Errorf("choose a lacework profile with --lacework-profile")
 				}
-				return nil, fmt.Errorf("choose a lacework profile with --lacework-profile")
 			}
 		}
+		cfg.SetLaceworkProfile(laceworkProfileName)
 	}
-	cfg.SetLaceworkProfile(laceworkProfileName)
 	api, err := c.GetAPIClient()
 	if err != nil {
 		return nil, err
