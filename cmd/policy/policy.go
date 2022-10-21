@@ -5,6 +5,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/custompolicybuilder"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -25,7 +26,27 @@ func Command() *cobra.Command {
 		vetCommand(),
 		uploadCommand(),
 		testCommand(),
+		CreateCommand(),
 	)
+	return c
+}
+
+func CreateCommand() *cobra.Command {
+	// only available for opal
+	cpb := &custompolicybuilder.PolicyTemplate{Tool: "opal"}
+	c := &cobra.Command{
+		Use:   "create",
+		Short: "Create custom policy. Generates skeleton policy and metadata file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := cpb.PromptInput(); err != nil {
+				return err
+			}
+			if err := cpb.CreateCustomPolicyTemplate(); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
 	return c
 }
 

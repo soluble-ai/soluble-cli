@@ -51,6 +51,13 @@ const (
 	None           = Target("")
 )
 
+var InputTypeForTarget = map[Target]string{
+	Terraform:      "tf",
+	Cloudformation: "cfn",
+	Kubernetes:     "k8s",
+	ARM:            "arm",
+}
+
 var allTargets = []Target{
 	Terraform, TerraformPlan, Cloudformation, Kubernetes, Helm, Docker, Secrets,
 }
