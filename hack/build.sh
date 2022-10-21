@@ -50,6 +50,12 @@ if find . -name '*.go' | \
     exit 1
 fi
 
+# verify that go source files don't have - in them
+if find . -name '*.go' | xargs basename | egrep -e -; then
+    echo "Error: The go source files listed above should use _ rather than - in their names"
+    exit 1
+fi
+
 echo "Running go test (unit tests)"
 go test -cover ./...
 
