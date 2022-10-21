@@ -84,7 +84,9 @@ type apiServer string
 
 func (apiServer) GetOrganization() string { return "9999" }
 func (apiServer) GetHostURL() string      { return "https://example.com/secure" }
-func (a apiServer) GetAuthToken() string  { return string(a) }
+func (a apiServer) ConfigureAuthHeaders(headers http.Header) {
+	headers.Set("Authorization", fmt.Sprintf("Bearer %s", string(a)))
+}
 
 func TestAPIServerArtifact(t *testing.T) {
 	setupHTTP()
