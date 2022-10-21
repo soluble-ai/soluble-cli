@@ -126,6 +126,7 @@ func (opts *ClientOpts) GetUnauthenticatedAPIClient() *api.Client {
 	if opts.unauthClient == nil {
 		cfg, _ := opts.GetAPIClientConfig()
 		cfg.APIToken = ""
+		cfg.LaceworkAPIToken = ""
 		cfg.Domain = ""
 		opts.unauthClient = api.NewClient(cfg)
 	}

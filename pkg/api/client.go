@@ -18,6 +18,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,13 +85,6 @@ func NewClient(config *Config) *Client {
 		Client: RClient,
 		Config: *config,
 	}
-	if config.LaceworkAPIToken != "" {
-		c.SetHeader("X-LW-Domain", config.Domain)
-		c.SetHeader("X-LW-Authorization", fmt.Sprintf("Token %s", config.LaceworkAPIToken))
-		log.Debugf("Using lacework authentication")
-	} else {
-		c.Token = config.APIToken
-	}
 	if c.APIPrefix == "" {
 		c.APIPrefix = "/api/v1"
 	}
@@ -141,6 +135,16 @@ func NewClient(config *Config) *Client {
 	return c
 }
 
+func (c *Client) ConfigureAuthHeaders(headers http.Header) {
+	if c.LaceworkAPIToken != "" {
+		headers.Set("X-LW-Domain", c.Domain)
+		headers.Set("X-LW-Authorization", fmt.Sprintf("Token %s", c.LaceworkAPIToken))
+		log.Debugf("Using lacework authentication")
+	} else if c.APIToken != "" {
+		headers.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIToken))
+	}
+}
+
 func (c *Client) execute(r *resty.Request, method, path string, options []Option) error {
 	// set r.Method here so that options can do different things
 	// depending on the method
@@ -157,8 +161,9 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 		path = strings.ReplaceAll(path, orgToken, c.Organization)
 	}
 	if c.Organization != "" {
-		c.SetHeader("X-SOLUBLE-ORG-ID", c.Organization)
+		r.SetHeader("X-SOLUBLE-ORG-ID", c.Organization)
 	}
+	c.ConfigureAuthHeaders(r.Header)
 	if len(path) > 0 && path[0] != '/' {
 		path = fmt.Sprintf("%s/%s", c.APIPrefix, path)
 	}

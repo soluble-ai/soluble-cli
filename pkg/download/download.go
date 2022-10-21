@@ -72,7 +72,7 @@ type Spec struct {
 type APIServer interface {
 	GetHostURL() string
 	GetOrganization() string
-	GetAuthToken() string
+	ConfigureAuthHeaders(headers http.Header)
 }
 
 type urlResolverFunc func(requestedVersion string) (version string, url string, err error)
@@ -212,7 +212,10 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 	if spec.APIServerArtifact != "" {
 		url := fmt.Sprintf("%s%s", spec.APIServer.GetHostURL(), spec.APIServerArtifact)
 		spec.URL = strings.ReplaceAll(url, "{org}", spec.APIServer.GetOrganization())
-		options = append(options, withBearerToken(spec.APIServer.GetAuthToken()))
+		options = append(options, func(req *http.Request) error {
+			spec.APIServer.ConfigureAuthHeaders(req.Header)
+			return nil
+		})
 		actualVersion = "latest"
 	}
 	if spec.URL == "" {
