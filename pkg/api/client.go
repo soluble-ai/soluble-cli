@@ -15,6 +15,7 @@
 package api
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -90,6 +91,7 @@ func NewClient(config *Config) *Client {
 	}
 	apiServer := config.APIServer
 	c.SetBaseURL(apiServer)
+	c.SetLogger(logger(0))
 	if log.Level == log.Trace {
 		c.Client.Debug = true
 	}
@@ -106,25 +108,32 @@ func NewClient(config *Config) *Client {
 		log.Tracef("%+v\n", info)
 		return nil
 	})
-	c.OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
-		t := r.Request.TraceInfo().TotalTime.Truncate(time.Millisecond)
-		if r.IsError() {
-			log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Request.Method,
-				r.Request.URL, r.StatusCode(), t)
-			log.Errorf("{warning:%s}\n", r.String())
-			if r.StatusCode() == 401 || r.StatusCode() == 404 {
-				log.Infof("Are you not logged in?  Use {info:%s auth profile} to verify.", cfg.CommandInvocation())
-				log.Infof("See {primary:https://docs.lacework.com/iac/} for more information.")
-			}
-			return httpError(fmt.Sprintf("%s returned %d", r.Request.URL, r.StatusCode()))
+	c.AddRetryCondition(func(r *resty.Response, err error) bool {
+		if r != nil && r.StatusCode() >= 500 && r.StatusCode() <= 599 {
+			return true
 		}
-		log.Tracef("%v", r.Result())
-		log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Request.Method,
-			r.Request.URL, r.StatusCode(), t)
-		return nil
+		return false
+	})
+	c.AddRetryHook(func(r *resty.Response, err error) {
+		type contextKey int
+		const retryInfoKey contextKey = 0
+		type retryInfo struct {
+			t time.Time
+		}
+		if r.Request.Attempt == 1 {
+			log.Warnf("Retrying {info:%s} {primary:%s}", r.Request.Method, r.Request.URL)
+			r.Request.SetContext(context.WithValue(r.Request.Context(), retryInfoKey,
+				&retryInfo{t: r.Request.Time}))
+		} else {
+			info := r.Request.Context().Value(retryInfoKey).(*retryInfo)
+			log.Warnf("  {secondary:... retrying attempt %d after %s}", r.Request.Attempt,
+				time.Since(info.t).Truncate(time.Millisecond))
+			info.t = time.Now()
+		}
 	})
 	c.SetTimeout(config.Timeout)
 	c.SetRetryCount(config.RetryCount)
+	c.SetRetryMaxWaitTime(16 * time.Second)
 	if config.RetryWaitSeconds > 0 {
 		c.SetRetryWaitTime(time.Duration(config.RetryWaitSeconds*1000) * time.Millisecond)
 	}
@@ -185,7 +194,26 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 			_ = c.Close()
 		}
 	}
-	return err
+	switch {
+	case err != nil:
+		return err
+	case resp != nil && resp.IsError():
+		t := time.Since(r.Time).Truncate(time.Millisecond)
+		log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Method,
+			r.URL, resp.StatusCode(), t)
+		log.Errorf("{warning:%s}\n", resp.String())
+		if resp.StatusCode() == 401 || resp.StatusCode() == 404 {
+			log.Infof("Are you not logged in?  Use {info:%s auth profile} to verify.", cfg.CommandInvocation())
+			log.Infof("See {primary:https://docs.lacework.com/iac/} for more information.")
+		}
+		return httpError(fmt.Sprintf("%s returned %d", r.URL, resp.StatusCode()))
+	default:
+		t := time.Since(r.Time).Truncate(time.Millisecond)
+		log.Tracef("%v", resp.Result())
+		log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Method,
+			r.URL, resp.StatusCode(), t)
+		return nil
+	}
 }
 
 func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
