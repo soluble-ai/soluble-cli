@@ -29,6 +29,7 @@ func TestClient(t *testing.T) {
 	})
 	c.Organization = "1234"
 	httpmock.ActivateNonDefault(c.Client.GetClient())
+	t.Cleanup(httpmock.Deactivate)
 	httpmock.RegisterResponder("GET", "https://api.soluble.cloud/api/v1/org/1234/foo",
 		httpmock.NewJsonResponderOrPanic(http.StatusOK,
 			jnode.NewObjectNode().Put("hello", "world")),
