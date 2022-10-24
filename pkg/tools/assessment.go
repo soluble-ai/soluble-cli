@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
@@ -22,11 +23,14 @@ func RunSingleAssessment(tool Single) (*Result, error) {
 	if err := tool.Validate(); err != nil {
 		return nil, err
 	}
+	start := time.Now()
 	r, err := tool.Run()
 	if err != nil {
 		return nil, err
 	}
 	r.Tool = tool
+	seconds := time.Since(start).Round(time.Millisecond).Seconds()
+	r.AddValue("ASSESSMENT_TIME_SEC", fmt.Sprintf("%f", seconds))
 	if err := processResult(r); err != nil {
 		return nil, err
 	}
