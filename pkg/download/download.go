@@ -15,6 +15,7 @@
 package download
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,8 +72,7 @@ type Spec struct {
 
 type APIServer interface {
 	GetHostURL() string
-	GetOrganization() string
-	ConfigureAuthHeaders(headers http.Header)
+	Download(path string) ([]byte, error)
 }
 
 type urlResolverFunc func(requestedVersion string) (version string, url string, err error)
@@ -210,12 +210,7 @@ func (m *Manager) Install(spec *Spec) (*Download, error) {
 	}
 	options := []downloadOption{}
 	if spec.APIServerArtifact != "" {
-		url := fmt.Sprintf("%s%s", spec.APIServer.GetHostURL(), spec.APIServerArtifact)
-		spec.URL = strings.ReplaceAll(url, "{org}", spec.APIServer.GetOrganization())
-		options = append(options, func(req *http.Request) error {
-			spec.APIServer.ConfigureAuthHeaders(req.Header)
-			return nil
-		})
+		spec.URL = fmt.Sprintf("%s/%s", spec.APIServer.GetHostURL(), spec.APIServerArtifact)
 		actualVersion = "latest"
 	}
 	if spec.URL == "" {
@@ -291,21 +286,27 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 			return nil, err
 		}
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
-			resp.StatusCode)
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusNotFound {
-			log.Infof("Not logged into lacework IAC?  Use {info:%s auth profile} to verify.",
-				config.CommandInvocation())
+	var body io.Reader
+	if spec.APIServerArtifact != "" {
+		dat, err := spec.APIServer.Download(spec.APIServerArtifact)
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
+		body = bytes.NewReader(dat)
+	} else {
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
+				resp.StatusCode)
+			return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
+		}
+		body = resp.Body
 	}
-	_, err = io.Copy(w, resp.Body)
+	_, err = io.Copy(w, body)
 	if err != nil {
 		return nil, err
 	}

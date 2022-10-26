@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -13,6 +14,7 @@ import (
 type configureCommand struct {
 	options.PrintClientOpts
 	laceworkProfileName string
+	clientHook          func(*api.Client) // for testing only
 }
 
 func (c *configureCommand) Register(cmd *cobra.Command) {
@@ -58,6 +60,9 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 	api, err := c.GetAPIClient()
 	if err != nil {
 		return nil, err
+	}
+	if c.clientHook != nil {
+		c.clientHook(api)
 	}
 	if api.LaceworkAPIToken == "" {
 		return nil, fmt.Errorf("lacework CLI configuration is missing, run 'lacework configure' first")

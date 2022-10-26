@@ -66,8 +66,6 @@ type Config struct {
 	Headers          []string
 }
 
-var RClient = resty.New() // exposed for use with httpmock
-
 func (h httpError) Error() string {
 	return string(h)
 }
@@ -83,7 +81,7 @@ func (h httpError) Is(err error) bool {
 
 func NewClient(config *Config) *Client {
 	c := &Client{
-		Client: RClient,
+		Client: resty.New(),
 		Config: *config,
 	}
 	if c.APIPrefix == "" {
@@ -154,7 +152,7 @@ func (c *Client) ConfigureAuthHeaders(headers http.Header) {
 	}
 }
 
-func (c *Client) execute(r *resty.Request, method, path string, options []Option) error {
+func (c *Client) execute(r *resty.Request, method, path string, options []Option) (*resty.Response, error) {
 	// set r.Method here so that options can do different things
 	// depending on the method
 	r.Method = method
@@ -165,7 +163,7 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 		if c.Organization == "" {
 			log.Errorf("An organization must be specified with --organization or configuring one with {info:%s configure --organization}",
 				cfg.CommandInvocation())
-			return fmt.Errorf("organization is required")
+			return nil, fmt.Errorf("organization is required")
 		}
 		path = strings.ReplaceAll(path, orgToken, c.Organization)
 	}
@@ -196,7 +194,7 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 	}
 	switch {
 	case err != nil:
-		return err
+		return nil, err
 	case resp != nil && resp.IsError():
 		t := time.Since(r.Time).Truncate(time.Millisecond)
 		log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Method,
@@ -206,19 +204,19 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 			log.Infof("Are you not logged in?  Use {info:%s auth profile} to verify.", cfg.CommandInvocation())
 			log.Infof("See {primary:https://docs.lacework.com/iac/} for more information.")
 		}
-		return httpError(fmt.Sprintf("%s returned %d", r.URL, resp.StatusCode()))
+		return resp, httpError(fmt.Sprintf("%s returned %d", r.URL, resp.StatusCode()))
 	default:
 		t := time.Since(r.Time).Truncate(time.Millisecond)
 		log.Tracef("%v", resp.Result())
 		log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Method,
 			r.URL, resp.StatusCode(), t)
-		return nil
+		return resp, nil
 	}
 }
 
 func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := c.execute(c.R().SetBody(body).SetResult(result), resty.MethodPost, path, options); err != nil {
+	if _, err := c.execute(c.R().SetBody(body).SetResult(result), resty.MethodPost, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -226,7 +224,7 @@ func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.
 
 func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := c.execute(c.R().SetResult(result), resty.MethodGet, path, options); err != nil {
+	if _, err := c.execute(c.R().SetResult(result), resty.MethodGet, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -235,7 +233,7 @@ func (c *Client) Get(path string, options ...Option) (*jnode.Node, error) {
 func (c *Client) GetWithParams(path string, params map[string]string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
 
-	if err := c.execute(c.R().SetQueryParams(params).SetResult(result), resty.MethodGet, path, options); err != nil {
+	if _, err := c.execute(c.R().SetQueryParams(params).SetResult(result), resty.MethodGet, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -243,7 +241,7 @@ func (c *Client) GetWithParams(path string, params map[string]string, options ..
 
 func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := c.execute(c.R().SetResult(result), resty.MethodDelete, path, options); err != nil {
+	if _, err := c.execute(c.R().SetResult(result), resty.MethodDelete, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -251,7 +249,7 @@ func (c *Client) Delete(path string, options ...Option) (*jnode.Node, error) {
 
 func (c *Client) Patch(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {
 	result := jnode.NewObjectNode()
-	if err := c.execute(c.R().SetResult(result).SetBody(body), resty.MethodPatch, path, options); err != nil {
+	if _, err := c.execute(c.R().SetResult(result).SetBody(body), resty.MethodPatch, path, options); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -274,14 +272,22 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		defer f.Close()
 		req.SetFileReader(fmt.Sprintf("file_%d", i), filepath.Base(file), f)
 	}
-
 	req.SetMultipartFormData(values)
 	result := jnode.NewObjectNode()
 	req.SetResult(result)
-	if err := c.execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
+	if _, err := c.execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (c *Client) Download(path string) ([]byte, error) {
+	req := c.R()
+	resp, err := c.execute(req, resty.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body(), nil
 }
 
 func (c *Client) GetOrganization() string {
@@ -289,7 +295,7 @@ func (c *Client) GetOrganization() string {
 }
 
 func (c *Client) GetHostURL() string {
-	return c.HostURL
+	return c.APIServer
 }
 
 func (c *Client) GetAuthToken() string {

@@ -17,7 +17,7 @@ import (
 
 func setupTest(t *testing.T, assertions func(r *http.Request)) {
 	t.Helper()
-	httpmock.ActivateNonDefault(api.RClient.GetClient())
+	httpmock.Activate()
 	t.Cleanup(httpmock.Deactivate)
 	httpmock.ZeroCallCounters()
 	httpmock.RegisterResponder("GET", "https://api.soluble.cloud/api/v1/users/profile",
@@ -43,6 +43,7 @@ func TestAuthWithEnv(t *testing.T) {
 	// no need to run configure
 	opts := &options.ClientOpts{}
 	api, err := opts.GetAPIClient()
+	httpmock.ActivateNonDefault(api.GetClient().GetClient())
 	if !assert.NoError(err) {
 		return
 	}
@@ -78,6 +79,9 @@ func TestConfigure(t *testing.T) {
 	assert.NotNil(config.GetDefaultLaceworkProfile())
 	configCommand := &configureCommand{}
 	configCommand.Organization = "123456789012"
+	configCommand.clientHook = func(c *api.Client) {
+		httpmock.ActivateNonDefault(c.GetClient().GetClient())
+	}
 	n, err := configCommand.Run()
 	assert.NoError(err)
 	assert.NotNil(n)
