@@ -22,12 +22,13 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDownload(t *testing.T) {
-	setupHTTP()
-	m := setupManager()
+	setupHTTP(t)
+	m := setupManager(t)
 	if result := m.List(); len(result) != 0 {
 		t.Error("non-empty list")
 	}
@@ -68,8 +69,8 @@ func TestDownload(t *testing.T) {
 }
 
 func TestDownloadZip(t *testing.T) {
-	setupHTTP()
-	m := setupManager()
+	setupHTTP(t)
+	m := setupManager(t)
 	d, err := m.Install(&Spec{Name: "hello-zip", RequestedVersion: "1.0", URL: "https://example.com/hello.zip"})
 	if err != nil {
 		t.Error(err)
@@ -80,46 +81,40 @@ func TestDownloadZip(t *testing.T) {
 	}
 }
 
-type apiServer string
-
-func (apiServer) GetOrganization() string { return "9999" }
-func (apiServer) GetHostURL() string      { return "https://example.com/secure" }
-func (a apiServer) ConfigureAuthHeaders(headers http.Header) {
-	headers.Set("Authorization", fmt.Sprintf("Bearer %s", string(a)))
-}
-
 func TestAPIServerArtifact(t *testing.T) {
-	setupHTTP()
-	m := setupManager()
+	setupHTTP(t)
+	api := api.NewClient(&api.Config{
+		APIServer: "https://example.com",
+		APIPrefix: "secure",
+	})
+	httpmock.ActivateNonDefault(api.GetClient().GetClient())
+	m := setupManager(t)
 	_, err := m.Install(&Spec{
-		Name: "secure", RequestedVersion: "1.0", APIServerArtifact: "/hello.zip",
-		APIServer: apiServer(""),
+		Name:              "secure",
+		RequestedVersion:  "1.0",
+		APIServerArtifact: "hello.zip",
+		APIServer:         api,
 	})
-	if err == nil {
-		t.Fatal("should have failed")
-	}
+	assert.ErrorContains(t, err, "403")
+	api.APIToken = "foo"
 	_, err = m.Install(&Spec{
-		Name: "secure", RequestedVersion: "1.0", APIServerArtifact: "/hello.zip",
-		APIServer: apiServer("foo"),
+		Name:              "secure",
+		RequestedVersion:  "1.0",
+		APIServerArtifact: "hello.zip",
+		APIServer:         api,
 	})
-	if err != nil {
-		t.Fatal("should have worked")
-	}
+	assert.NoError(t, err)
 }
 
-func setupManager() *Manager {
+func setupManager(t *testing.T) *Manager {
 	m := NewManager()
-	dir, err := os.MkdirTemp("", "downloadtest*")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(dir)
-	m.downloadDir = dir
+	m.downloadDir = t.TempDir()
 	return m
 }
 
-func setupHTTP() {
+func setupHTTP(t *testing.T) {
 	httpmock.Activate()
+	t.Cleanup(httpmock.Deactivate)
 	registerTestArchive("hello.tar.gz", false)
 	registerTestArchive("hello.zip", false)
 	registerTestArchive("hello.zip", true)

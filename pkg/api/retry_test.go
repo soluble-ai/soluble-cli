@@ -16,7 +16,7 @@ func TestRetry(t *testing.T) {
 		RetryWaitSeconds: 0.1,
 	})
 	c.Organization = "1234"
-	httpmock.ActivateNonDefault(RClient.GetClient())
+	httpmock.ActivateNonDefault(c.GetClient().GetClient())
 	httpmock.ZeroCallCounters()
 	t.Cleanup(httpmock.Deactivate)
 	count := 2

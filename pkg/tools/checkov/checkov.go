@@ -109,7 +109,7 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 func (t *Tool) Run() (*tools.Result, error) {
 	dt := &tools.DockerTool{
 		Name:                "checkov",
-		Image:               "gcr.io/soluble-repo:2",
+		Image:               "gcr.io/soluble-repo/checkov:2",
 		DefaultNoDockerName: "checkov",
 		Args: []string{
 			"-o", "json", "-s", "--skip-download",
