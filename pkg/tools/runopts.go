@@ -95,7 +95,10 @@ func (o *RunOpts) RunDocker(d *DockerTool) (*ExecuteResult, error) {
 		c.Stderr = os.Stderr
 		return o.ExecuteCommand(c), nil
 	}
-	n := o.getToolVersion(d.Name)
+	n, err := o.getToolVersion(d.Name)
+	if err != nil {
+		return nil, err
+	}
 	if image := n.Path("image"); !image.IsMissing() {
 		d.Image = image.AsText()
 	}
@@ -110,12 +113,18 @@ func (o *RunOpts) InstallTool(spec *download.Spec) (*download.Download, error) {
 			OverrideExe: o.ToolPath,
 		}, nil
 	}
-	var versionInfo *jnode.Node
+	var (
+		versionInfo *jnode.Node
+		err         error
+	)
 	if strings.HasPrefix(spec.URL, "github.com/") {
 		slash := strings.LastIndex(spec.URL, "/")
-		versionInfo = o.getToolVersion(spec.URL[slash+1:])
+		versionInfo, err = o.getToolVersion(spec.URL[slash+1:])
 	} else if spec.Name != "" {
-		versionInfo = o.getToolVersion(spec.Name)
+		versionInfo, err = o.getToolVersion(spec.Name)
+	}
+	if err != nil {
+		return nil, err
 	}
 	if versionInfo != nil {
 		if v := versionInfo.Path("version"); !v.IsMissing() {
@@ -126,18 +135,20 @@ func (o *RunOpts) InstallTool(spec *download.Spec) (*download.Download, error) {
 	return m.Install(spec)
 }
 
-func (o *RunOpts) getToolVersion(name string) *jnode.Node {
+func (o *RunOpts) getToolVersion(name string) (*jnode.Node, error) {
 	if o.ToolVersion != "" {
 		return jnode.NewObjectNode().
 			Put("image", o.ToolVersion).
-			Put("version", o.ToolVersion)
+			Put("version", o.ToolVersion), nil
 	}
-	defer log.SetTempLevel(log.Error - 1).Restore()
+	temp := log.SetTempLevel(log.Warning)
 	n, err := o.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
+	temp.Restore()
 	if err != nil {
-		return jnode.MissingNode
+		log.Errorf("Could not determine the version of {primary:%s} to use - {danger:%s}", name, err)
+		return nil, err
 	}
-	return n
+	return n, nil
 }
 
 func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Download, error) {

@@ -21,9 +21,11 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/soluble-ai/go-jnode"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClient(t *testing.T) {
+	assert := assert.New(t)
 	c := NewClient(&Config{
 		APIServer: "https://api.soluble.cloud",
 	})
@@ -38,21 +40,24 @@ func TestClient(t *testing.T) {
 		httpmock.NewJsonResponderOrPanic(http.StatusOK,
 			jnode.NewObjectNode().Put("hello", "x world")),
 	)
+	httpmock.RegisterResponder("GET", "https://api.soluble.cloud/api/v1/download",
+		httpmock.NewBytesResponder(http.StatusOK, []byte{1, 2, 3, 4}))
 	n, err := c.Get("/api/v1/org/{org}/foo")
-	if err != nil {
-		t.Error(err)
+	if assert.NoError(err) {
+		if !n.IsObject() || n.Path("hello").AsText() != "world" {
+			t.Error(n)
+		}
 	}
-	if !n.IsObject() || n.Path("hello").AsText() != "world" {
-		t.Error(n)
+	b, err := c.Download("download")
+	if assert.NoError(err) {
+		assert.Exactly([]byte{1, 2, 3, 4}, b)
 	}
-
 	c.APIPrefix = "/api/v1/x"
 	n, err = c.Get("org/{org}/foo")
-	if err != nil {
-		t.Error(err)
-	}
-	if !n.IsObject() || n.Path("hello").AsText() != "x world" {
-		t.Error(n)
+	if assert.NoError(err) {
+		if !n.IsObject() || n.Path("hello").AsText() != "x world" {
+			t.Error(n)
+		}
 	}
 }
 
