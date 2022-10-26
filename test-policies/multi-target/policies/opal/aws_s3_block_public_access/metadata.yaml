@@ -1,0 +1,5 @@
+---
+category: General
+description: "TEST S3 buckets should have all `block public access` options enabled. AWS's S3 Block Public Access feature has four settings: BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, and RestrictPublicBuckets. All four settings should be enabled to help prevent the risk of a data breach"
+severity: High
+title: "TEST S3 buckets should have all `block public access` options enabled"

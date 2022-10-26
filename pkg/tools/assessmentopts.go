@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
-	"github.com/soluble-ai/soluble-cli/pkg/exit"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
@@ -147,7 +146,8 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		if err != nil {
 			return "", err
 		}
-		exit.AddFunc(func() { _ = os.RemoveAll(dest) })
+		log.Infof("Custom policies directory: %s", dest)
+		//exit.AddFunc(func() { _ = os.RemoveAll(dest) })
 		if err := store.LoadPoliciesOfType(policy.GetPolicyType(policyTypeName)); err != nil {
 			return "", err
 		}

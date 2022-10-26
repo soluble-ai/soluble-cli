@@ -1,0 +1,124 @@
+[
+  {
+    "appUrl": "",
+    "assessmentId": "",
+    "category": "",
+    "failed": false,
+    "failedCount": 0,
+    "failedSeverity": "",
+    "findings": [
+      {
+        "filePath": "tf/s3/bucket_sse_infra.tf",
+        "line": 37,
+        "partialFingerprint": "f22e5d84c71652cb:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucket_sse_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucket_sse_infra.tf",
+        "line": 25,
+        "partialFingerprint": "960fc7ab4a118ef5:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucket_sse_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucket_sse_infra.tf",
+        "line": 21,
+        "partialFingerprint": "d5dcaca1d7a5e999:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucket_sse_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 111,
+        "partialFingerprint": "8af95ed3dd4eaa31:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 63,
+        "partialFingerprint": "43f58767ee2a01b1:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 88,
+        "partialFingerprint": "588d7757f24e6f0b:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 21,
+        "partialFingerprint": "6b0724eb1b42bc0d:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 134,
+        "partialFingerprint": "45ec7469917b86bf:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 42,
+        "partialFingerprint": "c1c8ce5d96658b57:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      },
+      {
+        "filePath": "tf/s3/bucketpolicy_allowlist_infra.tf",
+        "line": 84,
+        "partialFingerprint": "9a276944a45a1bba:1",
+        "repoPath": "test-data/mixed-inputs/tf/s3/bucketpolicy_allowlist_infra.tf",
+        "severity": "Critical",
+        "title": "TEST S3 bucket access logging should be enabled",
+        "tool": {
+          "policy_id": "c-opl-aws-s3-bucket-access-logging"
+        }
+      }
+    ],
+    "module": "",
+    "title": ""
+  }
+]
