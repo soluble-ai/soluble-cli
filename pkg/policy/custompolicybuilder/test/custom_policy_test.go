@@ -1,14 +1,12 @@
 package test
 
 import (
-	"bytes"
-	"log"
 	"os"
 	"testing"
 
-	"github.com/soluble-ai/soluble-cli/pkg/policy/custompolicybuilder"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/testutil"
 
-	"gopkg.in/yaml.v3"
+	"github.com/soluble-ai/soluble-cli/pkg/policy/custompolicybuilder"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,20 +19,6 @@ func setupDirPath(path string) error {
 // Clean up after test
 func cleanUpPoliciesDir() {
 	os.RemoveAll("policies")
-}
-
-func readMetadataFile(path string) map[interface{}]interface{} {
-	f, err := os.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data := make(map[interface{}]interface{})
-
-	if err := yaml.Unmarshal(f, &data); err != nil {
-		log.Fatal(err)
-	}
-	return data
 }
 
 func TestCreate_ExpectedMetadataYaml(t *testing.T) {
@@ -61,12 +45,7 @@ func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 	// Compare Metadata.yaml
 	actualFilePath := "policies/opal/unit_test_cust_policy/metadata.yaml"
 	expectedFilePath := "testdata/policies/opal/unit_test_cust_policy/metadata.yaml"
-	actual := readMetadataFile(actualFilePath)
-	expected := readMetadataFile(expectedFilePath)
 
-	actData, _ := yaml.Marshal(actual)
-	expData, _ := yaml.Marshal(expected)
-
-	diff := bytes.Compare(actData, expData)
+	diff := testutil.CompareYamlFiles(actualFilePath, expectedFilePath)
 	assert.Equal(0, diff)
 }

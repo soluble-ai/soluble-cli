@@ -81,7 +81,7 @@ func (c *Converter) PromptInput() error {
 	return nil
 }
 
-func find(root, ext string) []string {
+func Find(root, ext string) []string {
 	var regoFilePaths []string
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -280,7 +280,7 @@ func (p *Policy) convertPolicy(regoPath, destPath string) error {
 	return nil
 }
 
-func (p *Policy) convert(regoFile, destPath string) error {
+func (p *Policy) Convert(regoFile, destPath string) error {
 	relPath := strings.Split(regoFile, "/policies/")[1]
 	pathData := strings.Split(relPath, "/")
 	checkTypeMap := map[string]string{
@@ -334,12 +334,12 @@ func (c *Converter) ConvertOpalBuiltIns() error {
 		log.Fatalln(err)
 	}
 
-	regoFiles := find(c.OpalRegoPath, ".rego")
+	regoFiles := Find(c.OpalRegoPath, ".rego")
 
-	for i := len(regoFiles) - 1; i != 0; i-- {
+	for i := len(regoFiles) - 1; i >= 0; i-- {
 		fmt.Println("rego path: ", regoFiles[i])
 		p := Policy{Tool: "opal"}
-		if err := p.convert(regoFiles[i], c.DestPath); err != nil {
+		if err := p.Convert(regoFiles[i], c.DestPath); err != nil {
 			return (err)
 		}
 	}

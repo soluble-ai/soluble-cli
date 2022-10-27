@@ -1,0 +1,15 @@
+category: s3
+checkTool: opal
+checkType:
+    - cloudformation
+    - terraform
+description: "S3 bucket policies should only allow requests that use HTTPS. To protect data in transit, an S3 bucket policy should deny all HTTP requests to its objects and allow only HTTPS requests. HTTPS uses Transport Layer Security (TLS) to encrypt data, which preserves integrity and prevents tampering."
+provider: ""
+severity: Medium
+title: "S3 bucket policies should only allow requests that use HTTPS"
+id: "c-opl-s3-https-access"
+lwids:
+    CIS-AWS_v1.3.0:
+        - CIS-AWS_v1.3.0_2.1.2
+    CIS-AWS_v1.4.0:
+        - CIS-AWS_v1.4.0_2.1.2
