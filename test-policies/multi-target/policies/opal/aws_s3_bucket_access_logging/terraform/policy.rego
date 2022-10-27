@@ -27,7 +27,7 @@ __rego__metadoc__ := {
   "id": "FG_R00274",
   "title": "S3 bucket access logging should be enabled"
 }
-
+input_type := "tf"
 resource_type := "MULTIPLE"
 
 buckets := lacework.resources("aws_s3_bucket")

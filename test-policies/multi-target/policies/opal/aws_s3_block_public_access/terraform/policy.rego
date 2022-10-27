@@ -18,6 +18,7 @@ package policies.opal.aws.s3.block_public_access
 import data.lacework
 import data.aws.s3.s3_library as lib
 
+input_type := "tf"
 resource_type := "MULTIPLE"
 
 policy[j] {
