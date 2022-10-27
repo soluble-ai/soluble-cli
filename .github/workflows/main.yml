@@ -56,4 +56,14 @@ jobs:
       run: ./hack/dist.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+    - name: lwcomponents
+      run: |
+        if [[ "${GITHUB_REF_TYPE}" = "tag" ]]; then
+          TAG_NAME=$(echo ${GITHUB_REF} | awk -F/ '{ print $3 }')
+          curl \
+            -X POST \
+            -H "Authorization: token ${{ secrets.LW_DEV_CLI_COMPONENTS_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/lacework-dev/soluble-cli/actions/workflows/main.yaml/dispatches \
+            -d '{"ref":"main", "inputs": {"src_repo":"soluble-ai/soluble-cli", "tag_version":"'"${TAG_NAME}"'"} }'
+        fi
