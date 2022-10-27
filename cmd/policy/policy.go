@@ -3,6 +3,8 @@ package policy
 import (
 	"os"
 
+	"github.com/soluble-ai/soluble-cli/pkg/policy/policyimporter"
+
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/custompolicybuilder"
@@ -27,6 +29,7 @@ func Command() *cobra.Command {
 		uploadCommand(),
 		testCommand(),
 		CreateCommand(),
+		OpalConvertCommand(),
 	)
 	return c
 }
@@ -42,6 +45,25 @@ func CreateCommand() *cobra.Command {
 				return err
 			}
 			if err := cpb.CreateCustomPolicyTemplate(); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	return c
+}
+
+func OpalConvertCommand() *cobra.Command {
+	// only available for opal
+	c := &cobra.Command{
+		Use:   "convert",
+		Short: "Convert opal built-in policies",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			converter := &policyimporter.Converter{}
+			if err := converter.PromptInput(); err != nil {
+				return err
+			}
+			if err := converter.ConvertOpalBuiltIns(); err != nil {
 				return err
 			}
 			return nil
