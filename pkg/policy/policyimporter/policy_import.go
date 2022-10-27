@@ -82,7 +82,9 @@ func (c *Converter) PromptInput() error {
 			Name: "destPath",
 			Prompt: &survey.Input{
 				Message: "Converted policies destination path",
-				Default: "policies"},
+				Help:    "must point to a 'policies/opal' directory",
+
+			},
 			Validate: validatePath("policies/opal"),
 		},
 	}
