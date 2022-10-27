@@ -7,7 +7,7 @@ description: "S3 bucket policies should only allow requests that use HTTPS. To p
 provider: ""
 severity: Medium
 title: "S3 bucket policies should only allow requests that use HTTPS"
-id: "c-opl-s3-https-access"
+id: "lacework-opl-s3-https-access"
 lwids:
     CIS-AWS_v1.3.0:
         - CIS-AWS_v1.3.0_2.1.2

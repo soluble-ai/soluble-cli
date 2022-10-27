@@ -155,7 +155,7 @@ func (p *Policy) copyRegoFile(regoPath string) error {
 
 func (p *Policy) getID() string {
 	idName := strings.ReplaceAll(p.Name, "_", "-")
-	return "c-opl-" + idName
+	return "lacework-opl-" + idName
 }
 func doubleQuote(val string) yaml.Node {
 	node := yaml.Node{
