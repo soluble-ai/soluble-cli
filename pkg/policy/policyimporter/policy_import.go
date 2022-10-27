@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -58,21 +57,33 @@ type Metadoc struct {
 
 var ManualCheck []string
 
+func validatePath(expectedPath string) func(interface{}) error {
+	return func(inputDir interface{}) error {
+		dir := inputDir.(string)
+		sub := len(dir) - len(expectedPath)
+		if len(dir) < len(expectedPath) || dir[sub:] != expectedPath {
+			return fmt.Errorf("invalid directory path: %v", dir)
+		}
+		return nil
+	}
+}
+
 func (c *Converter) PromptInput() error {
 	var qs = []*survey.Question{
 		{
 			Name: "opalRegoPath",
 			Prompt: &survey.Input{
 				Message: "Opal policies directory path",
+				Help:    "provide path to opal built-in policies. EG: 'rego/policies'",
 			},
-			//Validate: validatePolicyDirectory(),
+			Validate: validatePath("policies"),
 		},
 		{
 			Name: "destPath",
 			Prompt: &survey.Input{
 				Message: "Converted policies destination path",
 				Default: "policies"},
-			//Validate: validatePolicyDirectory(),
+			Validate: validatePath("policies/opal"),
 		},
 	}
 	if err := survey.Ask(qs, c); err == nil {
@@ -323,24 +334,18 @@ func (p *Policy) Convert(regoFile, destPath string) error {
 }
 
 func (c *Converter) ConvertOpalBuiltIns() error {
-	// lw path = policies/opal/<policy_name>/<checkType>
-	expectedPath := "policies/opal"
-	sub := len(c.DestPath) - len(expectedPath)
-	if len(c.DestPath) < len(expectedPath) || c.DestPath[sub:] != expectedPath {
-		return fmt.Errorf("invalid directory path: %v", c.DestPath+
-			"\nprovide path to 'policies/opal' directory")
-	}
+	// lw dir structure: policies/opal/<policy_name>/<checkType>
 	if err := setupBaseDirStructure(c.DestPath); err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	regoFiles := Find(c.OpalRegoPath, ".rego")
 
 	for i := len(regoFiles) - 1; i >= 0; i-- {
-		fmt.Println("rego path: ", regoFiles[i])
+		fmt.Println("converting: ", regoFiles[i])
 		p := Policy{Tool: "opal"}
 		if err := p.Convert(regoFiles[i], c.DestPath); err != nil {
-			return (err)
+			return err
 		}
 	}
 
