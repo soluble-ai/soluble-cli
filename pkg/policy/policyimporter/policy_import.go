@@ -83,7 +83,6 @@ func (c *Converter) PromptInput() error {
 			Prompt: &survey.Input{
 				Message: "Converted policies destination path",
 				Help:    "must point to a 'policies/opal' directory",
-
 			},
 			Validate: validatePath("policies/opal"),
 		},
@@ -146,7 +145,7 @@ func (p *Policy) copyRegoFile(regoPath string) error {
 		return err
 	}
 
-	err = os.WriteFile(destination, input, 0644)
+	err = os.WriteFile(destination, input, 0600)
 	if err != nil {
 		return err
 	}
@@ -271,7 +270,7 @@ func (p *Policy) generateMetadataYaml(regoPath string) error {
 		return err
 	}
 
-	if err = os.WriteFile(metadataPath, data, 0644); err != nil {
+	if err = os.WriteFile(metadataPath, data, 0600); err != nil {
 		return err
 	}
 	return nil
