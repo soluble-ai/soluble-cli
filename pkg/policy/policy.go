@@ -71,8 +71,9 @@ type PolicyType interface {
 var allPolicyTypes = map[string]PolicyType{}
 
 type Store struct {
-	Dir      string
-	Policies map[PolicyType][]*Policy
+	Dir       string
+	Policies  map[PolicyType][]*Policy
+	PolicyIds map[string]string
 }
 
 func RegisterPolicyType(policyType PolicyType) {
@@ -89,6 +90,7 @@ func (t Target) Path(policy *Policy) string {
 
 func (m *Store) LoadPolicies() error {
 	m.Policies = make(map[PolicyType][]*Policy)
+	m.PolicyIds = make(map[string]string)
 	for _, policyType := range GetPolicyTypes() {
 		if err := m.LoadPoliciesOfType(policyType); err != nil {
 			return err
@@ -119,8 +121,24 @@ func (m *Store) LoadPoliciesOfType(policyType PolicyType) error {
 	return nil
 }
 
+// The resolvePolicyId function resolves the policyId for a PolicyType and path (policy folder name).
+// The returned id is a lower case string of the form c-{PolicyTypeCode}-path with all underscores replaced by hyphens
+// e.g. for an Opal PolicyType with folder path my_policy the id returned is c-opl-my-policy
+// An error is returned if a policy with this id already exists in the stored policies
+func (m *Store) resolvePolicyID(policyType PolicyType, path string) (string, error) {
+	id := strings.ToLower(fmt.Sprintf("c-%s-%s", policyType.GetCode(), strings.ReplaceAll(filepath.Base(path), "_", "-")))
+	if _, exists := m.PolicyIds[id]; exists {
+		return "", fmt.Errorf("a policy with id: %s already exists", id)
+	}
+	m.PolicyIds[id] = id
+	return id, nil
+}
+
 func (m *Store) LoadSinglePolicy(policyType PolicyType, path string) (*Policy, error) {
-	id := fmt.Sprintf("c-%s-%s", policyType.GetCode(), strings.ReplaceAll(filepath.Base(path), "_", "-"))
+	id, err := m.resolvePolicyID(policyType, path)
+	if err != nil {
+		return nil, err
+	}
 	d, err := os.ReadFile(filepath.Join(path, "metadata.yaml"))
 	if err != nil {
 		return nil, err
