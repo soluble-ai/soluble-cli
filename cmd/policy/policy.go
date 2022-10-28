@@ -57,7 +57,7 @@ func OpalConvertCommand() *cobra.Command {
 	// only available for opal
 	c := &cobra.Command{
 		Use:   "convert",
-		Short: "Convert opal built-in policies",
+		Short: "Restructure and generate metadata for opal built-in policies to fit lacework directory structure.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			converter := &policyimporter.Converter{}
 			if err := converter.PromptInput(); err != nil {
