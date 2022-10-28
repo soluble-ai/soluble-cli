@@ -52,6 +52,7 @@ func (m *M) DetectPolicy(dir string) error {
 				var policyType policies.PolicyType
 				m.Dir = strings.Join(elements[0:i], string(os.PathSeparator))
 				m.Policies = make(map[policies.PolicyType][]*policies.Policy)
+				m.PolicyIds = make(map[string]string)
 				// look at the path elements past "policies" to see where
 				// we are
 				n := len(elements) - i
