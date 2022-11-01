@@ -217,13 +217,14 @@ func updateMetadata(name string, existing, new Metadata) Metadata {
 	// merge LWIDs as many policies with same ID dont have all the lwids
 
 	new.CheckType = append(new.CheckType, existing.CheckType...)
+	if !reflect.DeepEqual(existing.LwIds, new.LwIds) {
+		new.LwIds = mergeMaps(existing.LwIds, new.LwIds)
+	}
 	if existing.Category != new.Category ||
 		existing.Description.Value != new.Description.Value ||
 		existing.Severity != new.Severity ||
 		existing.Title.Value != new.Title.Value {
 		ManualCheck = append(ManualCheck, name)
-	} else if !reflect.DeepEqual(existing.LwIds, new.LwIds) {
-		new.LwIds = mergeMaps(existing.LwIds, new.LwIds)
 	}
 	return new
 }
