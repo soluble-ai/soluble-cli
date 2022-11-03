@@ -1,17 +1,17 @@
 package test
 
 import (
+	"os"
+	"testing"
+
 	"github.com/soluble-ai/soluble-cli/pkg/policy/policyimporter"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/testutil"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func cleanUp() {
 	os.RemoveAll("testdata/tmp")
 }
-
 
 func exists(file string) error {
 	_, err := os.Stat("testdata/tmp/policies/opal/" + file)
@@ -24,15 +24,15 @@ func Test_converter(t *testing.T) {
 	defer cleanUp()
 
 	converter := &policyimporter.Converter{
-		OpalRegoPath :  "testdata/input/policies",
-		DestPath: "testdata/tmp/policies/opal",
-		TestPath: "testdata/input/policiesTest/tests/policies",
+		OpalRegoPath: "testdata/input/policies",
+		DestPath:     "testdata/tmp/policies/opal",
+		TestPath:     "testdata/input/policiesTest/tests/policies",
 	}
 	if err := converter.ConvertOpalBuiltIns(); err != nil {
 		t.Fail()
 	}
 
-	//test metadata
+	// test metadata
 	expectedFilePath := "testdata/expected/metadata.yaml"
 	actualFilePath := "testdata/tmp/policies/opal/s3_https_access/metadata.yaml"
 	diff := testutil.CompareYamlFiles(actualFilePath, expectedFilePath)
@@ -53,4 +53,3 @@ func Test_converter(t *testing.T) {
 	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/valid_block_public_access_infra.yaml"))
 	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/valid_block_public_access_infra_yaml.rego"))
 }
-

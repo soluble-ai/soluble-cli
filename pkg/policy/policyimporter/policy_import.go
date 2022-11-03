@@ -57,16 +57,16 @@ type Metadoc struct {
 }
 
 var checkTypeMap = map[string]string{
-"tf":  "terraform",
-"k8s": "kubernetes",
-"cfn": "cloudformation",
-"arm": "arm",
+	"tf":  "terraform",
+	"k8s": "kubernetes",
+	"cfn": "cloudformation",
+	"arm": "arm",
 }
 
 var providerMap = map[string]string{
-"aws":     "aws",
-"google":  "gcp",
-"azurerm": "azure",
+	"aws":     "aws",
+	"google":  "gcp",
+	"azurerm": "azure",
 }
 
 var ManualCheck []string
@@ -140,12 +140,11 @@ func getName(fileName, rsrcType string) string {
 	}
 }
 
-func (p *Policy)setTestName(testPath, testName string) {
+func (p *Policy) setTestName(testPath, testName string) {
 	var relPath string
-	if p.CheckType != "kubernetes"{
-		relPath = strings.Split(testPath, p.RsrcType + "/")[1]
+	if p.CheckType != "kubernetes" {
+		relPath = strings.Split(testPath, p.RsrcType+"/")[1]
 		p.Name = p.RsrcType + "_" + strings.Split(relPath, "_test.rego")[0]
-
 	} else {
 		p.Name = p.RsrcType + "_" + testName
 	}
@@ -173,10 +172,10 @@ func (p *Policy) createPolicyDirStructure(destPath string) error {
 
 func (p *Policy) createTestDirStructure() error {
 	if _, err := os.Stat(p.Dir); !os.IsNotExist(err) {
-		if err = os.MkdirAll(p.Dir + "/tests/inputs", os.ModePerm); err != nil {
+		if err = os.MkdirAll(p.Dir+"/tests/inputs", os.ModePerm); err != nil {
 			return err
 		} else {
-			fmt.Println("created: ", p.Dir + "/tests/inputs")
+			fmt.Println("created: ", p.Dir+"/tests/inputs")
 		}
 	} else {
 		return fmt.Errorf("%v : policy '%v' with check type %v does not exist", p.Dir, p.Name, p.CheckType)
@@ -365,9 +364,8 @@ func (p *Policy) getPolicyData(regoFile string) {
 	}
 }
 
-
-func (p *Policy)convertAllInputDir(inputFiles []fs.DirEntry, opalInputPath string) error {
-	for _, f := range inputFiles{
+func (p *Policy) convertAllInputDir(inputFiles []fs.DirEntry, opalInputPath string) error {
+	for _, f := range inputFiles {
 		if err := copyFile(filepath.Join(opalInputPath, f.Name()), filepath.Join(p.Dir, "tests/inputs", f.Name())); err != nil {
 			return err
 		}
@@ -375,23 +373,20 @@ func (p *Policy)convertAllInputDir(inputFiles []fs.DirEntry, opalInputPath strin
 	return nil
 }
 
-
-
-func (p *Policy)getOpalInputPath(testPath, dirName string) string {
+func (p *Policy) getOpalInputPath(testPath, dirName string) string {
 	var opalInputPath string
-	if p.CheckType == "kubernetes"{
+	if p.CheckType == "kubernetes" {
 		opalInputPath = filepath.Join(strings.SplitAfter(testPath, dirName)[0], "inputs")
-
 	} else {
 		opalInputPath = filepath.Join(strings.SplitAfter(testPath, p.RsrcType)[0], "inputs")
 	}
 	return opalInputPath
 }
 
-func (p *Policy)convertTests(testPath, destPath string) error {
+func (p *Policy) convertTests(testPath, destPath string) error {
 	dirs, _ := os.ReadDir(testPath)
 	for _, d := range dirs {
-		if p.CheckType != "kubernetes"{
+		if p.CheckType != "kubernetes" {
 			p.RsrcType = d.Name()
 		}
 		tests := Find(filepath.Join(testPath, d.Name()), ".rego")
@@ -399,20 +394,20 @@ func (p *Policy)convertTests(testPath, destPath string) error {
 		for _, t := range tests {
 			p.setTestName(t, d.Name())
 			p.Dir = filepath.Join(destPath, p.Name, p.CheckType)
-			
+
 			if err := p.createTestDirStructure(); err != nil {
 				return err
 			}
 			if err := copyFile(t, filepath.Join(p.Dir, "tests/policy_test.rego")); err != nil {
 				return err
 			}
-			
+
 			opalInputPath := p.getOpalInputPath(t, d.Name())
 			inputFiles, err := os.ReadDir(opalInputPath)
 			if err != nil {
 				return err
 			}
-			
+
 			if len(tests) == 1 {
 				// only 1 test in the directory; all input files are needed
 				err := p.convertAllInputDir(inputFiles, opalInputPath)
@@ -420,7 +415,7 @@ func (p *Policy)convertTests(testPath, destPath string) error {
 					return err
 				}
 			} else {
-				//multiple tests in directory; not all input files are needed
+				// multiple tests in directory; not all input files are needed
 				err := p.convertMultiTestDir(inputFiles, opalInputPath, t)
 				if err != nil {
 					return err
@@ -431,25 +426,26 @@ func (p *Policy)convertTests(testPath, destPath string) error {
 	return nil
 }
 
-
 func (p *Policy) getTestsByCheckType(testDir, destPath string) error {
 	checkTypeAbbrv := strings.Split(testDir, "/policies/")[1]
 	p.CheckType = checkTypeMap[checkTypeAbbrv]
-	if checkTypeAbbrv == "k8s" {
+
+	switch {
+	case checkTypeAbbrv == "k8s":
 		p.RsrcType = checkTypeAbbrv
 		err := p.convertTests(testDir, destPath)
 		if err != nil {
 			return err
 		}
-	} else if checkTypeAbbrv == "tf" {
-		for provider ,_ := range providerMap {
+	case checkTypeAbbrv == "tf":
+		for provider := range providerMap {
 			testDir = filepath.Join(testDir, provider)
 			err := p.convertTests(testDir, destPath)
 			if err != nil {
 				return err
 			}
 		}
-	} else if checkTypeAbbrv == "cfn" || checkTypeAbbrv == "arm" {
+	case checkTypeAbbrv == "cfn" || checkTypeAbbrv == "arm":
 		err := p.convertTests(testDir, destPath)
 		if err != nil {
 			return err
@@ -458,7 +454,7 @@ func (p *Policy) getTestsByCheckType(testDir, destPath string) error {
 	return nil
 }
 
-func (p *Policy)convertMultiTestDir(inputFiles []fs.DirEntry, opalInputPath, testPath string) error {
+func (p *Policy) convertMultiTestDir(inputFiles []fs.DirEntry, opalInputPath, testPath string) error {
 	// get input required by test
 	testInputs, err := getInputs(testPath)
 	if err != nil {
@@ -467,10 +463,10 @@ func (p *Policy)convertMultiTestDir(inputFiles []fs.DirEntry, opalInputPath, tes
 	for _, input := range testInputs {
 		input = normaliseFileName(input)
 		for _, f := range inputFiles {
-			//ensure we get all relevant inputs
+			// ensure we get all relevant inputs
 			file := normaliseFileName(f.Name())
 
-			if file == input  {
+			if file == input {
 				destination := filepath.Join(p.Dir, "tests/inputs", f.Name())
 				if err := copyFile(filepath.Join(opalInputPath, f.Name()), destination); err != nil {
 					return err
@@ -482,11 +478,11 @@ func (p *Policy)convertMultiTestDir(inputFiles []fs.DirEntry, opalInputPath, tes
 }
 
 func normaliseFileName(file string) string {
-	//This is to ensure we get all relevant input files
-	//remove extension
+	// This is to ensure we get all relevant input files
+	// remove extension
 	fileExt := filepath.Ext(file)
 	file = file[:len(file)-len(fileExt)]
-	//remove ending with _json _yaml or _tf
+	// remove ending with _json _yaml or _tf
 	lastIdx := strings.LastIndex(file, "_")
 	if lastIdx != -1 {
 		dataType := file[lastIdx:]
@@ -538,10 +534,10 @@ func (c *Converter) ConvertOpalBuiltIns() error {
 		}
 	}
 
-	if c.TestPath != ""{
-		for t, _ := range checkTypeMap {
+	if c.TestPath != "" {
+		for t := range checkTypeMap {
 			p := Policy{Tool: "opal"}
-			if err := p.getTestsByCheckType(filepath.Join(c.TestPath,t), c.DestPath); err != nil {
+			if err := p.getTestsByCheckType(filepath.Join(c.TestPath, t), c.DestPath); err != nil {
 				return err
 			}
 		}
