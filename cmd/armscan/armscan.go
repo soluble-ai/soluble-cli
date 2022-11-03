@@ -36,7 +36,7 @@ Use the sub-commands to explicitly choose a scanner to use.`
 	ckv.Short = "Scan ARM templates with checkov"
 	c.AddCommand(ckv)
 	c.AddCommand(tools.CreateCommand(&opal.Tool{
-		IACPlatform: tools.ARM,
+		InputType: "arm",
 	}))
 	return c
 }

@@ -85,7 +85,7 @@ func (t *policyText) parse() (*policyText, error) {
 	return t, nil
 }
 
-func (t *policyText) write(w io.Writer, metadata policy.Metadata) error {
+func (t *policyText) write(w io.Writer, id string, target policy.Target, metadata policy.Metadata) error {
 	var tail []byte
 	// write text up to package decl
 	if t.packageDecl != nil && t.packageDecl.start > 0 {
@@ -94,8 +94,8 @@ func (t *policyText) write(w io.Writer, metadata policy.Metadata) error {
 		}
 	}
 	// write new package declaration
-	packageName := strings.ReplaceAll(metadata.GetString("sid"), "-", "_")
-	if _, err := fmt.Fprintf(w, "package policies.%s", packageName); err != nil {
+	packageName := fmt.Sprintf("policies.%s_%s", strings.ReplaceAll(id, "-", "_"), target)
+	if _, err := fmt.Fprintf(w, "package %s", packageName); err != nil {
 		return err
 	}
 	if t.regoMetaDoc != nil {

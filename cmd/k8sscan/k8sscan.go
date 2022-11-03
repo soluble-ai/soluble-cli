@@ -29,7 +29,7 @@ func Command() *cobra.Command {
 	c.AddCommand(
 		tools.CreateCommand(&checkov.Kubernetes{}),
 		tools.CreateCommand(&opal.Tool{
-			IACPlatform: tools.Kubernetes,
+			InputType: "k8s",
 		}),
 	)
 	return c
