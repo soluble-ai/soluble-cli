@@ -21,7 +21,7 @@ func exists(file string) error {
 func Test_converter(t *testing.T) {
 	assert := assert.New(t)
 	cleanUp()
-	//defer cleanUp()
+	defer cleanUp()
 
 	converter := &policyimporter.Converter{
 		OpalRegoPath :  "testdata/input/policies",
@@ -41,18 +41,11 @@ func Test_converter(t *testing.T) {
 	// test dir structure
 	// test all policies were created
 	assert.NoError(exists("s3_block_public_access/cloudformation/policy.rego"))
-	//assert.NoError(exists("s3_cloudtrail_s3_data_logging_read/cloudformation/policy.rego"))
-	//assert.NoError(exists("s3_cloudtrail_s3_data_logging_write/cloudformation/policy.rego"))
 	assert.NoError(exists("s3_encryption/cloudformation/policy.rego"))
-	//assert.NoError(exists("s3_https_access/cloudformation/policy.rego"))
-	//assert.NoError(exists("s3_https_access/terraform/policy.rego"))
 
 	// check test policies exist
 	assert.NoError(exists("s3_block_public_access/cloudformation/tests/policy_test.rego"))
-	//assert.NoError(exists("s3_cloudtrail_s3_data_logging_read/cloudformation/tests/policy_test.rego"))
-	//assert.NoError(exists("s3_cloudtrail_s3_data_logging_write/cloudformation/tests/policy_test.rego"))
 	assert.NoError(exists("s3_encryption/cloudformation/tests/policy_test.rego"))
-	//assert.NoError(exists("s3_https_access/cloudformation/tests/policy_test.rego"))
 
 	// check relevant input files exist
 	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/invalid_block_public_access_infra.yaml"))
