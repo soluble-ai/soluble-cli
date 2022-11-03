@@ -33,6 +33,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download/gcs"
 	"github.com/soluble-ai/soluble-cli/pkg/download/terraform"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/repotree"
 	"github.com/spf13/afero"
 )
 
@@ -84,8 +85,20 @@ var urlResolvers = map[string]urlResolverFunc{
 }
 
 func NewManager() *Manager {
+	var downloadDir string
+	if config.ConfigDir == "" {
+		// we are presumably running within a test, so we'll use
+		// <repo-root>/.downloads
+		root, err := repotree.FindRepoRoot("")
+		if err != nil {
+			panic(err)
+		}
+		downloadDir = filepath.Join(root, ".downloads")
+	} else {
+		downloadDir = filepath.Join(config.ConfigDir, "downloads")
+	}
 	return &Manager{
-		downloadDir: filepath.Join(config.ConfigDir, "downloads"),
+		downloadDir: downloadDir,
 	}
 }
 

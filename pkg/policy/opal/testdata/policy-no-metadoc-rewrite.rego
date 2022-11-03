@@ -1,4 +1,4 @@
-package policies.c_opl_test_policy
+package policies.c_opl_test_policy_terraform
 
 __rego__metadoc__ := {
   "description": "This is a great \"description\"",

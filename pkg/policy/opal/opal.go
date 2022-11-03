@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	policies "github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -40,17 +41,32 @@ func preparePolicy(policy *policies.Policy, target policies.Target, dest string)
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(filepath.Join(dest, fmt.Sprintf("%s.rego", policy.ID)))
+	f, err := os.Create(filepath.Join(dest, fmt.Sprintf("%s-%s.rego", policy.ID, target)))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return rt.write(f, policy.Metadata)
+	return rt.write(f, policy.ID, target, policy.Metadata)
 }
 
 func (opalPolicies) GetTestRunner(runOpts tools.RunOpts, target policies.Target) tools.Single {
-	t := &opal.Tool{}
+	t := &opal.Tool{
+		ExtraArgs: []string{"--no-built-ins"},
+	}
+	switch target {
+	case policies.ARM:
+		t.InputType = "arm"
+	case policies.Cloudformation:
+		t.InputType = "cfn"
+	case policies.Kubernetes:
+		t.InputType = "k8s"
+	case policies.Terraform:
+		t.InputType = "tf"
+	case policies.TerraformPlan:
+		t.InputType = "tf-plan"
+	}
 	t.RunOpts = runOpts
+	t.PrintResultOpt = true
 	return t
 }
 
@@ -100,6 +116,7 @@ func getPolicyText(policy *policies.Policy, target policies.Target) (*policyText
 
 func (opalPolicies) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
 	for _, f := range findings {
+		log.Debugf("finding {info:%s} is {primary:%s}", f.Tool["policy_id"], f.Pass)
 		if f.Tool != nil && f.Tool["policy_id"] == id {
 			pass := f.Pass
 			return &pass

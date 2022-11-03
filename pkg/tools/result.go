@@ -256,6 +256,7 @@ func (r *Result) attachFingerprints() io.Reader {
 	d, err := json.Marshal(r.FileFingerprints)
 	if err != nil {
 		log.Warnf("Could not marshal fingerprints: {warning:%s}", err)
+		return nil
 	}
 	return bytes.NewReader(d)
 }

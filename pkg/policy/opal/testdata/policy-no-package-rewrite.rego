@@ -1,4 +1,4 @@
-package policies.c_opl_test_no_package
+package policies.c_opl_test_no_package_terraform
 
 __rego__metadoc__ := {
   "id": "c-opl-test-no-package"

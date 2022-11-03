@@ -17,21 +17,15 @@ import (
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
-	IACPlatform          tools.IACPlatform
+	InputType            string
 	VarFiles             []string
+	ExtraArgs            []string
 	EnableModuleDownload bool
-
-	inputType *string
+	
+	iacPlatform tools.IACPlatform
 }
 
 var _ tools.Single = (*Tool)(nil)
-
-func stringp(s string) *string {
-	if s != "" {
-		return &s
-	}
-	return nil
-}
 
 func (t *Tool) Name() string {
 	return "opal"
@@ -53,23 +47,21 @@ func (t *Tool) Register(cmd *cobra.Command) {
 }
 
 func (t *Tool) Validate() error {
-	if t.inputType == nil {
-		switch t.IACPlatform {
-		case tools.ARM:
-			t.inputType = stringp("arm")
-		case tools.Kubernetes:
-			t.inputType = stringp("k8s")
-		case tools.Cloudformation:
-			t.inputType = stringp("cfn")
-		case tools.TerraformPlan:
-			t.inputType = stringp("tf-plan")
-		case tools.Terraform:
-			fallthrough
-		case "":
-			t.inputType = stringp("tf")
-		default:
-			return fmt.Errorf("opal does not support %s", t.IACPlatform)
-		}
+	switch t.InputType {
+	case "arm":
+		t.iacPlatform = tools.ARM
+	case "k8s":
+		t.iacPlatform = tools.Kubernetes
+	case "cfn":
+		t.iacPlatform = tools.Cloudformation
+	case "tf-plan":
+		t.iacPlatform = tools.TerraformPlan
+	case "tf":
+		fallthrough
+	case "":
+		t.iacPlatform = tools.Terraform
+	default:
+		return fmt.Errorf("opal does not support %s", t.InputType)
 	}
 	for _, varFile := range t.VarFiles {
 		if !util.FileExists(varFile) {
@@ -82,7 +74,7 @@ func (t *Tool) Validate() error {
 func (t *Tool) Run() (*tools.Result, error) {
 	result := &tools.Result{
 		Directory:   t.GetDirectory(),
-		IACPlatform: t.IACPlatform,
+		IACPlatform: t.iacPlatform,
 	}
 
 	if t.EnableModuleDownload {
@@ -104,12 +96,13 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if customPoliciesDir != "" {
 		args = append(args, "--include", customPoliciesDir)
 	}
-	if t.inputType != nil && *t.inputType != "" {
-		args = append(args, "--input-type", *t.inputType)
+	if t.InputType != "" {
+		args = append(args, "--input-type", t.InputType)
 	}
 	for _, varFile := range t.VarFiles {
 		args = append(args, "--var-file", varFile)
 	}
+	args = append(args, t.ExtraArgs...)
 	args = append(args, ".")
 	// #nosec G204
 	c := exec.Command(d.GetExePath("opal"), args...)
