@@ -129,6 +129,10 @@ tests:
 		if err != nil {
 			return err
 		}
+		if result.ExecuteResult != nil && result.ExecuteResult.FailureType != tools.NoFailure {
+			log.Errorf("Failed to execute policy engine - {danger:%s}\n%s", result.ExecuteResult.FailureMessage, result.ExecuteResult.CombinedOutput)
+			return fmt.Errorf("policy engine could not run")
+		}
 		passFailResult := mPolicyType.FindPolicyResult(result.Findings, policy.ID)
 		if passFailResult != nil {
 			ok := *passFailResult
@@ -155,7 +159,8 @@ tests:
 			})
 			continue tests
 		}
-		log.Errorf("{primary:%s} - {danger:NOT FOUND}", testDir)
+		log.Errorf("{primary:%s} - {danger:no findings with id %s found in results}", testDir, policy.ID)
+		log.Errorf("%s", result.Findings)
 		metrics.Failed++
 		failures++
 	}

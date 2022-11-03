@@ -12,6 +12,8 @@
 *.out
 
 .vscode/
+/.downloads/
+/prepared/
 soluble-cli
 soluble
 dist/

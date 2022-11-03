@@ -25,7 +25,7 @@ func TestReadWithMetadoc(t *testing.T) {
 	regoMetaDoc := string(r.text[r.regoMetaDoc.start:r.regoMetaDoc.end])
 	assert.True(strings.HasPrefix(regoMetaDoc, "__rego__metadoc__ :="), regoMetaDoc)
 	s := &strings.Builder{}
-	assert.NoError(r.write(s, policy.Metadata{
+	assert.NoError(r.write(s, "c-opl-test-policy", policy.Terraform, policy.Metadata{
 		"sid":      "c-opl-test-policy",
 		"severity": "High",
 	}))
@@ -43,11 +43,12 @@ func TestNoMetadoc(t *testing.T) {
 	}
 	assert.Equal("tf", r.inputType)
 	s := &strings.Builder{}
-	assert.NoError(r.write(s, policy.Metadata{
-		"sid":         "c-opl-test-policy",
-		"title":       `This is a "great" example`,
-		"description": `This is a great "description"`,
-	}))
+	assert.NoError(r.write(s, "c-opl-test-policy", policy.Terraform,
+		policy.Metadata{
+			"sid":         "c-opl-test-policy",
+			"title":       `This is a "great" example`,
+			"description": `This is a great "description"`,
+		}))
 	fmt.Println(s.String())
 	dat, err := os.ReadFile("testdata/policy-no-metadoc-rewrite.rego")
 	assert.NoError(err)
@@ -67,9 +68,10 @@ func TestReadNoPackage(t *testing.T) {
 		return
 	}
 	b := &strings.Builder{}
-	assert.NoError(r.write(b, policy.Metadata{
-		"sid": "c-opl-test-no-package",
-	}))
+	assert.NoError(r.write(b, "c-opl-test-no-package", policy.Terraform,
+		policy.Metadata{
+			"sid": "c-opl-test-no-package",
+		}))
 	s := b.String()
 	fmt.Println(s)
 	dat, err := os.ReadFile("testdata/policy-no-package-rewrite.rego")

@@ -122,6 +122,9 @@ func (r *ExecuteResult) ParseJSON() (*jnode.Node, bool) {
 }
 
 func (r *ExecuteResult) ExpectExitCode(codes ...int) bool {
+	if r.FailureType == ExecutionFailure {
+		return false
+	}
 	for _, code := range codes {
 		if r.ExitCode == code {
 			return true

@@ -1,5 +1,5 @@
 # comments
-package policies.c_opl_test_policy
+package policies.c_opl_test_policy_terraform
 
 import data.d1.d2 as x
 

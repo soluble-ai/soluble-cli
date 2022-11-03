@@ -40,7 +40,7 @@ Use the sub-commands to explicitly choose a scanner to use.`
 			Framework: "cloudformation",
 		}),
 		tools.CreateCommand(&opal.Tool{
-			IACPlatform: tools.Cloudformation,
+			InputType: "cfn",
 		}),
 	)
 	return c

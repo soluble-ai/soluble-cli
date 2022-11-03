@@ -28,13 +28,14 @@ func Command() *cobra.Command {
 		vetCommand(),
 		uploadCommand(),
 		testCommand(),
-		CreateCommand(),
-		OpalConvertCommand(),
+		createCommand(),
+		opalConvertCommand(),
+		prepareCommand(),
 	)
 	return c
 }
 
-func CreateCommand() *cobra.Command {
+func createCommand() *cobra.Command {
 	// only available for opal
 	cpb := &custompolicybuilder.PolicyTemplate{Tool: "opal"}
 	c := &cobra.Command{
@@ -53,7 +54,7 @@ func CreateCommand() *cobra.Command {
 	return c
 }
 
-func OpalConvertCommand() *cobra.Command {
+func opalConvertCommand() *cobra.Command {
 	// only available for opal
 	c := &cobra.Command{
 		Use:   "convert",
@@ -91,6 +92,28 @@ func vetCommand() *cobra.Command {
 		},
 	}
 	m.Register(c)
+	return c
+}
+
+func prepareCommand() *cobra.Command {
+	m := &manager.M{}
+	var dir string
+	c := &cobra.Command{
+		Use:     "prepare",
+		Aliases: []string{"prop"},
+		Short:   "Generated the prepared policy for evaluation by the underlying engine",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := m.DetectPolicy(""); err != nil {
+				return err
+			}
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return err
+			}
+			return m.PreparePolicies(dir)
+		},
+	}
+	m.Register(c)
+	c.Flags().StringVar(&dir, "output-dir", "prepared", "The directory to generate the policies into.")
 	return c
 }
 
