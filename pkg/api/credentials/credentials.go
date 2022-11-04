@@ -104,7 +104,7 @@ func (p *ProfileCredentials) IsNearExpiration() bool {
 
 func (p *ProfileCredentials) RefreshToken(domain string, keyID string, secretKey string) error {
 	url := fmt.Sprintf("https://%s/api/v2/access/tokens", domain)
-	log.Debugf("Refreshing auth token from {info:%s}", url)
+	log.Infof("Refreshing lacework token from {primary:%s}", url)
 	body := jsonBody(map[string]interface{}{
 		"keyId":      keyID,
 		"expiryTime": 3600,

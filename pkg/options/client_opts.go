@@ -30,6 +30,7 @@ type ClientOpts struct {
 	api.Config
 	DefaultTimeout int
 
+	apiConfig    *api.Config
 	client       *api.Client
 	unauthClient *api.Client
 }
@@ -74,12 +75,12 @@ func (opts *ClientOpts) Validate() error {
 }
 
 func (opts *ClientOpts) GetAPIClientConfig() (*api.Config, error) {
+	if opts.apiConfig != nil {
+		return opts.apiConfig, nil
+	}
 	cfg := opts.Config
 	if cfg.Organization == "" {
 		cfg.Organization = config.Config.GetOrganization()
-	}
-	if cfg.APIToken == "" {
-		cfg.APIToken = config.Config.GetAPIToken()
 	}
 	if cfg.APIServer == "" {
 		cfg.APIServer = config.Config.GetAPIServer()
@@ -90,10 +91,14 @@ func (opts *ClientOpts) GetAPIClientConfig() (*api.Config, error) {
 	if !cfg.TLSNoVerify {
 		cfg.TLSNoVerify = config.Config.TLSNoVerify
 	}
+	if cfg.APIToken == "" {
+		cfg.APIToken = config.Config.GetAPIToken()
+	}
 	if err := credentials.ConfigureLaceworkAuth(&cfg); err != nil {
 		return nil, err
 	}
-	return &cfg, nil
+	opts.apiConfig = &cfg
+	return opts.apiConfig, nil
 }
 
 func (opts *ClientOpts) GetOrganization() string {
@@ -139,8 +144,7 @@ func (opts *ClientOpts) IsAuthenticated() bool {
 }
 
 func (opts *ClientOpts) RequireAPIToken() error {
-	cfg, _ := opts.GetAPIClientConfig()
-	if cfg == nil || (cfg.APIToken == "" && cfg.LaceworkAPIToken == "") {
+	if !opts.IsAuthenticated() {
 		log.Warnf("This command requires signing up with {primary:Lacework} (unless --upload=false).")
 		return fmt.Errorf("not authenticated with Lacework")
 	}

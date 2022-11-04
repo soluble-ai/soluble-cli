@@ -7,6 +7,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
 func GetDomain(account string) string {
@@ -28,6 +29,8 @@ func ConfigureLaceworkAuth(cfg *api.Config) error {
 		// authentication
 		return nil
 	}
+	log.Infof("Using lacework authentication for {info:%s} and IAC org {info:%s}", cfg.Domain,
+		cfg.Organization)
 	if cfg.LaceworkAPIToken == "" {
 		cfg.LaceworkAPIToken = os.Getenv("LW_API_TOKEN")
 	}

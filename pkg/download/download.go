@@ -289,7 +289,7 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		return nil, err
 	}
 	defer w.Close()
-	log.Infof("Getting {info:%s}", spec.URL)
+	log.Infof("Getting {primary:%s}", spec.URL)
 	req, err := http.NewRequest("GET", spec.URL, nil)
 	if err != nil {
 		return nil, err

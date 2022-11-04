@@ -146,7 +146,7 @@ func (c *Client) ConfigureAuthHeaders(headers http.Header) {
 	if c.LaceworkAPIToken != "" {
 		headers.Set("X-LW-Domain", c.Domain)
 		headers.Set("X-LW-Authorization", fmt.Sprintf("Token %s", c.LaceworkAPIToken))
-		log.Debugf("Using lacework authentication")
+		log.Debugf("Using lacework authentication for {info:%s}", c.Domain)
 	} else if c.APIToken != "" {
 		headers.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIToken))
 	}
