@@ -59,7 +59,7 @@ var InputTypeForTarget = map[Target]string{
 }
 
 var allTargets = []Target{
-	Terraform, TerraformPlan, Cloudformation, Kubernetes, Helm, Docker, Secrets,
+	Terraform, TerraformPlan, Cloudformation, Kubernetes, Helm, Docker, Secrets, ARM,
 }
 
 type PolicyType interface {

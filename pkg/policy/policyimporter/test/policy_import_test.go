@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -13,30 +12,44 @@ import (
 func cleanUp() {
 	os.RemoveAll("testdata/tmp")
 }
+
+func exists(file string) error {
+	_, err := os.Stat("testdata/tmp/policies/opal/" + file)
+	return err
+}
+
 func Test_converter(t *testing.T) {
 	assert := assert.New(t)
+	cleanUp()
 	defer cleanUp()
 
-	input := "testdata/input/policies"
-	dest := "testdata/tmp/policies/opal"
-	regoFiles := policyimporter.Find(input, ".rego")
-
-	for i := len(regoFiles) - 1; i >= 0; i-- {
-		fmt.Println("rego path: ", regoFiles[i])
-		p := policyimporter.Policy{Tool: "opal"}
-		if err := p.Convert(regoFiles[i], dest); err != nil {
-			t.Fail()
-		}
+	converter := &policyimporter.Converter{
+		OpalRegoPath: "testdata/input/policies",
+		DestPath:     "testdata/tmp/policies/opal",
+		TestPath:     "testdata/input/policiesTest/tests/policies",
 	}
-
-	// test structure
-	lwStructure := policyimporter.Find(dest, ".rego")
-	assert.Equal(lwStructure[0], "testdata/tmp/policies/opal/s3_https_access/cloudformation/policy.rego")
-	assert.Equal(lwStructure[1], "testdata/tmp/policies/opal/s3_https_access/terraform/policy.rego")
+	if err := converter.ConvertOpalBuiltIns(); err != nil {
+		t.Fail()
+	}
 
 	// test metadata
 	expectedFilePath := "testdata/expected/metadata.yaml"
 	actualFilePath := "testdata/tmp/policies/opal/s3_https_access/metadata.yaml"
 	diff := testutil.CompareYamlFiles(actualFilePath, expectedFilePath)
 	assert.Equal(0, diff)
+
+	// test dir structure
+	// test all policies were created
+	assert.NoError(exists("s3_block_public_access/cloudformation/policy.rego"))
+	assert.NoError(exists("s3_encryption/cloudformation/policy.rego"))
+
+	// check test policies exist
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/policy_test.rego"))
+	assert.NoError(exists("s3_encryption/cloudformation/tests/policy_test.rego"))
+
+	// check relevant input files exist
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/invalid_block_public_access_infra.yaml"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/invalid_block_public_access_infra_yaml.rego"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/valid_block_public_access_infra.yaml"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/valid_block_public_access_infra_yaml.rego"))
 }

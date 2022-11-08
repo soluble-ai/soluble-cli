@@ -18,6 +18,7 @@ import (
 type Converter struct {
 	OpalRegoPath string
 	DestPath     string
+	TestPath     string
 }
 
 type Policy struct {
@@ -55,6 +56,19 @@ type Metadoc struct {
 	ID          string
 }
 
+var checkTypeMap = map[string]string{
+	"tf":  "terraform",
+	"k8s": "kubernetes",
+	"cfn": "cloudformation",
+	"arm": "arm",
+}
+
+var providerMap = map[string]string{
+	"aws":     "aws",
+	"google":  "gcp",
+	"azurerm": "azure",
+}
+
 var ManualCheck []string
 
 func validatePath(expectedPath string) func(interface{}) error {
@@ -79,6 +93,12 @@ func (c *Converter) PromptInput() error {
 			Validate: validatePath("policies"),
 		},
 		{
+			Name: "testPath",
+			Prompt: &survey.Input{
+				Message: "Opal tests/policies directory path (optional)",
+			},
+		},
+		{
 			Name: "destPath",
 			Prompt: &survey.Input{
 				Message: "Converted policies destination path",
@@ -99,6 +119,9 @@ func Find(root, ext string) []string {
 		if err != nil {
 			return err
 		}
+		if d.IsDir() && d.Name() == "inputs" {
+			return fs.SkipDir
+		}
 		if filepath.Ext(d.Name()) == ext {
 			regoFilePaths = append(regoFilePaths, path)
 		}
@@ -111,9 +134,19 @@ func Find(root, ext string) []string {
 }
 func getName(fileName, rsrcType string) string {
 	if rsrcType != "" {
-		return rsrcType + "_" + fileName[:len(fileName)-5] // 5 = len(".rego")
+		return rsrcType + "_" + strings.Split(fileName, ".")[0] // 5 = len(".rego")
 	} else {
 		return fileName[:len(fileName)-5]
+	}
+}
+
+func (p *Policy) setTestName(testPath, testName string) {
+	var relPath string
+	if p.CheckType != "kubernetes" {
+		relPath = strings.Split(testPath, p.RsrcType+"/")[1]
+		p.Name = p.RsrcType + "_" + strings.Split(relPath, "_test.rego")[0]
+	} else {
+		p.Name = p.RsrcType + "_" + testName
 	}
 }
 
@@ -133,14 +166,25 @@ func (p *Policy) createPolicyDirStructure(destPath string) error {
 	}
 	if err := os.MkdirAll(p.Dir, os.ModePerm); err != nil {
 		return err
-	} else {
-		fmt.Println("created: ", p.Dir)
 	}
 	return nil
 }
-func (p *Policy) copyRegoFile(regoPath string) error {
-	destination := p.Dir + "/policy.rego"
-	input, err := os.ReadFile(regoPath)
+
+func (p *Policy) createTestDirStructure() error {
+	if _, err := os.Stat(p.Dir); !os.IsNotExist(err) {
+		if err = os.MkdirAll(p.Dir+"/tests/inputs", os.ModePerm); err != nil {
+			return err
+		} else {
+			fmt.Println("created: ", p.Dir+"/tests/inputs")
+		}
+	} else {
+		return fmt.Errorf("%v : policy '%v' with check type %v does not exist", p.Dir, p.Name, p.CheckType)
+	}
+	return nil
+}
+
+func copyFile(path, destination string) error {
+	input, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -217,13 +261,14 @@ func updateMetadata(name string, existing, new Metadata) Metadata {
 	// merge LWIDs as many policies with same ID dont have all the lwids
 
 	new.CheckType = append(new.CheckType, existing.CheckType...)
+	if !reflect.DeepEqual(existing.LwIds, new.LwIds) {
+		new.LwIds = mergeMaps(existing.LwIds, new.LwIds)
+	}
 	if existing.Category != new.Category ||
 		existing.Description.Value != new.Description.Value ||
 		existing.Severity != new.Severity ||
 		existing.Title.Value != new.Title.Value {
 		ManualCheck = append(ManualCheck, name)
-	} else if !reflect.DeepEqual(existing.LwIds, new.LwIds) {
-		new.LwIds = mergeMaps(existing.LwIds, new.LwIds)
 	}
 	return new
 }
@@ -286,27 +331,16 @@ func (p *Policy) convertPolicy(regoPath, destPath string) error {
 		return err
 	}
 
-	if err = p.copyRegoFile(regoPath); err != nil {
+	destination := p.Dir + "/policy.rego"
+	if err = copyFile(regoPath, destination); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *Policy) Convert(regoFile, destPath string) error {
+func (p *Policy) getPolicyData(regoFile string) {
 	relPath := strings.Split(regoFile, "/policies/")[1]
 	pathData := strings.Split(relPath, "/")
-	checkTypeMap := map[string]string{
-		"tf":  "terraform",
-		"k8s": "kubernetes",
-		"cfn": "cloudformation",
-		"arm": "arm",
-	}
-	providerMap := map[string]string{
-		"aws":     "aws",
-		"google":  "gcp",
-		"azurerm": "azure",
-	}
-
 	checkType := pathData[0]
 	p.CheckType = checkTypeMap[checkType]
 
@@ -328,10 +362,160 @@ func (p *Policy) Convert(regoFile, destPath string) error {
 		p.RsrcType = pathData[1]
 		p.Name = getName(pathData[2], p.RsrcType)
 	}
-	if err := p.convertPolicy(regoFile, destPath); err != nil {
-		return err
+}
+
+func (p *Policy) convertAllInputDir(inputFiles []fs.DirEntry, opalInputPath string) error {
+	for _, f := range inputFiles {
+		if err := copyFile(filepath.Join(opalInputPath, f.Name()), filepath.Join(p.Dir, "tests/inputs", f.Name())); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func (p *Policy) getOpalInputPath(testPath, dirName string) string {
+	var opalInputPath string
+	if p.CheckType == "kubernetes" {
+		opalInputPath = filepath.Join(strings.SplitAfter(testPath, dirName)[0], "inputs")
+	} else {
+		opalInputPath = filepath.Join(strings.SplitAfter(testPath, p.RsrcType)[0], "inputs")
+	}
+	return opalInputPath
+}
+
+func (p *Policy) convertTests(testPath, destPath string) error {
+	dirs, _ := os.ReadDir(testPath)
+	for _, d := range dirs {
+		if p.CheckType != "kubernetes" {
+			p.RsrcType = d.Name()
+		}
+		tests := Find(filepath.Join(testPath, d.Name()), ".rego")
+
+		for _, t := range tests {
+			p.setTestName(t, d.Name())
+			p.Dir = filepath.Join(destPath, p.Name, p.CheckType)
+
+			if err := p.createTestDirStructure(); err != nil {
+				return err
+			}
+			if err := copyFile(t, filepath.Join(p.Dir, "tests/policy_test.rego")); err != nil {
+				return err
+			}
+
+			opalInputPath := p.getOpalInputPath(t, d.Name())
+			inputFiles, err := os.ReadDir(opalInputPath)
+			if err != nil {
+				return err
+			}
+
+			if len(tests) == 1 {
+				// only 1 test in the directory; all input files are needed
+				err := p.convertAllInputDir(inputFiles, opalInputPath)
+				if err != nil {
+					return err
+				}
+			} else {
+				// multiple tests in directory; not all input files are needed
+				err := p.convertMultiTestDir(inputFiles, opalInputPath, t)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (p *Policy) getTestsByCheckType(testDir, destPath string) error {
+	checkTypeAbbrv := strings.Split(testDir, "/policies/")[1]
+	p.CheckType = checkTypeMap[checkTypeAbbrv]
+
+	switch {
+	case checkTypeAbbrv == "k8s":
+		p.RsrcType = checkTypeAbbrv
+		err := p.convertTests(testDir, destPath)
+		if err != nil {
+			return err
+		}
+	case checkTypeAbbrv == "tf":
+		for provider := range providerMap {
+			testDir = filepath.Join(testDir, provider)
+			err := p.convertTests(testDir, destPath)
+			if err != nil {
+				return err
+			}
+		}
+	case checkTypeAbbrv == "cfn" || checkTypeAbbrv == "arm":
+		err := p.convertTests(testDir, destPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Policy) convertMultiTestDir(inputFiles []fs.DirEntry, opalInputPath, testPath string) error {
+	// get input required by test
+	testInputs, err := getInputs(testPath)
+	if err != nil {
+		return err
+	}
+	for _, input := range testInputs {
+		input = normaliseFileName(input)
+		for _, f := range inputFiles {
+			// ensure we get all relevant inputs
+			file := normaliseFileName(f.Name())
+
+			if file == input {
+				destination := filepath.Join(p.Dir, "tests/inputs", f.Name())
+				if err := copyFile(filepath.Join(opalInputPath, f.Name()), destination); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func normaliseFileName(file string) string {
+	// This is to ensure we get all relevant input files
+	// remove extension
+	fileExt := filepath.Ext(file)
+	file = file[:len(file)-len(fileExt)]
+	// remove ending with _json _yaml or _tf
+	lastIdx := strings.LastIndex(file, "_")
+	if lastIdx != -1 {
+		dataType := file[lastIdx:]
+		if dataType == "_json" || dataType == "_yaml" || dataType == "_tf" {
+			file = strings.Split(file, dataType)[0]
+		}
+	}
+	return file
+}
+
+func getInputs(testFile string) ([]string, error) {
+	readFile, err := os.Open(testFile)
+	if err != nil {
+		return nil, err
+	}
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+
+	var inputs []string
+	for fileScanner.Scan() {
+		line := fileScanner.Text()
+		if strings.Contains(line, "inputs.") {
+			input := strings.Split(line, "inputs.")[1]
+			input = strings.Split(input, " ")[0]
+			input = strings.Split(input, ".")[0]
+			inputs = append(inputs, input)
+		}
+	}
+	if err = readFile.Close(); err != nil {
+		return nil, err
+	}
+
+	return inputs, nil
 }
 
 func (c *Converter) ConvertOpalBuiltIns() error {
@@ -341,12 +525,21 @@ func (c *Converter) ConvertOpalBuiltIns() error {
 	}
 
 	regoFiles := Find(c.OpalRegoPath, ".rego")
-
 	for i := len(regoFiles) - 1; i >= 0; i-- {
 		fmt.Println("converting: ", regoFiles[i])
 		p := Policy{Tool: "opal"}
-		if err := p.Convert(regoFiles[i], c.DestPath); err != nil {
+		p.getPolicyData(regoFiles[i])
+		if err := p.convertPolicy(regoFiles[i], c.DestPath); err != nil {
 			return err
+		}
+	}
+
+	if c.TestPath != "" {
+		for t := range checkTypeMap {
+			p := Policy{Tool: "opal"}
+			if err := p.getTestsByCheckType(filepath.Join(c.TestPath, t), c.DestPath); err != nil {
+				return err
+			}
 		}
 	}
 
