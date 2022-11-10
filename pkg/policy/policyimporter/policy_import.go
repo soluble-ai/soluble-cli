@@ -170,19 +170,6 @@ func (p *Policy) createPolicyDirStructure(destPath string) error {
 	return nil
 }
 
-func (p *Policy) createTestDirStructure() error {
-	if _, err := os.Stat(p.Dir); !os.IsNotExist(err) {
-		if err = os.MkdirAll(p.Dir+"/tests/inputs", os.ModePerm); err != nil {
-			return err
-		} else {
-			fmt.Println("created: ", p.Dir+"/tests/inputs")
-		}
-	} else {
-		return fmt.Errorf("%v : policy '%v' with check type %v does not exist", p.Dir, p.Name, p.CheckType)
-	}
-	return nil
-}
-
 func copyFile(path, destination string) error {
 	input, err := os.ReadFile(path)
 	if err != nil {
@@ -364,9 +351,30 @@ func (p *Policy) getPolicyData(regoFile string) {
 	}
 }
 
-func (p *Policy) convertAllInputDir(inputFiles []fs.DirEntry, opalInputPath string) error {
-	for _, f := range inputFiles {
-		if err := copyFile(filepath.Join(opalInputPath, f.Name()), filepath.Join(p.Dir, "tests/inputs", f.Name())); err != nil {
+func (p *Policy) prepDir(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err = os.MkdirAll(dir, os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Policy) convertInput(opalInputPath, fileName string) error {
+	if strings.Contains(fileName, "invalid") {
+		dir := filepath.Join(p.Dir, "tests/fail/inputs")
+		if err := p.prepDir(dir); err != nil {
+			return err
+		}
+		if err := copyFile(filepath.Join(opalInputPath, fileName), filepath.Join(dir, fileName)); err != nil {
+			return err
+		}
+	} else {
+		dir := filepath.Join(p.Dir, "tests/pass/inputs")
+		if err := p.prepDir(dir); err != nil {
+			return err
+		}
+		if err := copyFile(filepath.Join(opalInputPath, fileName), filepath.Join(dir, fileName)); err != nil {
 			return err
 		}
 	}
@@ -395,13 +403,6 @@ func (p *Policy) convertTests(testPath, destPath string) error {
 			p.setTestName(t, d.Name())
 			p.Dir = filepath.Join(destPath, p.Name, p.CheckType)
 
-			if err := p.createTestDirStructure(); err != nil {
-				return err
-			}
-			if err := copyFile(t, filepath.Join(p.Dir, "tests/policy_test.rego")); err != nil {
-				return err
-			}
-
 			opalInputPath := p.getOpalInputPath(t, d.Name())
 			inputFiles, err := os.ReadDir(opalInputPath)
 			if err != nil {
@@ -410,9 +411,10 @@ func (p *Policy) convertTests(testPath, destPath string) error {
 
 			if len(tests) == 1 {
 				// only 1 test in the directory; all input files are needed
-				err := p.convertAllInputDir(inputFiles, opalInputPath)
-				if err != nil {
-					return err
+				for _, f := range inputFiles {
+					if err = p.convertInput(opalInputPath, f.Name()); err != nil {
+						return err
+					}
 				}
 			} else {
 				// multiple tests in directory; not all input files are needed
@@ -420,6 +422,9 @@ func (p *Policy) convertTests(testPath, destPath string) error {
 				if err != nil {
 					return err
 				}
+			}
+			if err := copyFile(t, filepath.Join(p.Dir, "tests/policy_test.rego")); err != nil {
+				return err
 			}
 		}
 	}
@@ -439,8 +444,8 @@ func (p *Policy) getTestsByCheckType(testDir, destPath string) error {
 		}
 	case checkTypeAbbrv == "tf":
 		for provider := range providerMap {
-			testDir = filepath.Join(testDir, provider)
-			err := p.convertTests(testDir, destPath)
+			testPath := filepath.Join(testDir, provider)
+			err := p.convertTests(testPath, destPath)
 			if err != nil {
 				return err
 			}
@@ -467,8 +472,7 @@ func (p *Policy) convertMultiTestDir(inputFiles []fs.DirEntry, opalInputPath, te
 			file := normaliseFileName(f.Name())
 
 			if file == input {
-				destination := filepath.Join(p.Dir, "tests/inputs", f.Name())
-				if err := copyFile(filepath.Join(opalInputPath, f.Name()), destination); err != nil {
+				if err = p.convertInput(opalInputPath, f.Name()); err != nil {
 					return err
 				}
 			}
