@@ -3,6 +3,10 @@ package tools
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/spf13/afero"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
@@ -69,7 +73,7 @@ The severity levels are critical, high, medium, low, and info in that order.`,
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", false, "Don't use custom policies")
 			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use custom policies from `dir`.")
 			flags.BoolVar(&o.PrintResultOpt, "print-result", false, "Print the JSON result from the tool on stderr")
-			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON reesult from the tool to `file`")
+			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON result from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")
 			flags.StringVar(&o.SaveResultValues, "save-result-values", "", "Save the result values from the tool to `file`")
 			flags.BoolVar(&o.PrintFingerprints, "print-fingerprints", false, "Print fingerprints on stderr before uploading results")
@@ -122,9 +126,11 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if api.APIToken == "" && api.LaceworkAPIToken == "" {
 		return "", nil
 	}
+
 	dir := o.CustomPoliciesDir
+
 	if dir == "" {
-		url := fmt.Sprintf("/api/v1/org/{org}/custom/policies/%s/policies.tgz", o.Tool.Name())
+		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.tgz", o.Tool.Name())
 		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
 			api.Organization), url)
 		if err != nil {
@@ -142,11 +148,12 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		o.customPoliciesDir = &zero
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
-		store := &policy.Store{
-			Dir:       dir,
-			Policies:  make(map[policy.PolicyType][]*policy.Policy),
-			PolicyIds: make(map[string]string),
+		// we need to unpack custom and lacework policies
+		err := extractArchives(dir, []string{"policies.tar.gz", "lacework_policies.tar.gz"})
+		if err != nil {
+			return "", err
 		}
+		store := policy.NewDownloadStore(dir)
 		dest, err := os.MkdirTemp("", "policy*")
 		if err != nil {
 			return "", err
@@ -171,4 +178,35 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		o.customPoliciesDir = &dest
 	}
 	return *o.customPoliciesDir, nil
+}
+
+func extractArchives(dir string, archives []string) error {
+	// policies dir by convention is where all policies are stored
+	policiesDir := filepath.Join(dir, policy.Policies)
+
+	fs := afero.NewOsFs()
+	// remove all policies below e.g. dir/policies
+	if err := fs.RemoveAll(policiesDir); err != nil {
+		return err
+	}
+	for _, a := range archives {
+		a = filepath.Join(dir, a)
+		f, err := fs.Open(a)
+		if err != nil {
+			return err
+		}
+
+		unpack := archive.Untar
+		// unpack the tar into dir, policies dir by convention will be unpacked from the tar
+		// recreating dir/policies
+		err = unpack(f, afero.NewBasePathFs(fs, dir), nil)
+		if err != nil {
+			return err
+		}
+		err = f.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

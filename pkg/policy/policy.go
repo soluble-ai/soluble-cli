@@ -49,6 +49,7 @@ const (
 	Secrets        = Target("secrets")
 	ARM            = Target("arm")
 	None           = Target("")
+	Policies       = "policies"
 )
 
 var InputTypeForTarget = map[Target]string{
@@ -71,9 +72,23 @@ type PolicyType interface {
 var allPolicyTypes = map[string]PolicyType{}
 
 type Store struct {
-	Dir       string
-	Policies  map[PolicyType][]*Policy
-	PolicyIds map[string]string
+	Dir                    string
+	Policies               map[PolicyType][]*Policy
+	PolicyIds              map[string]string
+	SkipPolicyIDResolution bool
+}
+
+func newStore(dir string, skipPolicyIDResolution bool) *Store {
+	return &Store{
+		Dir:                    dir,
+		Policies:               make(map[PolicyType][]*Policy),
+		PolicyIds:              make(map[string]string),
+		SkipPolicyIDResolution: skipPolicyIDResolution,
+	}
+}
+
+func NewDownloadStore(dir string) *Store {
+	return newStore(dir, true)
 }
 
 func RegisterPolicyType(policyType PolicyType) {
@@ -135,16 +150,11 @@ func (m *Store) resolvePolicyID(policyType PolicyType, path string) (string, err
 }
 
 func (m *Store) LoadSinglePolicy(policyType PolicyType, path string) (*Policy, error) {
-	id, err := m.resolvePolicyID(policyType, path)
-	if err != nil {
-		return nil, err
-	}
 	d, err := os.ReadFile(filepath.Join(path, "metadata.yaml"))
 	if err != nil {
 		return nil, err
 	}
 	policy := &Policy{
-		ID:         id,
 		Path:       path,
 		TargetData: make(map[Target]interface{}),
 	}
@@ -154,8 +164,17 @@ func (m *Store) LoadSinglePolicy(policyType PolicyType, path string) (*Policy, e
 	if policy.Metadata == nil {
 		policy.Metadata = make(Metadata)
 	}
-	policy.Metadata["policyId"] = policy.ID
-	policy.Metadata["sid"] = policy.ID
+	if m.SkipPolicyIDResolution {
+		policy.ID = policy.Metadata.GetString("policyId")
+	} else {
+		id, err := m.resolvePolicyID(policyType, path)
+		if err != nil {
+			return nil, err
+		}
+		policy.ID = id
+		policy.Metadata["policyId"] = policy.ID
+		policy.Metadata["sid"] = policy.ID
+	}
 	log.Debugf("Loaded %s from %s\n", policy.ID, policy.Path)
 	m.Policies[policyType] = append(m.Policies[policyType], policy)
 	for _, target := range allTargets {
@@ -228,8 +247,18 @@ func (m *Store) writeUploadMetadata(w *tar.Writer) error {
 }
 
 func (m *Store) writePolicies(w *tar.Writer) error {
+	err := m.writePolicyRootPath(w)
+	if err != nil {
+		return err
+	}
 	for _, policyType := range GetPolicyTypes() {
 		policies := m.Policies[policyType]
+		if policies != nil {
+			err = m.writePolicyTypePath(w, policyType)
+			if err != nil {
+				return err
+			}
+		}
 		for _, policy := range policies {
 			log.Infof("Including {info:%s} from {primary:%s}", policy.ID, policy.Path)
 			if err := m.writePolicyFiles(w, policy); err != nil {
@@ -334,6 +363,36 @@ func (m *Store) GetPolicyUploadMetadata() (map[string]string, error) {
 		}
 	}
 	return res, err
+}
+
+func (m *Store) writePolicyRootPath(w *tar.Writer) error {
+	path := filepath.Dir(fmt.Sprintf("%s/%s", m.Dir, Policies))
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	header := &tar.Header{
+		Typeflag: tar.TypeDir,
+		Name:     Policies,
+		ModTime:  fileInfo.ModTime(),
+		Mode:     0755,
+	}
+	return w.WriteHeader(header)
+}
+
+func (m *Store) writePolicyTypePath(w *tar.Writer, policyType PolicyType) error {
+	path := filepath.Dir(fmt.Sprintf("%s/%s/%s", m.Dir, Policies, policyType.GetName()))
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	header := &tar.Header{
+		Typeflag: tar.TypeDir,
+		Name:     fmt.Sprintf("policies/%s", policyType.GetName()),
+		ModTime:  fileInfo.ModTime(),
+		Mode:     0755,
+	}
+	return w.WriteHeader(header)
 }
 
 func GetPolicyTypes() (res []PolicyType) {
