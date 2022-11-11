@@ -48,8 +48,8 @@ func Test_converter(t *testing.T) {
 	assert.NoError(exists("s3_encryption/cloudformation/tests/policy_test.rego"))
 
 	// check relevant input files exist
-	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/invalid_block_public_access_infra.yaml"))
-	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/invalid_block_public_access_infra_yaml.rego"))
-	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/valid_block_public_access_infra.yaml"))
-	assert.NoError(exists("s3_block_public_access/cloudformation/tests/inputs/valid_block_public_access_infra_yaml.rego"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/fail/inputs/invalid_block_public_access_infra.yaml"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/fail/inputs/invalid_block_public_access_infra_yaml.rego"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/pass/inputs/valid_block_public_access_infra.yaml"))
+	assert.NoError(exists("s3_block_public_access/cloudformation/tests/pass/inputs/valid_block_public_access_infra_yaml.rego"))
 }
