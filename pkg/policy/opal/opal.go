@@ -114,15 +114,15 @@ func getPolicyText(policy *policies.Policy, target policies.Target) (*policyText
 	return rt, nil
 }
 
-func (opalPolicies) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
+func (opalPolicies) FindPolicyResult(findings assessments.Findings, id string) []manager.PassFail {
+	var passFail []manager.PassFail
 	for _, f := range findings {
 		log.Debugf("finding {info:%s} is {primary:%s}", f.Tool["policy_id"], f.Pass)
 		if f.Tool != nil && f.Tool["policy_id"] == id {
-			pass := f.Pass
-			return &pass
+			passFail = append(passFail, &f.Pass)
 		}
 	}
-	return nil
+	return passFail
 }
 
 func init() {
