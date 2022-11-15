@@ -1,0 +1,4 @@
+category: General
+description: "S3 buckets should log to acme-corp-logs"
+severity: Critical
+title: "S3 buckets should log to acme-corp-logs"

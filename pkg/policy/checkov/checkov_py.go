@@ -170,7 +170,7 @@ func (checkovPython) GetTestRunner(runOpts tools.RunOpts, target policy.Target) 
 	return getTestRunner(runOpts, target)
 }
 
-func (checkovPython) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
+func (checkovPython) FindPolicyResult(findings assessments.Findings, id string) []manager.PassFail {
 	return findPolicyResult(findings, id)
 }
 
