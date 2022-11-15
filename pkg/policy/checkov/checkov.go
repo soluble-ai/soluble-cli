@@ -33,13 +33,14 @@ func getTestRunner(runOpts tools.RunOpts, target policy.Target) tools.Single {
 	return t
 }
 
-func findPolicyResult(findings assessments.Findings, id string) manager.PassFail {
+func findPolicyResult(findings assessments.Findings, id string) []manager.PassFail {
+	var passFail []manager.PassFail
 	for _, finding := range findings {
 		if finding.Tool["check_id"] == id {
-			return &finding.Pass
+			passFail = append(passFail, &finding.Pass)
 		}
 	}
-	return nil
+	return passFail
 }
 
 var quoteRegexp = regexp.MustCompile(`(["\\])`)

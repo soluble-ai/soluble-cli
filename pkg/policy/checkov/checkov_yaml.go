@@ -93,7 +93,7 @@ func (checkovYAML) GetTestRunner(runOpts tools.RunOpts, target policy.Target) to
 	return getTestRunner(runOpts, target)
 }
 
-func (checkovYAML) FindPolicyResult(findings assessments.Findings, id string) manager.PassFail {
+func (checkovYAML) FindPolicyResult(findings assessments.Findings, id string) []manager.PassFail {
 	return findPolicyResult(findings, id)
 }
 
