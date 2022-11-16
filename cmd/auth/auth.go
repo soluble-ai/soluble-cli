@@ -28,10 +28,13 @@ func Command() *cobra.Command {
 		Use:   "auth",
 		Short: "Manage authentication",
 	}
-	c.AddCommand(profileCmd(),
-		printTokenCmd(),
-		setAccessTokenCmd(),
-	)
+	c.AddCommand(profileCmd())
+	if !config.IsRunningAsComponent() {
+		c.AddCommand(
+			printTokenCmd(),
+			setAccessTokenCmd(),
+		)
+	}
 	return c
 }
 
@@ -85,9 +88,10 @@ func setAccessTokenCmd() *cobra.Command {
 	opts := options.PrintClientOpts{}
 	var accessToken string
 	c := &cobra.Command{
-		Use:   "set-access-token",
-		Short: "Add an access token",
-		Args:  cobra.NoArgs,
+		Use:         "set-access-token",
+		Short:       "Add an access token",
+		Args:        cobra.NoArgs,
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config.Config.APIToken = accessToken
 			cfg, err := opts.GetAPIClientConfig()
@@ -113,7 +117,7 @@ func setAccessTokenCmd() *cobra.Command {
 		},
 	}
 	opts.Register(c)
-	c.Flags().StringVar(&accessToken, "access-token", "", "The access token from ")
+	c.Flags().StringVar(&accessToken, "access-token", "", "The legacy IAC access `token`")
 	_ = c.MarkFlagRequired("access-token")
 	return c
 }

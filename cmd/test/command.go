@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/cmd/root"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"gopkg.in/yaml.v3"
@@ -31,6 +32,12 @@ func NewCommand(t *testing.T, args ...string) *Command {
 
 func (c *Command) Run() error {
 	color.NoColor = true
+	config.Load()
+	if !strings.HasSuffix(config.Config.ProfileName, "-test") {
+		c.T.Log("Integration testing requires running with a profile that ends with -test")
+		c.T.Log("(You can copy an existing profile with \"... configure set-profile demo-test --copy-from demo\")")
+		c.T.FailNow()
+	}
 	wd, err := os.Getwd()
 	util.Must(err)
 	log.Infof("Running command {primary:%s} {secondary:with --working-dir %s}", strings.Join(c.Args, " "), wd)
