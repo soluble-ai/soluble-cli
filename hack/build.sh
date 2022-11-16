@@ -51,7 +51,7 @@ if find . -name '*.go' | \
 fi
 
 # verify that go source files don't have - in them
-if find . -name '*.go' | xargs basename | egrep -e -; then
+if find . -name '*.go' | xargs -n 1 basename | egrep -e -; then
     echo "Error: The go source files listed above should use _ rather than - in their names"
     exit 1
 fi
@@ -73,10 +73,21 @@ else
     echo "golangci-lint not available, skipping lint"
 fi
 
-
-echo "Running go test (integration tests)"
-
-go test -tags=integration -timeout 60s ./.../integration
+if [ ! -z "$GITHUB_ACTION" -a ! -z "$SOLUBLE_API_TOKEN" ]; then
+    # create a minimal configuration for the integration tests
+    echo "Configuring an IAC profile for integration testing"
+    go run main.go configure set-profile --quiet --format none integ-test
+    go run main.go configure set --quiet --format none APIToken "$SOLUBLE_API_TOKEN"
+    go run main.go configure set --quiet --format none APIServer "$SOLUBLE_API_SERVER"
+    go run main.go configure set --quiet --format none Organization "$SOLUBLE_ORGANIZATION"
+    go run main.go configure show
+fi
+if go run main.go configure show --format 'value(ProfileName)' | egrep -e '-test$' > /dev/null; then
+    echo "Running go test (integration tests)"
+    go test -tags=integration -timeout 60s ./.../integration
+else
+    echo "Skipping integration tests because the current profile does not end in -test"
+fi
 
 rm -rf dist
 mkdir -p dist

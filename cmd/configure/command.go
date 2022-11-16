@@ -18,9 +18,7 @@ import (
 	"sort"
 
 	"github.com/soluble-ai/go-jnode"
-	"github.com/soluble-ai/soluble-cli/pkg/api/credentials"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/spf13/cobra"
@@ -52,8 +50,9 @@ the organization is already known, it can be specified with the --organization
 flag or with the environment variable LW_IAC_ORGANIZATION.
 
 Other subcommands are available, use "configure --help" to list them.`,
-		Aliases: []string{"config"},
-		Args:    cobra.NoArgs,
+		Aliases:     []string{"config"},
+		Args:        cobra.NoArgs,
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, err := configure.Run()
 			return err
@@ -65,12 +64,20 @@ Other subcommands are available, use "configure --help" to list them.`,
 
 func newProfileOpts() *options.PrintOpts {
 	return &options.PrintOpts{
-		Path:    []string{"profiles"},
-		Columns: []string{"current", "iacProfile", "laceworkProfile", "domain", "iacApiServer", "iacOrganization"},
+		Path: []string{"profiles"},
+		Columns: []string{
+			"current", "iacProfile", "laceworkProfile", "account", "iacOrganization", "legacyAuth", "iacApiServer",
+		},
 		Formatters: map[string]print.Formatter{
 			"current": func(n *jnode.Node) string {
 				if n.AsBool() {
 					return "    -->"
+				}
+				return ""
+			},
+			"legacyAuth": func(n *jnode.Node) string {
+				if n.AsBool() {
+					return "*"
 				}
 				return ""
 			},
@@ -93,9 +100,12 @@ func getProfiles(names []string) *jnode.Node {
 			Put("current", name == config.GlobalConfig.CurrentProfile).
 			Put("iacApiServer", c.APIServer).
 			Put("iacOrganization", c.Organization).
-			Put("laceworkProfile", c.LaceworkProfileName)
+			Put("laceworkProfile", c.LaceworkProfileName).
+			Put("legacyAuth", c.APIToken != "")
 		if lp := c.GetLaceworkProfile(); lp != nil {
-			m.Put("domain", credentials.GetDomain(lp.Account))
+			m.Put("account", lp.Account)
+		} else {
+			m.Put("account", c.ConfiguredAccount)
 		}
 		a.Append(m)
 	}
@@ -108,10 +118,11 @@ func setProfileCmd() *cobra.Command {
 		copyFrom string
 	)
 	c := &cobra.Command{
-		Use:     "set-profile <profile>",
-		Aliases: []string{"new", "switch-profile"},
-		Short:   "Set the current IAC profile (or create a new one)",
-		Args:    cobra.ExactArgs(1),
+		Use:         "set-profile <profile>",
+		Aliases:     []string{"new", "switch-profile"},
+		Short:       "Set the current IAC profile (or create a new one)",
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			config.SelectProfile(args[0])
@@ -138,9 +149,10 @@ func updateProfileCmd() *cobra.Command {
 	var del bool
 	var rename string
 	c := &cobra.Command{
-		Use:   "update-profile [ <name> ]",
-		Short: "Rename or delete a profile",
-		Args:  cobra.MaximumNArgs(1),
+		Use:         "update-profile [ <name> ]",
+		Short:       "Rename or delete a profile",
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var name string
 			if len(args) == 1 {
@@ -181,10 +193,11 @@ func updateProfileCmd() *cobra.Command {
 func listProfilesCmd() *cobra.Command {
 	opts := newProfileOpts()
 	c := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"list-profiles"},
-		Short:   "Lists the CLI profiles",
-		Args:    cobra.NoArgs,
+		Use:         "list",
+		Aliases:     []string{"list-profiles"},
+		Short:       "Lists the CLI profiles",
+		Args:        cobra.NoArgs,
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintResult(getProfiles(nil))
 		},
@@ -197,25 +210,20 @@ type PrintConfigOpts struct{ options.PrintOpts }
 
 func (opts *PrintConfigOpts) Register(c *cobra.Command) {
 	opts.PrintOpts.Register(c)
-	opts.NoHeaders = true
-	opts.Path = []string{"data"}
-	opts.Columns = []string{"text"}
 }
 
 func (opts *PrintConfigOpts) PrintConfig() {
-	n := jnode.NewObjectNode()
-	n.PutArray("data").AppendObject().Put("text", config.Config.String())
-	opts.PrintResult(n)
+	opts.PrintResult(config.Config.PrintableJSON())
 }
 
 func showConfigCmd() *cobra.Command {
 	var opts PrintConfigOpts
 	c := &cobra.Command{
-		Use:   "show",
-		Short: "Show the configuration of the CLI",
-		Args:  cobra.NoArgs,
+		Use:         "show",
+		Short:       "Show the configuration of the CLI",
+		Args:        cobra.NoArgs,
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Infof("Current profile is {primary:%s}", config.GlobalConfig.CurrentProfile)
 			opts.PrintConfig()
 		},
 	}
@@ -226,9 +234,10 @@ func showConfigCmd() *cobra.Command {
 func setConfigCmd() *cobra.Command {
 	var opts PrintConfigOpts
 	c := &cobra.Command{
-		Use:   "set name value",
-		Short: "Set a CLI configuration parameter",
-		Args:  cobra.ExactArgs(2),
+		Use:         "set name value",
+		Short:       "Set a CLI configuration parameter",
+		Args:        cobra.ExactArgs(2),
+		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := config.Set(args[0], args[1])
 			if err != nil {

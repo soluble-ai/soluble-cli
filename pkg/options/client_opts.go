@@ -58,8 +58,8 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 			flags.Float64Var(&opts.RetryWaitSeconds, "api-retry-wait", 0,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
 			flags.StringSliceVar(&opts.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
-			flags.StringVar(&opts.Organization, "organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
-			flags.StringVar(&opts.APIToken, "api-token", "", "The legacy authentication `token` (read from profile by default)")
+			flags.StringVar(&opts.Organization, "iac-organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
+			flags.StringVar(&opts.APIToken, "iac-api-token", "", "The legacy authentication `token` (read from profile by default)")
 			flags.StringVar(&opts.Domain, "api-domain", "", "The Lacework account domain")
 		},
 	}

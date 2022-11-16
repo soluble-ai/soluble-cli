@@ -14,7 +14,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
-	"github.com/soluble-ai/soluble-cli/pkg/xcp"
 )
 
 const AssessmentDirectoryValue = "ASSESSMENT_DIRECTORY"
@@ -132,12 +131,10 @@ func processResult(result *Result) error {
 			if result.Assessment.Failed {
 				exit.Code = 2
 				a := result.Assessment
-				if xcp.GetCISystem() == "" {
-					exit.AddFunc(func() {
-						log.Errorf("Exiting with error because {warning:%s} has {danger:%d %s findings}",
-							a.Title, a.FailedCount, a.FailedSeverity)
-					})
-				}
+				exit.AddFunc(func() {
+					log.Errorf("Exiting with error because {warning:%s} has {danger:%d %s findings}",
+						a.Title, a.FailedCount, a.FailedSeverity)
+				})
 			}
 		}
 	}
