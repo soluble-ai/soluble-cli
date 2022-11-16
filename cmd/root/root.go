@@ -81,6 +81,11 @@ func Command() *cobra.Command {
 			if profile != "" {
 				config.SelectProfile(profile)
 			}
+			if config.IsConfigurationRequired(cmd) {
+				if err := config.Config.ValidateConfiguration(); err != nil {
+					return err
+				}
+			}
 			if workingDir != "" {
 				if err := os.Chdir(workingDir); err != nil {
 					return err
@@ -100,8 +105,8 @@ func Command() *cobra.Command {
 	}
 
 	flags := rootCmd.PersistentFlags()
-	flags.StringVar(&profile, "profile", "", "Use this configuration profile (see 'config list-profiles')")
-	flags.StringVar(&setProfile, "set-profile", "", "Set the current profile to this (and save it.)")
+	flags.StringVar(&profile, "iac-profile", "", "Use this configuration profile (see 'config list-profiles')")
+	flags.StringVar(&setProfile, "set-iac-profile", "", "Set the current profile to this (and save it.)")
 	log.AddFlags(flags)
 	flags.StringVar(&workingDir, "working-dir", "", "Change the working dir to `dir` before running")
 	flags.Lookup("working-dir").Hidden = true
@@ -114,6 +119,13 @@ func Command() *cobra.Command {
 	}
 	setupHelp(rootCmd)
 	return rootCmd
+}
+
+func SetAnnotation(cmd *cobra.Command, name, value string) {
+	if cmd.Annotations == nil {
+		cmd.Annotations = make(map[string]string)
+	}
+	cmd.Annotations[name] = value
 }
 
 func addBuiltinCommands(rootCmd *cobra.Command) {

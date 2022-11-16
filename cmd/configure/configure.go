@@ -14,6 +14,7 @@ import (
 type configureCommand struct {
 	options.PrintClientOpts
 	laceworkProfileName string
+	reconfigure         bool
 	clientHook          func(*api.Client) // for testing only
 }
 
@@ -22,7 +23,8 @@ func (c *configureCommand) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.StringVar(&c.laceworkProfileName, "lacework-profile", "",
 		"Initialize using this lacework `profile`.  By default the IAC component will use the lacework profile with the same name as the current profile, or \"default\" if no profile is explicitly given.")
-	flags.Lookup("organization").Hidden = false
+	flags.BoolVar(&c.reconfigure, "reconfigure", false, "Reconfigure the IAC component even if it already has been configured")
+	flags.Lookup("iac-organization").Hidden = false
 	flags.Lookup("api-server").Hidden = false
 }
 
@@ -37,15 +39,20 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 		if laceworkProfileName == "" {
 			laceworkProfileName = cfg.LaceworkProfileName
 		}
-		if laceworkProfileName == "" {
+		if laceworkProfileName == "" || c.reconfigure {
 			lwp := config.GetDefaultLaceworkProfile()
 			if lwp != nil {
 				laceworkProfileName = lwp.Name
 			} else {
 				lwps := config.GetLaceworkProfiles()
-				if len(lwps) == 1 {
+				switch {
+				case len(lwps) == 1:
 					laceworkProfileName = lwps[0].Name
-				} else {
+				case len(lwps) == 0:
+					log.Errorf("You must install and configure the lacework CLI first.")
+					log.Infof("See {info:https://docs.lacework.com/cli} for more information.")
+					return nil, fmt.Errorf("the lacework CLI must be configured")
+				default:
 					log.Errorf("You have multiple lacework profiles configured.  Choose a specific one with --lacework-profile.")
 					log.Infof("Your lacework profiles are:")
 					for _, lwp := range lwps {
@@ -73,7 +80,10 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 	}
 	cfg.APIServer = api.APIServer
 	cfg.Organization = api.Organization
-	if cfg.Organization == "" {
+	if cfg.LaceworkProfileName == "" {
+		cfg.ConfiguredAccount = cfg.GetLaceworkAccount()
+	}
+	if cfg.Organization == "" || c.reconfigure {
 		// If no organization has been given and the user is a member
 		// of a single org, then use that org.  Otherwise require the
 		// user to be specific about which org to use.
@@ -87,7 +97,7 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 				orgID := org.Path("orgId").AsText()
 				log.Infof("  {primary:%s} {info:(%s)}", orgID, org.Path("displayName").AsText())
 			}
-			return nil, fmt.Errorf("specify an organization with --organization")
+			return nil, fmt.Errorf("specify an IAC organization with --iac-organization")
 		}
 	}
 	if err := config.Save(); err != nil {

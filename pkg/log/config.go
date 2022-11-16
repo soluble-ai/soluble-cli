@@ -33,10 +33,12 @@ var (
 )
 
 func AddFlags(flags *pflag.FlagSet) {
+	// the lacework CLI passes LW_LOG and LW_NOCOLOR, so we'll use
+	// those as the default
 	flags.BoolVar(&trace, "trace", false, "Run with trace logging")
-	flags.BoolVar(&debug, "debug", false, "Run with debug logging")
+	flags.BoolVar(&debug, "debug", os.Getenv("LW_LOG") == "DEBUG", "Run with debug logging")
 	flags.BoolVar(&quiet, "quiet", false, "Run with no logging")
-	flags.BoolVar(&color.NoColor, "no-color", false, "Disable color output")
+	flags.BoolVar(&color.NoColor, "no-color", os.Getenv("LW_NOCOLOR") == "true", "Disable color output")
 	flags.BoolVar(&forceColor, "force-color", false, "Enable color output")
 	flags.BoolVar(&logStdout, "log-stdout", false, "Force the CLI to log to stdout")
 	flags.BoolVar(&logStderr, "log-stderr", false, "Force the CLI to log to stderr")

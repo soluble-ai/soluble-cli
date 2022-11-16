@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options/templates"
 	"github.com/soluble-ai/soluble-cli/pkg/print"
@@ -69,7 +70,13 @@ func (p *PrintOpts) GetPrintOptionsGroup() *HiddenOptionsGroup {
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.StringSliceVar(&p.Template, "print-template", nil,
 				"Print the output with a go `template`.  The template argument may begin with @ in which case the template is read from a file.  If the argument is in the format tmpl=file, then write the output to a file.  May be repeated.")
-			flags.StringSliceVar(&p.OutputFormat, "format", nil,
+			var defaultOutputFormat []string
+			if config.IsRunningAsComponent() {
+				if os.Getenv("LW_JSON") == "true" {
+					defaultOutputFormat = []string{"json"}
+				}
+			}
+			flags.StringSliceVar(&p.OutputFormat, "format", defaultOutputFormat,
 				"Use this output `format` where format is one of: table, yaml, json, none, csv, atlantis, count, or value(name).  If the argument is in the form format=file, then write the output to a file.  May be repeated.")
 			flags.BoolVar(&p.NoHeaders, "no-headers", false, "Omit headers when printing tables or csv")
 			flags.StringSliceVar(&p.Filter, "filter", nil, "Print results that match a `filter`.  May be repeated.")

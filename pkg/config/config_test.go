@@ -49,7 +49,8 @@ func TestConfig(t *testing.T) {
 	if GlobalConfig.CurrentProfile != "test" || Config.APIToken != "yyy" {
 		t.Error(GlobalConfig)
 	}
-	if strings.Contains(Config.String(), "yyy") {
+	n := Config.PrintableJSON()
+	if strings.Contains(n.Path("APIToken").AsText(), "yyy") {
 		t.Error(Config)
 	}
 	_ = Set("tlsnoverify", "true")
