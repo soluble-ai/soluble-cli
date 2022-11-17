@@ -57,6 +57,7 @@ func (t *Tool) Run() error {
 	}
 	if t.upload {
 		RequireAPIToken(t.T)
+		t.Args = append(t.Args, "--api-retry=5", "--api-retry-wait=1")
 	} else {
 		t.Args = append(t.Args, "--upload=false")
 	}
