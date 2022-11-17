@@ -94,7 +94,12 @@ mkdir -p dist
 
 IFS=" "
 
-for p in "linux amd64 tar" "windows amd64 zip .exe" "darwin amd64 tar"; do
+for p in \
+  "linux amd64 tar" \
+  "windows amd64 zip .exe" \
+  "darwin amd64 tar" \
+  "darwin arm64 tar" \
+  "linux arm64 tar"; do
     if [ -n "$exes" ] && (echo $p | grep -v "$exes" > /dev/null); then
         echo "Skipping build of $p"
         continue
