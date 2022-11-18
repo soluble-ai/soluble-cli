@@ -48,7 +48,7 @@ require (
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.0.5
+	github.com/pelletier/go-toml/v2 v2.0.6
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 )
