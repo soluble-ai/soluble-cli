@@ -51,21 +51,6 @@ type Client struct {
 	Config
 }
 
-type Config struct {
-	Organization     string
-	Domain           string
-	APIToken         string
-	LaceworkAPIToken string
-	APIServer        string
-	APIPrefix        string
-	Debug            bool
-	TLSNoVerify      bool
-	Timeout          time.Duration
-	RetryCount       int
-	RetryWaitSeconds float64
-	Headers          []string
-}
-
 func (h httpError) Error() string {
 	return string(h)
 }
@@ -142,14 +127,18 @@ func NewClient(config *Config) *Client {
 	return c
 }
 
-func (c *Client) ConfigureAuthHeaders(headers http.Header) {
-	if c.LaceworkAPIToken != "" {
-		headers.Set("X-LW-Domain", c.Domain)
+func (c *Client) configureAuthHeaders(headers http.Header) error {
+	if c.LaceworkAccount != "" {
+		if err := c.ensureLaceworkAPIToken(); err != nil {
+			return err
+		}
+		headers.Set("X-LW-Domain", c.GetDomain())
 		headers.Set("X-LW-Authorization", fmt.Sprintf("Token %s", c.LaceworkAPIToken))
 		log.Debugf("Using lacework authentication")
-	} else if c.APIToken != "" {
-		headers.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIToken))
+	} else if c.LegacyAPIToken != "" {
+		headers.Set("Authorization", fmt.Sprintf("Bearer %s", c.LegacyAPIToken))
 	}
+	return nil
 }
 
 func (c *Client) execute(r *resty.Request, method, path string, options []Option) (*resty.Response, error) {
@@ -170,7 +159,9 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 	if c.Organization != "" {
 		r.SetHeader("X-SOLUBLE-ORG-ID", c.Organization)
 	}
-	c.ConfigureAuthHeaders(r.Header)
+	if err := c.configureAuthHeaders(r.Header); err != nil {
+		return nil, err
+	}
 	if len(path) > 0 && path[0] != '/' {
 		path = fmt.Sprintf("%s/%s", c.APIPrefix, path)
 	}
@@ -296,10 +287,6 @@ func (c *Client) GetOrganization() string {
 
 func (c *Client) GetHostURL() string {
 	return c.APIServer
-}
-
-func (c *Client) GetAuthToken() string {
-	return c.APIToken
 }
 
 type optionFunc struct {

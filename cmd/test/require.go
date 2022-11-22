@@ -9,7 +9,7 @@ import (
 func RequireAPIToken(t *testing.T) {
 	t.Helper()
 	config.Load()
-	if config.Config.APIToken == "" {
+	if config.Get().APIToken == "" {
 		t.Skip("test requires authentication")
 	}
 }

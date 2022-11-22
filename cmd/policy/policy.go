@@ -128,7 +128,7 @@ func uploadCommand() *cobra.Command {
 		Short: "Upload custom policies",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if uploadOpts.UploadEnabled {
-				if err := m.RequireAPIToken(); err != nil {
+				if err := m.RequireAuthentication(); err != nil {
 					return err
 				}
 			}

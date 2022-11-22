@@ -2,6 +2,7 @@ package configure
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
@@ -29,12 +30,14 @@ func (c *configureCommand) Register(cmd *cobra.Command) {
 }
 
 func (c *configureCommand) Run() (*jnode.Node, error) {
-	cfg := config.Config
+	cfg := config.Get()
 	// we do not want to use the legacy token
 	cfg.APIToken = ""
-	if cfg.GetLaceworkAccount() == "" {
-		// If we don't have an account then we'll get it (along with
-		// the api key and secret) from a lacework profile
+	os.Unsetenv("SOLUBLE_API_TOKEN")
+	apiConfig := c.APIConfig.SetValues()
+	if !config.IsRunningAsComponent() {
+		// If we're not running as a component, then we need to link
+		// this profile to a lacework profile.
 		laceworkProfileName := c.laceworkProfileName
 		if laceworkProfileName == "" {
 			laceworkProfileName = cfg.LaceworkProfileName
@@ -63,16 +66,15 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 			}
 		}
 		cfg.SetLaceworkProfile(laceworkProfileName)
+		// now set values again, this will update based on the profile
+		apiConfig.SetValues()
 	}
-	api, err := c.GetAPIClient()
-	if err != nil {
+	if err := apiConfig.Validate(false); err != nil {
 		return nil, err
 	}
+	api := api.NewClient(apiConfig)
 	if c.clientHook != nil {
 		c.clientHook(api)
-	}
-	if api.LaceworkAPIToken == "" {
-		return nil, fmt.Errorf("lacework CLI configuration is missing, run 'lacework configure' first")
 	}
 	result, err := api.Get("/api/v1/users/profile")
 	if err != nil {
@@ -81,7 +83,7 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 	cfg.APIServer = api.APIServer
 	cfg.Organization = api.Organization
 	if cfg.LaceworkProfileName == "" {
-		cfg.ConfiguredAccount = cfg.GetLaceworkAccount()
+		cfg.ConfiguredAccount = api.LaceworkAccount
 	}
 	if cfg.Organization == "" || c.reconfigure {
 		// If no organization has been given and the user is a member
@@ -104,6 +106,6 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 		return nil, err
 	}
 	log.Infof("IAC has been configured for account {primary:%s} organization {primary:%s}",
-		cfg.GetLaceworkAccount(), cfg.Organization)
+		api.LaceworkAccount, cfg.Organization)
 	return result, nil
 }

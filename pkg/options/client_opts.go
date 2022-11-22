@@ -19,15 +19,13 @@ import (
 	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
-	"github.com/soluble-ai/soluble-cli/pkg/api/credentials"
-	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
 type ClientOpts struct {
-	api.Config
+	APIConfig      api.Config
 	DefaultTimeout int
 
 	client       *api.Client
@@ -42,7 +40,7 @@ func GetClientOptionsGroupHelpCommand() *cobra.Command {
 }
 
 func (opts *ClientOpts) SetContextValues(context map[string]string) {
-	context["organizationID"] = opts.GetOrganization()
+	context["organizationID"] = opts.APIConfig.Organization
 }
 
 func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
@@ -50,57 +48,23 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 		Name: "client-options",
 		Long: "These flags control how the CLI connects to lacework IAC",
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
-			flags.StringVar(&opts.APIServer, "api-server", "", "The lacework IAC API server `url` (by default $SOLUBLE_API_URL if set, or https://api.soluble.cloud)")
-			flags.BoolVarP(&opts.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
-			flags.DurationVar(&opts.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
+			flags.StringVar(&opts.APIConfig.APIServer, "api-server", "", "The lacework IAC API server `url` (by default $SOLUBLE_API_URL if set, or https://api.soluble.cloud)")
+			flags.BoolVarP(&opts.APIConfig.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
+			flags.DurationVar(&opts.APIConfig.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
 				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
-			flags.IntVar(&opts.RetryCount, "api-retry", 0, "The `number` of times to retry the request")
-			flags.Float64Var(&opts.RetryWaitSeconds, "api-retry-wait", 0,
+			flags.IntVar(&opts.APIConfig.RetryCount, "api-retry", 0, "The `number` of times to retry the request")
+			flags.Float64Var(&opts.APIConfig.RetryWaitSeconds, "api-retry-wait", 0,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
-			flags.StringSliceVar(&opts.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
-			flags.StringVar(&opts.Organization, "iac-organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
-			flags.StringVar(&opts.APIToken, "iac-api-token", "", "The legacy authentication `token` (read from profile by default)")
-			flags.StringVar(&opts.Domain, "api-domain", "", "The Lacework account domain")
+			flags.StringSliceVar(&opts.APIConfig.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
+			flags.StringVar(&opts.APIConfig.Organization, "iac-organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
+			flags.StringVar(&opts.APIConfig.LegacyAPIToken, "iac-api-token", "", "The legacy authentication `token` (read from profile by default)")
+			flags.StringVar(&opts.APIConfig.LaceworkAccount, "account", "", "The Lacework account")
 		},
 	}
 }
 
 func (opts *ClientOpts) Register(cmd *cobra.Command) {
 	opts.GetClientOptionsGroup().Register(cmd)
-}
-
-func (opts *ClientOpts) Validate() error {
-	return nil
-}
-
-func (opts *ClientOpts) GetAPIClientConfig() (*api.Config, error) {
-	cfg := opts.Config
-	if cfg.Organization == "" {
-		cfg.Organization = config.Config.GetOrganization()
-	}
-	if cfg.APIToken == "" {
-		cfg.APIToken = config.Config.GetAPIToken()
-	}
-	if cfg.APIServer == "" {
-		cfg.APIServer = config.Config.GetAPIServer()
-	}
-	if cfg.APIServer == "" {
-		cfg.APIServer = "https://api.soluble.cloud"
-	}
-	if !cfg.TLSNoVerify {
-		cfg.TLSNoVerify = config.Config.TLSNoVerify
-	}
-	if err := credentials.ConfigureLaceworkAuth(&cfg); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
-}
-
-func (opts *ClientOpts) GetOrganization() string {
-	if opts.Organization != "" {
-		return opts.Organization
-	}
-	return config.Config.Organization
 }
 
 func (opts *ClientOpts) MustGetAPIClient() *api.Client {
@@ -113,34 +77,38 @@ func (opts *ClientOpts) MustGetAPIClient() *api.Client {
 
 func (opts *ClientOpts) GetAPIClient() (*api.Client, error) {
 	if opts.client == nil {
-		cfg, err := opts.GetAPIClientConfig()
+		opts.APIConfig.SetValues()
+		err := opts.APIConfig.Validate(true)
 		if err != nil {
 			return nil, err
 		}
-		opts.client = api.NewClient(cfg)
+		opts.client = api.NewClient(&opts.APIConfig)
 	}
 	return opts.client, nil
 }
 
 func (opts *ClientOpts) GetUnauthenticatedAPIClient() *api.Client {
 	if opts.unauthClient == nil {
-		cfg, _ := opts.GetAPIClientConfig()
-		cfg.APIToken = ""
+		cfg := opts.APIConfig
+		cfg.SetValues()
+		cfg.LegacyAPIToken = ""
 		cfg.LaceworkAPIToken = ""
-		cfg.Domain = ""
-		opts.unauthClient = api.NewClient(cfg)
+		cfg.LaceworkAccount = ""
+		opts.unauthClient = api.NewClient(&cfg)
 	}
 	return opts.unauthClient
 }
 
 func (opts *ClientOpts) IsAuthenticated() bool {
-	cfg, _ := opts.GetAPIClientConfig()
-	return cfg != nil && (cfg.APIToken != "" || cfg.LaceworkAPIToken != "")
+	opts.APIConfig.SetValues()
+	if opts.APIConfig.LegacyAPIToken != "" {
+		return true
+	}
+	return opts.APIConfig.LaceworkAPIKey != "" && opts.APIConfig.LaceworkAPISecret != ""
 }
 
-func (opts *ClientOpts) RequireAPIToken() error {
-	cfg, _ := opts.GetAPIClientConfig()
-	if cfg == nil || (cfg.APIToken == "" && cfg.LaceworkAPIToken == "") {
+func (opts *ClientOpts) RequireAuthentication() error {
+	if !opts.IsAuthenticated() {
 		log.Warnf("This command requires signing up with {primary:Lacework} (unless --upload=false).")
 		return fmt.Errorf("not authenticated with Lacework")
 	}

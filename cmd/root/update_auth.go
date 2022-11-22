@@ -21,18 +21,12 @@ import (
 )
 
 func updateAuthAction(command model.Command, result *jnode.Node) (*jnode.Node, error) {
-	if err := config.Config.AssertAPITokenFromConfig(); err != nil {
-		return nil, err
-	}
 	opts := command.(*model.OptionsCommand).ClientOpts
-	cfg, err := opts.GetAPIClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	config.Config.APIServer = cfg.APIServer
-	config.Config.TLSNoVerify = cfg.TLSNoVerify
-	config.Config.APIToken = result.Path("token").AsText()
-	config.Config.Organization = result.Path("user").Path("currentOrgId").AsText()
+	cfg := opts.APIConfig.SetValues()
+	config.Get().APIServer = cfg.APIServer
+	config.Get().TLSNoVerify = cfg.TLSNoVerify
+	config.Get().APIToken = result.Path("token").AsText()
+	config.Get().Organization = result.Path("user").Path("currentOrgId").AsText()
 	if err := config.Save(); err != nil {
 		return nil, err
 	}

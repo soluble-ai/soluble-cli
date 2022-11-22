@@ -89,7 +89,7 @@ func (o *AssessmentOpts) Validate() error {
 		return err
 	}
 	if o.UploadEnabled {
-		if err := o.RequireAPIToken(); err != nil {
+		if err := o.RequireAuthentication(); err != nil {
 			return err
 		}
 	}
@@ -123,7 +123,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if err != nil {
 		return "", err
 	}
-	if api.APIToken == "" && api.LaceworkAPIToken == "" {
+	if api.LegacyAPIToken == "" && api.LaceworkAPIToken == "" {
 		return "", nil
 	}
 

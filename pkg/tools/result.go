@@ -101,7 +101,7 @@ func (r *Result) AddUploadOption(options ...api.Option) {
 	r.UploadOptions = append(r.UploadOptions, options...)
 }
 
-func (r *Result) upload(client *api.Client, org, name string, compressFiles bool, useEmptyConfigFile bool) error {
+func (r *Result) upload(client *api.Client, name string, compressFiles bool, useEmptyConfigFile bool) error {
 	options := r.UploadOptions
 	options = append(options,
 		xcp.WithCIEnv(r.Directory),
