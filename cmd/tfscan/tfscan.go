@@ -43,7 +43,7 @@ Scans terraform code with checkov.  Use a sub-command to explicitly choose a sca
 		}),
 		scan,
 	)
-	opal := tools.CreateCommand(&opal.Tool{})
+	opal := tools.CreateCommand(&opal.Tool{InputType: "tf"})
 	opal.Hidden = true
 	c.AddCommand(opal)
 	return c

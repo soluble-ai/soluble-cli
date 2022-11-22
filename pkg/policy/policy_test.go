@@ -21,11 +21,11 @@ func (t mockPolicyType) PreparePolicies(policies []*Policy, dest string) error {
 }
 
 func TestResolvePolicyIDOkay(t *testing.T) {
-	assertPolicyIDOkay(t, newStore(), "a_test_policy", "c-mock-a-test-policy")
+	assertPolicyIDOkay(t, newTestStore(), "a_test_policy", "c-mock-a-test-policy")
 }
 
 func TestResolvePolicyIDExists(t *testing.T) {
-	store := newStore()
+	store := newTestStore()
 	path := "a_test_policy"
 	assertPolicyIDOkay(t, store, path, "c-mock-a-test-policy")
 	policyID, err := store.resolvePolicyID(mockPolicyType{}, path)
@@ -40,7 +40,7 @@ func assertPolicyIDOkay(t *testing.T, store *Store, path string, expected string
 	assert.Nil(t, err)
 }
 
-func newStore() *Store {
+func newTestStore() *Store {
 	return &Store{
 		PolicyIds: make(map[string]string),
 	}
