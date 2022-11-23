@@ -123,7 +123,7 @@ func processResult(result *Result) error {
 		if err != nil {
 			return err
 		}
-		if err := result.upload(api, o.GetOrganization(), o.Tool.Name(), o.CompressResults, o.UseEmptyConfigFile); err != nil {
+		if err := result.upload(api, o.Tool.Name(), o.CompressResults, o.UseEmptyConfigFile); err != nil {
 			return err
 		}
 		if result.Assessment != nil && len(o.parsedFailThresholds) > 0 {

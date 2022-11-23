@@ -32,43 +32,33 @@ func TestConfig(t *testing.T) {
 	f.Close()
 	os.Remove(ConfigFile)
 	Load()
-	Config.APIToken = "xxx"
+	config.APIToken = "xxx"
 	assert.NoError(Save())
 	defer os.Remove(ConfigFile)
 	Load()
-	if Config.APIToken != "xxx" {
+	if config.APIToken != "xxx" {
 		t.Error(GlobalConfig)
 	}
 	SelectProfile("test")
-	if GlobalConfig.CurrentProfile != "test" || Config.APIToken != "" {
+	if GlobalConfig.CurrentProfile != "test" || config.APIToken != "" {
 		t.Error(GlobalConfig)
 	}
-	Config.APIToken = "yyy"
+	config.APIToken = "yyy"
 	assert.NoError(Save())
 	Load()
-	if GlobalConfig.CurrentProfile != "test" || Config.APIToken != "yyy" {
+	if GlobalConfig.CurrentProfile != "test" || config.APIToken != "yyy" {
 		t.Error(GlobalConfig)
 	}
-	n := Config.PrintableJSON()
+	n := config.PrintableJSON()
 	if strings.Contains(n.Path("APIToken").AsText(), "yyy") {
-		t.Error(Config)
+		t.Error(config)
 	}
 	_ = Set("tlsnoverify", "true")
-	if !Config.TLSNoVerify {
-		t.Error(Config)
+	if !config.TLSNoVerify {
+		t.Error(config)
 	}
 	DeleteProfile("test")
 	if _, ok := GlobalConfig.Profiles["test"]; ok {
 		t.Error("profile wasn't deleted")
-	}
-}
-
-func TestGetAppURL(t *testing.T) {
-	t.Setenv("SOLUBLE_API_SERVER", "") // github action sets this, so make sure it's not
-	c := &ProfileT{
-		APIServer: "https://api.example.com",
-	}
-	if u := c.GetAppURL(); u != "https://app.example.com" {
-		t.Error(c.APIServer, u)
 	}
 }

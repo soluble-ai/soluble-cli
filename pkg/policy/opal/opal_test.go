@@ -19,6 +19,7 @@ func TestPolicies(t *testing.T) {
 	// Ensure we get all results
 	assert.Equal(3, tm.Passed)
 }
+
 func TestPoliciesFail(t *testing.T) {
 	assert := assert.New(t)
 	m := &manager.M{}

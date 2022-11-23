@@ -50,9 +50,8 @@ the organization is already known, it can be specified with the --organization
 flag or with the environment variable LW_IAC_ORGANIZATION.
 
 Other subcommands are available, use "configure --help" to list them.`,
-		Aliases:     []string{"config"},
-		Args:        cobra.NoArgs,
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Aliases: []string{"config"},
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, err := configure.Run()
 			return err
@@ -118,11 +117,10 @@ func setProfileCmd() *cobra.Command {
 		copyFrom string
 	)
 	c := &cobra.Command{
-		Use:         "set-profile <profile>",
-		Aliases:     []string{"new", "switch-profile"},
-		Short:       "Set the current IAC profile (or create a new one)",
-		Args:        cobra.ExactArgs(1),
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Use:     "set-profile <profile>",
+		Aliases: []string{"new", "switch-profile"},
+		Short:   "Set the current IAC profile (or create a new one)",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			config.SelectProfile(args[0])
@@ -149,10 +147,9 @@ func updateProfileCmd() *cobra.Command {
 	var del bool
 	var rename string
 	c := &cobra.Command{
-		Use:         "update-profile [ <name> ]",
-		Short:       "Rename or delete a profile",
-		Args:        cobra.MaximumNArgs(1),
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Use:   "update-profile [ <name> ]",
+		Short: "Rename or delete a profile",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var name string
 			if len(args) == 1 {
@@ -193,11 +190,10 @@ func updateProfileCmd() *cobra.Command {
 func listProfilesCmd() *cobra.Command {
 	opts := newProfileOpts()
 	c := &cobra.Command{
-		Use:         "list",
-		Aliases:     []string{"list-profiles"},
-		Short:       "Lists the CLI profiles",
-		Args:        cobra.NoArgs,
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Use:     "list",
+		Aliases: []string{"list-profiles"},
+		Short:   "Lists the CLI profiles",
+		Args:    cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintResult(getProfiles(nil))
 		},
@@ -213,16 +209,15 @@ func (opts *PrintConfigOpts) Register(c *cobra.Command) {
 }
 
 func (opts *PrintConfigOpts) PrintConfig() {
-	opts.PrintResult(config.Config.PrintableJSON())
+	opts.PrintResult(config.Get().PrintableJSON())
 }
 
 func showConfigCmd() *cobra.Command {
 	var opts PrintConfigOpts
 	c := &cobra.Command{
-		Use:         "show",
-		Short:       "Show the configuration of the CLI",
-		Args:        cobra.NoArgs,
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Use:   "show",
+		Short: "Show the configuration of the CLI",
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintConfig()
 		},
@@ -234,10 +229,9 @@ func showConfigCmd() *cobra.Command {
 func setConfigCmd() *cobra.Command {
 	var opts PrintConfigOpts
 	c := &cobra.Command{
-		Use:         "set name value",
-		Short:       "Set a CLI configuration parameter",
-		Args:        cobra.ExactArgs(2),
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Use:   "set name value",
+		Short: "Set a CLI configuration parameter",
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := config.Set(args[0], args[1])
 			if err != nil {

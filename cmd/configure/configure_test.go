@@ -30,10 +30,11 @@ func setupTest(t *testing.T, assertions func(r *http.Request)) {
 
 func TestAuthWithEnv(t *testing.T) {
 	assert := assert.New(t)
+	t.Setenv("LW_COMPONENT_NAME", "iac")
 	t.Setenv("LW_ACCOUNT", "test")
 	t.Setenv("LW_IAC_ORGANIZATION", "123456789012")
 	t.Setenv("LW_API_TOKEN", "12345")
-	t.Setenv("SOLUBLE_API_SERVER", "")
+	t.Setenv("SOLUBLE_API_SERVER", "https://api.soluble.cloud")
 	setupTest(t, func(r *http.Request) {
 		assert.Equal("test.lacework.net", r.Header.Get("X-LW-Domain"))
 		assert.Equal("Token 12345", r.Header.Get("X-LW-Authorization"))
@@ -43,6 +44,9 @@ func TestAuthWithEnv(t *testing.T) {
 	// no need to run configure
 	opts := &options.ClientOpts{}
 	api, err := opts.GetAPIClient()
+	if !assert.NoError(err) {
+		return
+	}
 	httpmock.ActivateNonDefault(api.GetClient().GetClient())
 	if !assert.NoError(err) {
 		return
@@ -78,7 +82,7 @@ func TestConfigure(t *testing.T) {
 	t.Cleanup(func() { config.LoadLaceworkProfiles("") })
 	assert.NotNil(config.GetDefaultLaceworkProfile())
 	configCommand := &configureCommand{}
-	configCommand.Organization = "123456789012"
+	configCommand.APIConfig.Organization = "123456789012"
 	configCommand.clientHook = func(c *api.Client) {
 		httpmock.ActivateNonDefault(c.GetClient().GetClient())
 	}

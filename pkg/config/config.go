@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
@@ -37,7 +36,7 @@ var GlobalConfig = &struct {
 
 // Config points to the current profile
 var (
-	Config             = &ProfileT{}
+	config             = &ProfileT{}
 	ConfigFile         string
 	ConfigDir          string
 	configFileRead     string
@@ -62,15 +61,22 @@ type ProfileT struct {
 	lacework          *LaceworkProfile
 }
 
+func Get() *ProfileT {
+	if GlobalConfig.Profiles == nil {
+		Load()
+	}
+	return config
+}
+
 func SelectProfile(name string) bool {
 	result := false
-	Config = GlobalConfig.Profiles[name]
-	if Config == nil {
-		Config = &ProfileT{
+	config = GlobalConfig.Profiles[name]
+	if config == nil {
+		config = &ProfileT{
 			ProfileName: name,
 			APIServer:   "https://api.soluble.cloud",
 		}
-		GlobalConfig.Profiles[name] = Config
+		GlobalConfig.Profiles[name] = config
 		result = true
 	}
 	GlobalConfig.CurrentProfile = name
@@ -126,7 +132,7 @@ func RenameProfile(name, rename string) error {
 }
 
 func (c *ProfileT) PrintableJSON() *jnode.Node {
-	cfg := *Config
+	cfg := *config
 	if cfg.APIToken != "" {
 		cfg.APIToken = Redacted
 	}
@@ -153,154 +159,8 @@ func (c *ProfileT) PrintableJSON() *jnode.Node {
 	return n
 }
 
-func (c *ProfileT) GetAppURL() string {
-	const httpAPI = "https://api."
-	apiServer := c.GetAPIServer()
-	if strings.HasPrefix(apiServer, httpAPI) {
-		return "https://app." + apiServer[len(httpAPI):]
-	}
-	return "https://app.soluble.cloud"
-}
-
-func (c *ProfileT) GetAPIToken() string {
-	token := strings.TrimSpace(os.Getenv("SOLUBLE_API_TOKEN"))
-	if token != "" {
-		return token
-	}
-	return c.APIToken
-}
-
-func (c *ProfileT) GetOrganization() string {
-	org := os.Getenv("LW_IAC_ORGANIZATION")
-	if org != "" {
-		return org
-	}
-	return c.Organization
-}
-
-func (c *ProfileT) AssertAPITokenFromConfig() error {
-	if os.Getenv("SOLUBLE_API_TOKEN") != "" {
-		return fmt.Errorf("the environment variable SOLUBLE_API_TOKEN is set")
-	}
-	return nil
-}
-
-func (c *ProfileT) GetAPIServer() string {
-	server := strings.TrimSpace(os.Getenv(("SOLUBLE_API_SERVER")))
-	if server != "" {
-		return server
-	}
-	server = os.Getenv("LW_IAC_API_URL")
-	if server != "" {
-		return server
-	}
-	return c.APIServer
-}
-
 func (c *ProfileT) GetLaceworkProfile() *LaceworkProfile {
 	return c.lacework
-}
-
-func (c *ProfileT) GetLaceworkAccount() string {
-	account := os.Getenv("LW_ACCOUNT")
-	if account != "" {
-		return account
-	}
-	if c.lacework != nil {
-		return c.lacework.Account
-	}
-	return ""
-}
-
-func (c *ProfileT) GetLaceworkAPIKey() string {
-	key := os.Getenv("LW_API_KEY")
-	if key != "" {
-		return key
-	}
-	if c.lacework != nil {
-		return c.lacework.APIKey
-	}
-	return ""
-}
-
-func (c *ProfileT) GetLaceworkAPISecret() string {
-	secret := os.Getenv("LW_API_SECRET")
-	if secret != "" {
-		return secret
-	}
-	if c.lacework != nil {
-		return c.lacework.APISecret
-	}
-	return ""
-}
-
-// Verify that the configuration chosen is usuable
-// In particular, verify that LW_ACCOUNT is the same, because otherwise Organization
-// is likely to be wrong.
-func (c *ProfileT) ValidateConfiguration() error {
-	// Try and detect a couple of situations where the IAC component
-	// is not configured properly and tell the user what to do
-	account := c.GetLaceworkAccount()
-	legacyToken := c.GetAPIToken()
-	if !IsRunningAsComponent() {
-		if legacyToken != "" && account == "" {
-			log.Infof("Using legacy soluble authentication")
-			return nil
-		}
-	}
-	if legacyToken == "" && account == "" {
-		if c.ConfiguredAccount != "" {
-			log.Errorf("The IAC profile {info:%s} cannot be used when invoking the IAC component directly.", c.ProfileName)
-			log.Infof("Run the command using the lacework CLI instead with {primary:lacework iac ...}")
-			return fmt.Errorf("must use 'lacework iac ...'")
-		}
-		// We have no configuration at all.
-		log.Infof("The IAC profile {info:%s} must be configured by running {primary:%s configure}", c.ProfileName, CommandInvocation())
-		return fmt.Errorf("configuration required")
-	}
-	if account != "" {
-		if sub := os.Getenv("LW_SUBACCOUNT"); sub != "" {
-			// Neither the cli nor api-server support subaccounts currently
-			log.Errorf("The IAC component does not support subaccounts")
-			return fmt.Errorf("configuration unsupported")
-		}
-		// We've got a lacework account, so we either need to be linked to a
-		// lacework profile (and that profile must exist), or the account
-		// must match the account we've been configured with.
-		if c.LaceworkProfileName != "" {
-			if c.lacework == nil {
-				log.Errorf("The IAC profile {primary:%s} is configured to use the lacework profile {primary:%s}",
-					c.ProfileName, c.LaceworkProfileName)
-				log.Errorf("but that profile does not exist.")
-				return fmt.Errorf("lacework profile %s does not exist", c.LaceworkProfileName)
-			}
-			if account != c.lacework.Account {
-				log.Errorf("The IAC profile {info:%s} is configured to use account {info:%s} but is running with account {info:%s}",
-					c.ProfileName, c.lacework.Account, account)
-				log.Errorf("Run {primary:%s configure --reconfigure} to change configuration, or use {primary:%s configure --profile <new-name>} to create a new profile for this account",
-					CommandInvocation(), CommandInvocation())
-				return fmt.Errorf("configuration is invalid")
-			}
-			log.Infof("Using lacework authentication for account {info:%s} linked to lacework profile {info:%s}",
-				account, c.LaceworkProfileName)
-			return nil
-		}
-		if c.ConfiguredAccount == "" {
-			log.Errorf("The IAC profile {info:%s} has not been configured, please run {primary:%s configure}", c.ProfileName, CommandInvocation())
-			return fmt.Errorf("configuration required")
-		}
-		if account != c.ConfiguredAccount {
-			log.Errorf("The IAC profile {primary:%s} is configured to use account {info:%s} but is running with {info:%s}",
-				c.ProfileName, c.ConfiguredAccount, account)
-			log.Errorf("Run {primary:%s configure --reconfigure} to change configuration, or use {primary:%s configure --profile <new-name>} to create a new profile for this account",
-				CommandInvocation(), CommandInvocation())
-			return fmt.Errorf("configuration is invalid")
-		}
-		log.Infof("Using lacework authentication for account {primary:%s} IAC organization {info:%s}",
-			c.ConfiguredAccount, c.GetOrganization())
-		return nil
-	}
-	return nil
 }
 
 func (c *ProfileT) SetLaceworkProfile(name string) {
@@ -349,7 +209,7 @@ func Save() error {
 }
 
 func Set(name, value string) error {
-	dat, err := json.Marshal(Config)
+	dat, err := json.Marshal(config)
 	if err == nil {
 		m := map[string]interface{}{}
 		err = json.Unmarshal(dat, &m)
@@ -362,7 +222,7 @@ func Set(name, value string) error {
 			}
 			dat, err = json.Marshal(m)
 			if err == nil {
-				err = json.Unmarshal(dat, Config)
+				err = json.Unmarshal(dat, config)
 			}
 		}
 	}
@@ -424,12 +284,12 @@ func Load() {
 			profile.lacework = getLaceworkProfile(profile.LaceworkProfileName)
 		}
 	}
-	Config = GlobalConfig.Profiles[GlobalConfig.CurrentProfile]
-	if Config == nil {
+	config = GlobalConfig.Profiles[GlobalConfig.CurrentProfile]
+	if config == nil {
 		SelectProfile("default")
 	}
-	if Config.ProfileName == "" {
-		Config.ProfileName = GlobalConfig.CurrentProfile
+	if config.ProfileName == "" {
+		config.ProfileName = GlobalConfig.CurrentProfile
 	}
 }
 

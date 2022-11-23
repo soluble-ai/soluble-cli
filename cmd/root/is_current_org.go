@@ -8,7 +8,7 @@ import (
 
 func isCurrentOrgFunction(n *jnode.Node) interface{} {
 	org := n.Path("orgId").AsText()
-	if org == config.Config.Organization {
+	if org == config.Get().Organization {
 		return "*"
 	}
 	return ""

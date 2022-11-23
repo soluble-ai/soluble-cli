@@ -96,7 +96,7 @@ func TestAPIServerArtifact(t *testing.T) {
 		APIServer:         api,
 	})
 	assert.ErrorContains(t, err, "403")
-	api.APIToken = "foo"
+	api.LegacyAPIToken = "foo"
 	_, err = m.Install(&Spec{
 		Name:              "secure",
 		RequestedVersion:  "1.0",

@@ -62,6 +62,7 @@ func profileCmd() *cobra.Command {
 }
 
 func printTokenCmd() *cobra.Command {
+	opts := &options.ClientOpts{}
 	c := &cobra.Command{
 		Use:   "print-access-token",
 		Short: "Print the access token (for use with curl)",
@@ -71,16 +72,21 @@ curl -H “Authorization: Bearer $(soluble print-access-token)” ...`,
 		Deprecated: "use 'lacework access-token' instead",
 		Args:       cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if config.Config.GetAPIToken() == "" {
+			cfg := opts.APIConfig.SetValues()
+			if cfg.LaceworkAccount != "" {
+				return fmt.Errorf("this profile uses lacework authentication, use 'lacework access-token' instead")
+			}
+			if cfg.LegacyAPIToken == "" {
 				return fmt.Errorf("not authenticated, use login to authenticate")
 			}
-			fmt.Println(config.Config.GetAPIToken())
+			fmt.Println(opts.APIConfig.LegacyAPIToken)
 			return nil
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			log.Level = log.Error
 		},
 	}
+	opts.Register(c)
 	return c
 }
 
@@ -88,31 +94,26 @@ func setAccessTokenCmd() *cobra.Command {
 	opts := options.PrintClientOpts{}
 	var accessToken string
 	c := &cobra.Command{
-		Use:         "set-access-token",
-		Short:       "Add an access token",
-		Args:        cobra.NoArgs,
-		Annotations: map[string]string{config.ConfigurationNotRequired: "1"},
+		Use:   "set-access-token",
+		Short: "Add an access token",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			config.Config.APIToken = accessToken
-			cfg, err := opts.GetAPIClientConfig()
-			if err != nil {
-				return err
-			}
-			log.Infof("Verifying access token with {primary:%s}", cfg.APIServer)
+			config.Get().APIToken = accessToken
 			apiClient, err := opts.GetAPIClient()
 			if err != nil {
 				return err
 			}
+			log.Infof("Verifying access token with {primary:%s}", opts.APIConfig.APIServer)
 			_, err = apiClient.Get("/api/v1/users/profile")
 			if err != nil {
 				return err
 			}
-			config.Config.APIServer = cfg.APIServer
-			config.Config.TLSNoVerify = cfg.TLSNoVerify
+			config.Get().APIServer = opts.APIConfig.APIServer
+			config.Get().TLSNoVerify = opts.APIConfig.TLSNoVerify
 			if err := config.Save(); err != nil {
 				return err
 			}
-			log.Infof("Current org is {info:%s}", config.Config.Organization)
+			log.Infof("Current org is {info:%s}", config.Get().Organization)
 			return nil
 		},
 	}
