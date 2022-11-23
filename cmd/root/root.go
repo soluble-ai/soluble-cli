@@ -81,11 +81,6 @@ func Command() *cobra.Command {
 			if profile != "" {
 				config.SelectProfile(profile)
 			}
-			if config.IsConfigurationRequired(cmd) {
-				if err := config.Config.ValidateConfiguration(); err != nil {
-					return err
-				}
-			}
 			if workingDir != "" {
 				if err := os.Chdir(workingDir); err != nil {
 					return err

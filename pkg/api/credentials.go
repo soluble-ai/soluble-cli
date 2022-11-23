@@ -1,4 +1,4 @@
-package credentials
+package api
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/pelletier/go-toml/v2"
-	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
 
@@ -32,7 +31,7 @@ var (
 	credentials Credentials
 )
 
-func Load() Credentials {
+func loadCredentials() Credentials {
 	if credentials != nil {
 		return credentials
 	}
@@ -113,7 +112,7 @@ func (p *ProfileCredentials) RefreshToken(domain string, keyID string, secretKey
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", api.UserAgent)
+	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("X-LW-UAKS", secretKey)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)

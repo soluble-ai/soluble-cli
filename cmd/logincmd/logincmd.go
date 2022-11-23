@@ -25,7 +25,7 @@ import (
 )
 
 func Command() *cobra.Command {
-	opts := options.PrintOpts{}
+	opts := options.PrintClientOpts{}
 	var (
 		app      string
 		reset    bool
@@ -36,17 +36,13 @@ func Command() *cobra.Command {
 		Short: "Authenticate with Soluble",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := config.Config.AssertAPITokenFromConfig(); err != nil {
-				// if SOLUBLE_API_TOKEN is set, then after login the resulting token
-				// will not be used which is probably not what's intended
-				return fmt.Errorf("cannot login: %w", err)
-			}
-			if config.Config.APIToken != "" && !reset {
-				log.Infof("Already logged in to {primary:%s}, use --reset to re-authenticate", config.Config.APIServer)
+			if config.Get().APIToken != "" && !reset {
+				log.Infof("Already logged in to {primary:%s}, use --reset to re-authenticate", config.Get().APIServer)
 				return nil
 			}
 			if app == "" {
-				app = config.Config.GetAppURL()
+				cfg := opts.APIConfig.SetValues()
+				app = cfg.GetAppURL()
 			}
 			flow := login.NewFlow(app, headless)
 			resp, err := flow.Run()
@@ -55,9 +51,9 @@ func Command() *cobra.Command {
 				log.Infof("See {primary:https://github.com/soluble-ai/soluble-cli} for more information")
 				return fmt.Errorf("failed")
 			}
-			config.Config.APIServer = resp.APIServer
-			config.Config.APIToken = resp.Token
-			config.Config.Organization = resp.OrgID
+			config.Get().APIServer = resp.APIServer
+			config.Get().APIToken = resp.Token
+			config.Get().Organization = resp.OrgID
 			defer log.Infof("Authentication successful")
 			return config.Save()
 		},

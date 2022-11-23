@@ -48,7 +48,7 @@ func Command() *cobra.Command {
 			env["AWS_SECRET_ACCESS_KEY"] = creds.SecretAccessKey
 			env["AWS_SESSION_TOKEN"] = creds.SessionToken
 			env["SOLUBLE_API_SERVER"] = api.APIServer
-			env["SOLUBLE_API_TOKEN"] = api.APIToken
+			env["SOLUBLE_API_TOKEN"] = api.LegacyAPIToken
 			envFile, err := writeEnvFile(env)
 			if err != nil {
 				return err

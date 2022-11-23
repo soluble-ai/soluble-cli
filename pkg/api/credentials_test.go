@@ -1,4 +1,4 @@
-package credentials
+package api
 
 import (
 	"os"
@@ -16,7 +16,7 @@ func TestSaveCredentials(t *testing.T) {
 		return
 	}
 	t.Setenv("SOLUBLE_CONFIG_DIR", dir)
-	creds := Load()
+	creds := loadCredentials()
 	assert.NotNil(creds)
 	creds["default"] = &ProfileCredentials{
 		Token:     "12345",
@@ -24,7 +24,7 @@ func TestSaveCredentials(t *testing.T) {
 	}
 	assert.NoError(creds.Save())
 	credentials = nil
-	creds = Load()
+	creds = loadCredentials()
 	pd := creds.Find("default")
 	if assert.NotNil(pd) {
 		assert.Equal("12345", pd.Token)
@@ -33,7 +33,7 @@ func TestSaveCredentials(t *testing.T) {
 	pd.Token = "678910"
 	assert.NoError(creds.Save())
 	credentials = nil
-	creds = Load()
+	creds = loadCredentials()
 	pt := creds.Find("test")
 	if assert.NotNil(pt) {
 		assert.Equal("678910", pt.Token)
@@ -43,7 +43,7 @@ func TestSaveCredentials(t *testing.T) {
 func TestLoadCredentials(t *testing.T) {
 	assert := assert.New(t)
 	t.Setenv("SOLUBLE_CONFIG_DIR", "testdata")
-	creds := Load()
+	creds := loadCredentials()
 	if assert.NotNil(creds["default"]) {
 		assert.Equal("12345", creds["default"].Token)
 	}
@@ -63,13 +63,13 @@ func TestRefresh(t *testing.T) {
 			"token":     "12345",
 			"expiresAt": time.Now().Add(5 * time.Minute),
 		}))
-	creds := Load()
+	creds := loadCredentials()
 	dc := creds.Find("default")
 	assert.NoError(dc.RefreshToken("test.lacework.net", "TEST_12345", "_12345"))
 	assert.Equal("12345", dc.Token)
 	assert.NoError(creds.Save())
 	credentials = nil
-	creds = Load()
+	creds = loadCredentials()
 	dc = creds.Find("default")
 	assert.Equal("12345", dc.Token)
 }

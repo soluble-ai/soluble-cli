@@ -33,7 +33,7 @@ func (w *OptionsCommand) Initialize(c *cobra.Command, cm *CommandModel) Command 
 	w.CobraCommand = c
 	if w.ClientOpts != nil {
 		opts := w.ClientOpts
-		opts.APIPrefix = cm.model.APIPrefix
+		opts.APIConfig.APIPrefix = cm.model.APIPrefix
 		if cm.DefaultTimeout != nil {
 			opts.DefaultTimeout = *cm.DefaultTimeout
 		}
