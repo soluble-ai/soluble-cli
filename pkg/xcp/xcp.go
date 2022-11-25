@@ -212,7 +212,7 @@ func GetCIEnv(dir string) map[string]string {
 		values["SOLUBLE_METADATA_HOSTNAME"] = h
 	}
 
-	values["POLICY_METADATA_UPLOAD_TIME"] = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+	values["UPLOAD_TIME"] = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	return values
 }
 
