@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/api"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,8 +29,9 @@ type ClientOpts struct {
 	APIConfig      api.Config
 	DefaultTimeout int
 
-	client       *api.Client
-	unauthClient *api.Client
+	nonComponentOrgFlag string
+	client              *api.Client
+	unauthClient        *api.Client
 }
 
 var _ Interface = &ClientOpts{}
@@ -57,6 +59,12 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
 			flags.StringSliceVar(&opts.APIConfig.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
 			flags.StringVar(&opts.APIConfig.Organization, "iac-organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
+			if !config.IsRunningAsComponent() {
+				// The lacework CLI eats --organization, so we can only define this
+				// flag when not running as a component.
+				flags.StringVar(&opts.nonComponentOrgFlag, "organization", "",
+					"The soluble organization `id` to use.  Overrides the value of --iac-organization.")
+			}
 			flags.StringVar(&opts.APIConfig.LegacyAPIToken, "iac-api-token", "", "The legacy authentication `token` (read from profile by default)")
 			flags.StringVar(&opts.APIConfig.LaceworkAccount, "account", "", "The Lacework account")
 		},
@@ -77,6 +85,9 @@ func (opts *ClientOpts) MustGetAPIClient() *api.Client {
 
 func (opts *ClientOpts) GetAPIClient() (*api.Client, error) {
 	if opts.client == nil {
+		if opts.nonComponentOrgFlag != "" {
+			opts.APIConfig.Organization = opts.nonComponentOrgFlag
+		}
 		opts.APIConfig.SetValues()
 		err := opts.APIConfig.Validate(true)
 		if err != nil {
