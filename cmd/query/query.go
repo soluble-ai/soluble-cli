@@ -102,7 +102,7 @@ func listParametersCommand() *cobra.Command {
 func runCommand() *cobra.Command {
 	opts := &options.PrintClientOpts{
 		PrintOpts: options.PrintOpts{
-			Path:        []string{"data"},
+			Path:        []string{"data", "data"},
 			WideColumns: []string{},
 		},
 	}
@@ -126,7 +126,7 @@ func runCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			for _, field := range result.Path("metadata").Path("fields").Elements() {
+			for _, field := range result.Path("data").Path("metadata").Path("fields").Elements() {
 				name := field.Path("name").AsText()
 				opts.Columns = append(opts.Columns, name)
 				if hasDisplayHint(field, "WIDE") {
