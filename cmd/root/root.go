@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/soluble-ai/soluble-cli/pkg/options"
+
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
 	"github.com/soluble-ai/soluble-cli/cmd/cfnscan"
@@ -60,6 +62,9 @@ var (
 )
 
 func Command() *cobra.Command {
+	//Ensure iac capabilities are enabled for LW account
+	isIacCliEnabled()
+
 	// Defer logging until it's been configured
 	log.DeferUntilConfigured()
 
@@ -98,7 +103,6 @@ func Command() *cobra.Command {
 		},
 		Version: v.Version,
 	}
-
 	flags := rootCmd.PersistentFlags()
 	flags.StringVar(&profile, "iac-profile", "", "Use this configuration profile (see 'config list-profiles')")
 	flags.StringVar(&setProfile, "set-iac-profile", "", "Set the current profile to this (and save it.)")
@@ -114,6 +118,28 @@ func Command() *cobra.Command {
 	}
 	setupHelp(rootCmd)
 	return rootCmd
+}
+
+func isIacCliEnabled() {
+	opts := &options.PrintClientOpts{}
+
+	// For dev use
+	if os.Getenv("TLS_NO_VERIFY") == "true" {
+		opts.ClientOpts.APIConfig.TLSNoVerify = true
+	}
+
+	apiClient, err := opts.GetAPIClient()
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+
+	_, err = apiClient.Get("/api/v1/account/cli-enabled")
+	if err != nil {
+		// Iac Cli is not enabled for LW account
+		// Block iac capabilities
+		log.Errorf(err.Error())
+		os.Exit(1)
+	}
 }
 
 func SetAnnotation(cmd *cobra.Command, name, value string) {
