@@ -131,7 +131,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	dir := o.CustomPoliciesDir
 
 	if dir == "" {
-		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.tgz", o.Tool.Name())
+		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
 		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
 			api.Organization), url)
 		if err != nil {
@@ -150,7 +150,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
 		// we need to unpack custom and lacework policies
-		err := extractArchives(dir, []string{"policies.tar.gz", "lacework_policies.tar.gz"})
+		err := extractArchives(dir, []string{"policies.zip", "lacework_policies.zip"})
 		if err != nil {
 			return "", err
 		}
@@ -197,8 +197,8 @@ func extractArchives(dir string, archives []string) error {
 			return err
 		}
 
-		unpack := archive.Untar
-		// unpack the tar into dir, policies dir by convention will be unpacked from the tar
+		unpack := archive.Unzip
+		// unpack the zip into dir, policies dir by convention will be unpacked from the zip
 		// recreating dir/policies
 		err = unpack(f, afero.NewBasePathFs(fs, dir), nil)
 		if err != nil {

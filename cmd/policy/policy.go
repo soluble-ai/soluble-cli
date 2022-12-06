@@ -120,7 +120,7 @@ func prepareCommand() *cobra.Command {
 func uploadCommand() *cobra.Command {
 	var (
 		m          manager.M
-		tarball    string
+		zipArchive string
 		uploadOpts tools.UploadOpts
 	)
 	c := &cobra.Command{
@@ -138,26 +138,26 @@ func uploadCommand() *cobra.Command {
 			if res := m.ValidatePolicies(); res.Errors != nil {
 				return res.Errors
 			}
-			if tarball == "" {
+			if zipArchive == "" {
 				var err error
-				tarball, err = util.TempFile("policies*.tar.gz")
+				zipArchive, err = util.TempFile("policies*.zip")
 				if err != nil {
 					return err
 				}
-				defer os.Remove(tarball)
+				defer os.Remove(zipArchive)
 			}
-			if err := m.CreateTarBall(tarball); err != nil {
+			if err := m.CreateZipArchive(zipArchive); err != nil {
 				return err
 			}
 			if uploadOpts.UploadEnabled {
-				f, err := os.Open(tarball)
+				f, err := os.Open(zipArchive)
 				if err != nil {
 					return err
 				}
 				defer f.Close()
 				options := []api.Option{
 					xcp.WithCIEnv(m.Dir),
-					xcp.WithFileFromReader("tarball", "policies.tar.gz", f),
+					xcp.WithFileFromReader("archive", "policies.zip", f),
 				}
 				options = uploadOpts.AppendUploadOptions(m.Dir, options)
 				api, err := m.GetAPIClient()
@@ -176,7 +176,7 @@ func uploadCommand() *cobra.Command {
 	flags := c.Flags()
 	uploadOpts.DefaultUploadEnabled = true
 	uploadOpts.Register(c)
-	flags.StringVar(&tarball, "save-tarball", "", "Save the upload tarball to `file`.  By default the tarball is written to a temporary file.")
+	flags.StringVar(&zipArchive, "save-zip-file", "", "Save the upload zip archive to `file`.  By default the archive is written to a temporary file.")
 	flags.Lookup("upload").Usage = "Upload policies to lacework.  Use --upload=false to skip uploading."
 	flags.Lookup("upload-errors").Hidden = true // doesn't make sense here
 	_ = c.MarkFlagRequired("directory")
