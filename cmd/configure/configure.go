@@ -93,7 +93,7 @@ func (c *configureCommand) Run() (*jnode.Node, error) {
 		if orgs.IsArray() && orgs.Size() == 1 {
 			cfg.Organization = orgs.Get(0).Path("orgId").AsText()
 		} else {
-			log.Errorf("You are a member of multiple IAC organizations.  A specific one must be specified with --organization.")
+			log.Errorf("You are a member of multiple IAC organizations.  A specific one must be specified with ----iac-organization.")
 			log.Infof("Your organizations are:")
 			for _, org := range orgs.Elements() {
 				orgID := org.Path("orgId").AsText()
