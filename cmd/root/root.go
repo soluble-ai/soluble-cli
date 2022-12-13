@@ -136,7 +136,6 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		postcmd.Command(),
 		imagescan.Command(),
 		inventorycmd.Command(),
-		logincmd.Command(),
 		build.Command(),
 		depscan.Command(),
 		k8sscan.Command(),
@@ -155,6 +154,9 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		print.Command(),
 		configure.Command(),
 	)
+	if !config.IsRunningAsComponent() {
+		rootCmd.AddCommand(logincmd.Command())
+	}
 }
 
 func loadModels() {
