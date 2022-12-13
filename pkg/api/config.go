@@ -169,7 +169,7 @@ func (c *Config) Validate(verifyOrg bool) error {
 					profileName, lwp.Account, c.LaceworkAccount)
 				log.Infof("Run {primary:%s configure --reconfigure} to change configuration, or",
 					config.CommandInvocation())
-				log.Infof("use {primary:%s configure --profile <new-name>} to create a new profile for this account",
+				log.Infof("use {primary:%s configure --iac-profile <new-name>} to create a new profile for this account",
 					config.CommandInvocation())
 				return fmt.Errorf("configuration is invalid")
 			}
@@ -189,7 +189,7 @@ func (c *Config) Validate(verifyOrg bool) error {
 				if laceworkProfileName == "" && c.LaceworkAccount != configuredAccount {
 					log.Errorf("The IAC profile {info:%s} is configured to use account {info:%s} but is running with {info:%s}",
 						profileName, configuredAccount, c.LaceworkAccount)
-					log.Errorf("Run {primary:%s configure --reconfigure} to change configuration, or use {primary:%s configure --profile <new-name>} to create a new profile for this account",
+					log.Errorf("Run {primary:%s configure --reconfigure} to change configuration, or use {primary:%s configure --iac-profile <new-name>} to create a new profile for this account",
 						config.CommandInvocation(), config.CommandInvocation())
 					return fmt.Errorf("configuration is invalid")
 				}
