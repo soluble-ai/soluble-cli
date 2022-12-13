@@ -1,7 +1,6 @@
 package inventory
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,9 +8,9 @@ import (
 
 func TestDecode(t *testing.T) {
 	assert := assert.New(t)
-	d, err := os.ReadFile("testdata/example.yaml")
+	d, err := readContent("testdata/example.yaml", make([]byte, 8192))
 	if assert.NoError(err) {
-		m := decodeDocument("example.yaml", d)
+		m := d.DecodeDocument()
 		assert.Contains(m, "greeting")
 	}
 }

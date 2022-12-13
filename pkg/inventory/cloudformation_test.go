@@ -32,11 +32,15 @@ AWSTemplateFormatVersion: '2010-09-09'`, true},
 	d := cloudformationDetector(0)
 	for _, tc := range testCases {
 		m := &Manifest{}
-		d.DetectContent(m, tc.name, []byte(tc.content))
+		content := &Content{
+			path: tc.name,
+			Head: []byte(tc.content),
+		}
+		d.DetectContent(m, tc.name, content)
 		if tc.match && (m.CloudformationFiles.Len() != 1 || m.CloudformationFiles.Get(0) != tc.name) {
-			t.Error(tc)
+			t.Error(tc, m.CloudformationFiles)
 		} else if !tc.match && m.CloudformationFiles.Len() != 0 {
-			t.Error(tc)
+			t.Error(tc, m.CloudformationFiles)
 		}
 	}
 }
