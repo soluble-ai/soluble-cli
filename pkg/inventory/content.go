@@ -15,11 +15,34 @@
 package inventory
 
 import (
+	"os"
 	"strings"
 
 	"github.com/tidwall/gjson"
 	"gopkg.in/yaml.v3"
 )
+
+type Content struct {
+	path string
+	Head []byte
+	doc  map[string]string
+}
+
+func readContent(path string, buf []byte) (*Content, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	n, err := f.Read(buf)
+	if n != 0 && err != nil {
+		return nil, err
+	}
+	return &Content{
+		path: path,
+		Head: buf[0:n],
+	}, nil
+}
 
 func decodeJSON(buf []byte) map[string]string {
 	r := map[string]string{}
@@ -45,11 +68,14 @@ func decodeYAML(buf []byte) map[string]string {
 	return r
 }
 
-func decodeDocument(name string, buf []byte) map[string]string {
-	switch {
-	case strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml"):
-		return decodeYAML(buf)
-	default:
-		return decodeJSON(buf)
+func (c *Content) DecodeDocument() map[string]string {
+	if c.doc == nil {
+		switch {
+		case strings.HasSuffix(c.path, ".yaml") || strings.HasSuffix(c.path, ".yml"):
+			c.doc = decodeYAML(c.Head)
+		default:
+			c.doc = decodeJSON(c.Head)
+		}
 	}
+	return c.doc
 }

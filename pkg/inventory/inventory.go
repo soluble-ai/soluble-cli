@@ -46,7 +46,7 @@ type FileDetector interface {
 }
 
 type ContentDetector interface {
-	DetectContent(*Manifest, string, []byte)
+	DetectContent(m *Manifest, relativePath string, content *Content)
 }
 
 type DirDetector interface {
@@ -72,6 +72,7 @@ func (m *Manifest) getDetectors(detectors []interface{}) (fds []FileDetector, dd
 }
 
 func (m *Manifest) scan(root string, detectors ...interface{}) {
+	buf := make([]byte, 1<<20)
 	root, _ = filepath.Abs(root)
 	fileDetectors, dirDetectors := m.getDetectors(detectors)
 	_ = filepath.WalkDir(root, func(path string, info os.DirEntry, err error) error {
@@ -101,14 +102,14 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 				}
 			}
 			if len(cds) > 0 {
-				buf, err := os.ReadFile(path)
+				content, err := readContent(path, buf)
 				if err != nil {
 					log.Warnf("Could not read {info:%s}: {warning:%s}", path, err)
 					return nil
 				}
-				if len(buf) > 0 {
+				if len(content.Head) > 0 {
 					for _, d := range cds {
-						d.DetectContent(m, relpath, buf)
+						d.DetectContent(m, relpath, content)
 					}
 				}
 			}
