@@ -31,8 +31,8 @@ func (d dockerDetector) DetectFileName(m *Manifest, path string) ContentDetector
 	return nil
 }
 
-func (dockerDetector) DetectContent(m *Manifest, path string, content []byte) {
-	if strings.Contains(string(content), "FROM ") {
+func (dockerDetector) DetectContent(m *Manifest, path string, content *Content) {
+	if strings.Contains(string(content.Head), "FROM ") {
 		m.DockerDirectories.Add(filepath.Dir(path))
 		m.Dockerfiles.Add(path)
 	}

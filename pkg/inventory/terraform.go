@@ -53,13 +53,13 @@ func (d *terraformDetector) DetectFileName(m *Manifest, path string) ContentDete
 	return nil
 }
 
-func (*terraformDetector) DetectContent(m *Manifest, path string, content []byte) {
+func (*terraformDetector) DetectContent(m *Manifest, path string, content *Content) {
 	if strings.HasSuffix(path, ".tf") {
-		if providerRegexp.Find(content) != nil {
+		if providerRegexp.Find(content.Head) != nil {
 			m.TerraformRootModules.Add(filepath.Dir(path))
 		}
 	} else {
-		p := gjson.ParseBytes(content).Get("provider")
+		p := gjson.ParseBytes(content.Head).Get("provider")
 		if p.IsArray() || p.IsObject() {
 			m.TerraformRootModules.Add(filepath.Dir(path))
 		}
