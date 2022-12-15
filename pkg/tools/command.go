@@ -76,7 +76,7 @@ func runTool(tool Interface) error {
 	// results that can be displayed
 	for _, result := range results {
 		if result.Assessment != nil && result.Assessment.URL != "" {
-			log.Infof("Asessment uploaded, see {primary:%s} for more information", result.Assessment.URL)
+			log.Infof("Assessment uploaded, see {primary:%s} for more information", result.Assessment.URL)
 		}
 	}
 	if !opts.Wide {
