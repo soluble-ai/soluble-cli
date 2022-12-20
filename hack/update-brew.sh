@@ -23,15 +23,29 @@ if [ -z "$tag" ]; then
   exit 1
 fi
 
+formula=/usr/local/Homebrew/Library/Taps/soluble-ai/homebrew-soluble/soluble-cli.rb
+formula_dir=$(dirname $formula)
+
+if ! git -C $formula_dir diff --quiet; then
+  echo "$formula_dir is dirty, stash or restore the tap before proceeding"
+  exit 1
+fi
+
+(
+  cd $formula_dir
+  git checkout master
+  git pull
+)
+
 releases=https://github.com/soluble-ai/soluble-cli/releases
 tarball="https://github.com/soluble-ai/soluble-cli/archive/${tag}.tar.gz"
 echo "Getting $tarball"
 curl --fail -L -o target/source.tar.gz -H "Accept:application/octet-stream" "$tarball"
 hash=$(shasum -a 256 target/source.tar.gz | awk '{print $1}')
-formula=/usr/local/Homebrew/Library/Taps/soluble-ai/homebrew-soluble/soluble-cli.rb
+
 sed -I "" -e "s/sha256 .*/sha256 \"$hash\"/" -e "s,url .*,url \"$tarball\"," $formula
 (
-  cd $(dirname "$formula"/)
+  cd $formula_dir
   git diff
   echo "# Test with:"
   echo "  brew upgrade soluble-ai/soluble/soluble-cli"

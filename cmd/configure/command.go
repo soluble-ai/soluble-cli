@@ -32,6 +32,7 @@ func Command() *cobra.Command {
 		updateProfileCmd(),
 		setConfigCmd(),
 		setProfileCmd(),
+		migrateCmd(),
 	)
 	return c
 }
@@ -243,4 +244,15 @@ func setConfigCmd() *cobra.Command {
 	}
 	opts.Register(c)
 	return c
+}
+
+func migrateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "migrate",
+		Short: "Move the legacy config file to its current location if necessary",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return config.Migrate()
+		},
+	}
 }
