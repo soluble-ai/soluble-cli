@@ -143,11 +143,6 @@ func (c *Config) Validate(verifyOrg bool) error {
 		}
 	}
 	if c.LaceworkAccount != "" {
-		if sub := os.Getenv("LW_SUBACCOUNT"); sub != "" {
-			// Neither the cli nor api-server support subaccounts currently
-			log.Errorf("The IAC component does not support subaccounts")
-			return fmt.Errorf("configuration unsupported")
-		}
 		// We've got a lacework account, so we either need to be linked to a
 		// lacework profile (and that profile must exist), or the account
 		// must match the account we've been configured with.
