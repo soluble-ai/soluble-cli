@@ -9,7 +9,7 @@ install() {
 {
     "description": "Local development version of the IAC component",
     "name": "iac",
-    "version": "0.0.0-dev",
+    "version": "$(go run main.go --no-color version 2>&1 | awk '{print $2}')",
     "artifacts": [
         {
             "os": "darwin",
@@ -32,16 +32,16 @@ EOF
     chmod a+rx ~/.config/lacework/components/iac/iac
     echo "Development version installed, run:
 "
-    echo "  lacework iac version"
+    echo "  lacework components list"
     echo "
 to verify."
 }
 
 uninstall() {
-    rm ~/.config/lacework/components/iac/.dev || true
+    rm -rf ~/.config/lacework/components/iac
     echo "Development version uninstalled, run:
 "
-    echo "  lacework install iac"
+    echo "  lacework components install iac"
     echo "
 to restore the old version"
 }

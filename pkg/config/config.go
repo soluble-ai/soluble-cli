@@ -249,9 +249,9 @@ func Load() {
 	if ConfigFile == "" {
 		ConfigFile = os.Getenv("SOLUBLE_CONFIG_FILE")
 		if ConfigFile == "" {
-			ConfigFile = filepath.Join(ConfigDir, "cli-config.json")
+			ConfigFile = filepath.Join(ConfigDir, "iac-config.json")
 			if !util.FileExists(ConfigFile) {
-				legacyConfigFile, _ := homedir.Expand("~/.soluble/cli-config.json")
+				legacyConfigFile := filepath.Join(ConfigDir, "cli-config.json")
 				if util.FileExists(legacyConfigFile) {
 					configFileRead = legacyConfigFile
 					migrationAvailable = true
