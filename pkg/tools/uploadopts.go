@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/xcp"
@@ -41,6 +42,12 @@ func (o *UploadOpts) AppendUploadOptions(dir string, options []api.Option) []api
 			options = append(options,
 				xcp.WithFileFromReader("git_pr_diffs", "git-pr-diffs-z.txt", bytes.NewReader(diff)))
 		}
+		forkPoint := o.getGitForkPoint(dir)
+		if forkPoint != "" {
+			options = append(options, api.OptionFunc(func(r *resty.Request) {
+				r.SetMultipartField("SOLUBLE_METADATA_GIT_FORK_POINT", "", "", strings.NewReader(forkPoint))
+			}))
+		}
 	}
 	status := o.getGitStatusText(dir)
 	if len(status) > 0 {
@@ -62,6 +69,19 @@ func (o *UploadOpts) getPRDIffText(dir string) []byte {
 		return nil
 	}
 	return buf.Bytes()
+}
+
+func (o *UploadOpts) getGitForkPoint(dir string) string {
+	buf := &strings.Builder{}
+	// #nosec G204
+	diff := exec.Command("git", "merge-base", "--fork-point", o.GitPRBaseRef)
+	diff.Dir = dir
+	diff.Stdout = buf
+	if err := diff.Run(); err != nil {
+		log.Warnf("Could not determine git fork point - {warning:%s}", err)
+		return ""
+	}
+	return strings.TrimSpace(buf.String())
 }
 
 func (o *UploadOpts) getGitStatusText(dir string) []byte {
