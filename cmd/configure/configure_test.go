@@ -90,7 +90,7 @@ func TestConfigure(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(n)
 	assert.Equal(2, httpmock.GetTotalCallCount())
-	dat, err := os.ReadFile(filepath.Join(configDir, "cli-config.json"))
+	dat, err := os.ReadFile(filepath.Join(configDir, "iac-config.json"))
 	assert.NoError(err)
 	n, _ = jnode.FromJSON(dat)
 	assert.Equal(1, n.Path("Profiles").Size())
