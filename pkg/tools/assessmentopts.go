@@ -7,6 +7,7 @@ import (
 
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/spf13/afero"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -129,15 +130,15 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	}
 
 	dir := o.CustomPoliciesDir
-
+	var downloaded *download.Download
 	if dir == "" {
 		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
-		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
-			api.Organization), url)
+		downloaded, err = o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
+			api.Organization), url, o.CacheDuration)
 		if err != nil {
 			return "", err
 		}
-		dir = d.Dir
+		dir = downloaded.Dir
 	}
 	// if the directory is empty, then treat that the same as no custom policies
 	fs, err := os.ReadDir(dir)
@@ -149,10 +150,12 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		o.customPoliciesDir = &zero
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
-		// we need to unpack custom and lacework policies
-		err := extractArchives(dir, []string{"policies.zip", "lacework_policies.zip"})
-		if err != nil {
-			return "", err
+		if !downloaded.IsCached {
+			// extract policies if we are not using the cached policies
+			err := ExtractArchives(dir, []string{"policies.zip", "lacework_policies.zip"})
+			if err != nil {
+				return "", err
+			}
 		}
 		store := policy.NewDownloadStore(dir)
 		dest, err := os.MkdirTemp("", "policy*")
@@ -181,7 +184,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	return *o.customPoliciesDir, nil
 }
 
-func extractArchives(dir string, archives []string) error {
+func ExtractArchives(dir string, archives []string) error {
 	// policies dir by convention is where all policies are stored
 	policiesDir := filepath.Join(dir, policy.Policies)
 

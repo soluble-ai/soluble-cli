@@ -151,7 +151,7 @@ func (o *RunOpts) getToolVersion(name string) (*jnode.Node, error) {
 	return n, nil
 }
 
-func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Download, error) {
+func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string, cacheDuration time.Duration) (*download.Download, error) {
 	apiClient, err := o.GetAPIClient()
 	if err != nil {
 		return nil, err
@@ -161,7 +161,7 @@ func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string) (*download.Down
 		Name:                       name,
 		APIServerArtifact:          urlPath,
 		APIServer:                  apiClient,
-		LatestReleaseCacheDuration: 1 * time.Minute,
+		LatestReleaseCacheDuration: cacheDuration,
 	})
 }
 

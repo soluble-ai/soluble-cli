@@ -1,7 +1,9 @@
 package policy
 
 import (
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/policy/policyimporter"
 
@@ -31,6 +33,7 @@ func Command() *cobra.Command {
 		createCommand(),
 		opalConvertCommand(),
 		prepareCommand(),
+		downloadCommand(),
 	)
 	return c
 }
@@ -160,11 +163,11 @@ func uploadCommand() *cobra.Command {
 					xcp.WithFileFromReader("archive", "policies.zip", f),
 				}
 				options = uploadOpts.AppendUploadOptions(m.Dir, options)
-				api, err := m.GetAPIClient()
+				apiClient, err := m.GetAPIClient()
 				if err != nil {
 					return err
 				}
-				_, err = api.XCPPost("custom/policy", nil, nil, options...)
+				_, err = apiClient.XCPPost("custom/policy", nil, nil, options...)
 				if err != nil {
 					return err
 				}
@@ -180,6 +183,38 @@ func uploadCommand() *cobra.Command {
 	flags.Lookup("upload").Usage = "Upload policies to lacework.  Use --upload=false to skip uploading."
 	flags.Lookup("upload-errors").Hidden = true // doesn't make sense here
 	_ = c.MarkFlagRequired("directory")
+	return c
+}
+
+func downloadCommand() *cobra.Command {
+	var (
+		m manager.M
+	)
+	c := &cobra.Command{
+		Use:   "download",
+		Short: "Download Lacework and custom opal policies.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiClient, err := m.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			if apiClient.LegacyAPIToken == "" && apiClient.LaceworkAPIToken == "" {
+				return nil
+			}
+			url := "/api/v1/org/{org}/policies/opal/policies.zip"
+			d, err := m.InstallAPIServerArtifact(fmt.Sprintf("opal-%s-policies",
+				apiClient.Organization), url, 1*time.Minute)
+			if err != nil {
+				return err
+			}
+			err = tools.ExtractArchives(d.Dir, []string{"policies.zip", "lacework_policies.zip"})
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	m.RegisterDownload(c)
 	return c
 }
 

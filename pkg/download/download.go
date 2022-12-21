@@ -50,6 +50,7 @@ type Download struct {
 	Dir               string
 	InstallTime       time.Time
 	OverrideExe       string `json:"-"`
+	IsCached          bool
 }
 
 type DownloadMeta struct {
@@ -353,17 +354,21 @@ func noslashdotdots(s string) string {
 }
 
 func (meta *DownloadMeta) FindVersion(version string, cacheTime time.Duration, stale bool) *Download {
+	isCached := false
 	if isLatestTag(version) {
 		if cacheTime == 0 {
 			cacheTime = 24 * time.Hour
 		}
-		if meta.LatestVersion != "" && (stale || meta.LatestCheckTime.After(time.Now().Add(-cacheTime))) {
+		isCached = meta.LatestCheckTime.After(time.Now().Add(-cacheTime))
+		if meta.LatestVersion != "" && (stale || isCached) {
 			version = meta.LatestVersion
 		} else {
 			return nil
 		}
 	}
-	return meta.findVersionExactly(version)
+	download := meta.findVersionExactly(version)
+	download.IsCached = isCached
+	return download
 }
 
 func (meta *DownloadMeta) findVersionExactly(version string) *Download {
