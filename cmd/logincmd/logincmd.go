@@ -54,7 +54,7 @@ func Command() *cobra.Command {
 			config.Get().APIServer = resp.APIServer
 			config.Get().APIToken = resp.Token
 			config.Get().Organization = resp.OrgID
-			defer log.Infof("Authentication successful")
+			defer log.Infof("Authentication successful, IAC organization is {info:%s}", resp.OrgID)
 			return config.Save()
 		},
 	}

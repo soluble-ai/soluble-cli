@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -54,8 +55,8 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 			flags.BoolVarP(&opts.APIConfig.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
 			flags.DurationVar(&opts.APIConfig.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
 				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
-			flags.IntVar(&opts.APIConfig.RetryCount, "api-retry", 0, "The `number` of times to retry the request")
-			flags.Float64Var(&opts.APIConfig.RetryWaitSeconds, "api-retry-wait", 0,
+			flags.IntVar(&opts.APIConfig.RetryCount, "api-retry", 5, "The `number` of times to retry the request")
+			flags.Float64Var(&opts.APIConfig.RetryWaitSeconds, "api-retry-wait", 1,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
 			flags.StringSliceVar(&opts.APIConfig.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
 			flags.StringVar(&opts.APIConfig.Organization, "iac-organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
@@ -89,11 +90,17 @@ func (opts *ClientOpts) GetAPIClient() (*api.Client, error) {
 			opts.APIConfig.Organization = opts.nonComponentOrgFlag
 		}
 		opts.APIConfig.SetValues()
-		err := opts.APIConfig.Validate(true)
+		err := opts.APIConfig.Validate()
 		if err != nil {
 			return nil, err
 		}
 		opts.client = api.NewClient(&opts.APIConfig)
+		opts.client.NoOrganizationHook = func() error {
+			if err := opts.ConfigureDefaultOrganization(); err != nil {
+				return err
+			}
+			return config.Save()
+		}
 	}
 	return opts.client, nil
 }
@@ -120,8 +127,52 @@ func (opts *ClientOpts) IsAuthenticated() bool {
 
 func (opts *ClientOpts) RequireAuthentication() error {
 	if !opts.IsAuthenticated() {
-		log.Warnf("This command requires signing up with {primary:Lacework} (unless --upload=false).")
+		log.Warnf("This command requires signing up with {primary:Lacework}")
 		return fmt.Errorf("not authenticated with Lacework")
 	}
 	return nil
+}
+
+func (opts *ClientOpts) ConfigureDefaultOrganization() error {
+	n, err := opts.client.Get("/api/v1/users/profile")
+	if err != nil {
+		return fmt.Errorf("could not get IAC organization - %w", err)
+	}
+	log.Debugf("%s", n)
+	orgID := getText(n.Path("data").Path("defaultOrgId"))
+	if orgID == "" {
+		orgID = getText(n.Path("data").Path("currentOrgId"))
+	}
+	if orgID == "" {
+		orgID = getText(n.Path("data").Path("organizations").Get(0).Path("orgId"))
+	}
+	if orgID == "" {
+		return fmt.Errorf("could not determine default IAC organization")
+	}
+	log.Infof("Configuring IAC to use organization {primary:%s}", orgID)
+	config.Get().Organization = orgID
+	config.Get().ConfiguredAccount = opts.client.LaceworkAccount
+	opts.client.Organization = orgID
+	return nil
+}
+
+func (opts *ClientOpts) ValidateOrganization() error {
+	n, err := opts.client.Get("/api/v1/users/profile")
+	if err != nil {
+		return fmt.Errorf("could not get IAC organizations - %w", err)
+	}
+	for _, org := range n.Path("data").Path("organizations").Elements() {
+		orgID := getText(org.Path("orgId"))
+		if orgID == opts.client.Organization {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid IAC organization")
+}
+
+func getText(n *jnode.Node) string {
+	if n.GetType() == jnode.Text || n.GetType() == jnode.Number {
+		return n.AsText()
+	}
+	return ""
 }

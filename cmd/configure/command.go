@@ -16,6 +16,7 @@ package configure
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
@@ -25,7 +26,11 @@ import (
 )
 
 func Command() *cobra.Command {
-	c := configureCmd()
+	c := &cobra.Command{
+		Use:     "configure",
+		Short:   "Manage IAC component configuration",
+		Aliases: []string{"config"},
+	}
 	c.AddCommand(
 		showConfigCmd(),
 		listProfilesCmd(),
@@ -33,32 +38,8 @@ func Command() *cobra.Command {
 		setConfigCmd(),
 		setProfileCmd(),
 		migrateCmd(),
+		reconfigCmd(),
 	)
-	return c
-}
-
-func configureCmd() *cobra.Command {
-	configure := &configureCommand{}
-	c := &cobra.Command{
-		Use:   "configure",
-		Short: "Configure the IAC component for use with the lacework CLI",
-		Long: `Configure the IAC component for use with the lacework CLI
-		
-The lacework CLI should already be initialized with "lacework configure".
-
-This command will query the IAC API to determine the user's IAC organization.  If
-the organization is already known, it can be specified with the --organization
-flag or with the environment variable LW_IAC_ORGANIZATION.
-
-Other subcommands are available, use "configure --help" to list them.`,
-		Aliases: []string{"config"},
-		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := configure.Run()
-			return err
-		},
-	}
-	configure.Register(c)
 	return c
 }
 
@@ -115,11 +96,12 @@ func getProfiles(names []string) *jnode.Node {
 func setProfileCmd() *cobra.Command {
 	opts := newProfileOpts()
 	var (
-		copyFrom string
+		copyFrom  string
+		apiServer string
 	)
 	c := &cobra.Command{
-		Use:     "set-profile <profile>",
-		Aliases: []string{"new", "switch-profile"},
+		Use:     "switch-profile <profile>",
+		Aliases: []string{"new", "set-profile"},
 		Short:   "Set the current IAC profile (or create a new one)",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -129,6 +111,10 @@ func setProfileCmd() *cobra.Command {
 				if err := config.CopyProfile(copyFrom); err != nil {
 					return err
 				}
+			}
+			cfg := config.Get()
+			if apiServer != "" {
+				cfg.APIServer = apiServer
 			}
 			if err := config.Save(); err != nil {
 				return err
@@ -140,6 +126,7 @@ func setProfileCmd() *cobra.Command {
 	opts.Register(c)
 	c.Flags().StringVar(&copyFrom, "copy-from", "", "Copy the profile from another")
 	_ = c.MarkFlagRequired("name")
+	c.Flags().StringVar(&apiServer, "api-server", "", "Configure APIServer to `url`")
 	return c
 }
 
@@ -148,9 +135,10 @@ func updateProfileCmd() *cobra.Command {
 	var del bool
 	var rename string
 	c := &cobra.Command{
-		Use:   "update-profile [ <name> ]",
-		Short: "Rename or delete a profile",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "update-profile [ <name> ]",
+		Short:   "Rename or delete a profile",
+		Aliases: []string{"delete", "delete-profile"},
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var name string
 			if len(args) == 1 {
@@ -161,6 +149,7 @@ func updateProfileCmd() *cobra.Command {
 			if name == "" {
 				return fmt.Errorf("no profile specificed and no current profile is set")
 			}
+			del = del || strings.HasPrefix(cmd.CalledAs(), "delete")
 			switch {
 			case del:
 				if config.DeleteProfile(name) {
@@ -193,7 +182,7 @@ func listProfilesCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"list-profiles"},
-		Short:   "Lists the CLI profiles",
+		Short:   "Lists IAC profiles",
 		Args:    cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintResult(getProfiles(nil))
@@ -217,7 +206,7 @@ func showConfigCmd() *cobra.Command {
 	var opts PrintConfigOpts
 	c := &cobra.Command{
 		Use:   "show",
-		Short: "Show the configuration of the CLI",
+		Short: "Show the configuration of the IAC",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.PrintConfig()
@@ -230,9 +219,10 @@ func showConfigCmd() *cobra.Command {
 func setConfigCmd() *cobra.Command {
 	var opts PrintConfigOpts
 	c := &cobra.Command{
-		Use:   "set name value",
-		Short: "Set a CLI configuration parameter",
-		Args:  cobra.ExactArgs(2),
+		Use:    "set name value",
+		Short:  "Set a CLI configuration parameter",
+		Hidden: true,
+		Args:   cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := config.Set(args[0], args[1])
 			if err != nil {
@@ -255,4 +245,55 @@ func migrateCmd() *cobra.Command {
 			return config.Migrate()
 		},
 	}
+}
+
+func reconfigCmd() *cobra.Command {
+	opts := &options.ClientOpts{}
+	print := &PrintConfigOpts{}
+	c := &cobra.Command{
+		Use:     "reconfigure",
+		Aliases: []string{"reconfig"},
+		Short:   "Modify the current profile",
+		Long: `Modify the current profile.
+		
+Use this command to update the current profile's IAC organization
+with the --iac-organization flag.  Use a valid of "" to update the
+configuratio to the default IAC organization.
+`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.Get()
+			flags := cmd.Flags()
+			api, err := opts.GetAPIClient()
+			if err != nil {
+				return err
+			}
+			if flags.Changed("iac-organization") {
+				api.Organization = opts.APIConfig.Organization
+				if api.Organization == "" {
+					if err := opts.ConfigureDefaultOrganization(); err != nil {
+						return err
+					}
+				} else {
+					if err := opts.ValidateOrganization(); err != nil {
+						return err
+					}
+				}
+			}
+			cfg.APIServer = api.APIServer
+			cfg.APIToken = api.LegacyAPIToken
+			cfg.Organization = api.Organization
+			if err := config.Save(); err != nil {
+				return err
+			}
+			print.PrintConfig()
+			return nil
+		},
+	}
+	opts.Register(c)
+	flags := c.Flags()
+	flags.Lookup("api-server").Hidden = false
+	flags.Lookup("iac-organization").Hidden = false
+	flags.Lookup("disable-tls-verify").Hidden = false
+	print.Register(c)
+	return c
 }
