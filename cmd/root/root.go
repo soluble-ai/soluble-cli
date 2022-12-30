@@ -17,6 +17,8 @@ package root
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
@@ -53,13 +55,15 @@ import (
 )
 
 var (
-	profile    string
-	setProfile string
-	workingDir string
-	ExitFunc   = os.Exit
+	ExitFunc = os.Exit
 )
 
 func Command() *cobra.Command {
+	var (
+		profile           string
+		workingDir        string
+		simulateComponent bool
+	)
 	// Defer logging until it's been configured
 	log.DeferUntilConfigured()
 
@@ -72,14 +76,17 @@ func Command() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			log.Configure()
 			log.Debugf("Loaded configuration from {primary:%s}", config.ConfigFile)
-			if setProfile != "" {
-				config.SelectProfile(setProfile)
-				if err := config.Save(); err != nil {
+			if simulateComponent {
+				if err := setupSimulatedComponentEnv(); err != nil {
 					return err
 				}
 			}
 			if profile != "" {
-				config.SelectProfile(profile)
+				if config.SelectProfile(profile) {
+					log.Errorf("The IAC profile {info:%s} does not exist, use {primary:%s configure switch-profile %s} to create it",
+						profile, config.CommandInvocation(), profile)
+					return fmt.Errorf("the IAC profile %s does not exist", profile)
+				}
 			}
 			if workingDir != "" {
 				if err := os.Chdir(workingDir); err != nil {
@@ -101,10 +108,11 @@ func Command() *cobra.Command {
 
 	flags := rootCmd.PersistentFlags()
 	flags.StringVar(&profile, "iac-profile", "", "Use this configuration profile (see 'config list-profiles')")
-	flags.StringVar(&setProfile, "set-iac-profile", "", "Set the current profile to this (and save it.)")
 	log.AddFlags(flags)
 	flags.StringVar(&workingDir, "working-dir", "", "Change the working dir to `dir` before running")
 	flags.Lookup("working-dir").Hidden = true
+	flags.BoolVar(&simulateComponent, "simulate-component", false, "Simulate running as a component")
+	flags.Lookup("simulate-component").Hidden = true
 
 	config.Load()
 	addBuiltinCommands(rootCmd)
@@ -212,4 +220,51 @@ func mergeCommands(root, cmd *cobra.Command, m *model.Model) {
 		cmd.Short += " (" + m.Source.String() + ")"
 	}
 	root.AddCommand(cmd)
+}
+
+func setupSimulatedComponentEnv() error {
+	if config.IsRunningAsComponent() {
+		return nil
+	}
+	log.Infof("Setting up environment to simulate component execution")
+	var (
+		account   string
+		apiKey    string
+		apiSecret string
+		apiToken  string
+		err       error
+	)
+	account, err = runLacework("configure", "show", "account")
+	if err == nil {
+		apiKey, err = runLacework("configure", "show", "api_key")
+	}
+	if err == nil {
+		apiSecret, err = runLacework("configure", "show", "api_secret")
+	}
+	if err == nil {
+		apiToken, err = runLacework("access-token")
+	}
+	if err != nil {
+		return err
+	}
+	os.Setenv("LW_ACCOUNT", account)
+	os.Setenv("LW_API_KEY", apiKey)
+	os.Setenv("LW_API_SECRET", apiSecret)
+	os.Setenv("LW_API_TOKEN", apiToken)
+	os.Setenv("LW_COMPONENT_NAME", "iac")
+	return nil
+}
+
+func runLacework(args ...string) (string, error) {
+	c := exec.Command("lacework", args...)
+	out, err := c.Output()
+	if err != nil {
+		return "", err
+	}
+	s := string(out)
+	nl := strings.IndexRune(s, '\n')
+	if nl > 0 {
+		s = s[0:nl]
+	}
+	return strings.TrimSpace(s), err
 }

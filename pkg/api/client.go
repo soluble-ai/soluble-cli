@@ -49,6 +49,7 @@ var HTTPError httpError
 type Client struct {
 	*resty.Client
 	Config
+	NoOrganizationHook func() error
 }
 
 func (h httpError) Error() string {
@@ -148,12 +149,17 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 	for _, opt := range options {
 		opt.Apply(r)
 	}
-	if strings.Contains(path, orgToken) {
-		if c.Organization == "" {
-			log.Errorf("An organization must be specified with --organization or configuring one with {info:%s configure --organization}",
-				cfg.CommandInvocation())
-			return nil, fmt.Errorf("organization is required")
+	if strings.Contains(path, orgToken) || strings.HasPrefix(path, "/api/v1/xcp/") {
+		if c.Organization == "" && c.NoOrganizationHook != nil {
+			if err := c.NoOrganizationHook(); err != nil {
+				return nil, err
+			}
 		}
+		if c.Organization == "" {
+			return nil, fmt.Errorf("an IAC organization is required")
+		}
+	}
+	if strings.Contains(path, orgToken) {
 		path = strings.ReplaceAll(path, orgToken, c.Organization)
 	}
 	if c.Organization != "" {
