@@ -28,8 +28,9 @@ import (
 
 func Command() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "build",
-		Short: "Commands for CI builds",
+		Use:    "build",
+		Short:  "Commands for CI builds",
+		Hidden: true,
 	}
 	c.AddCommand(
 		buildReportCommand(),

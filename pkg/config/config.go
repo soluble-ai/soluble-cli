@@ -139,7 +139,9 @@ func (c *ProfileT) PrintableJSON() *jnode.Node {
 	var m map[string]interface{}
 	dat, _ := json.Marshal(cfg)
 	_ = json.Unmarshal(dat, &m)
-	m["ConfigFile"] = configFileRead
+	if configFileRead != "" {
+		m["ConfigFile"] = configFileRead
+	}
 	m["ProfileName"] = cfg.ProfileName
 	if c.lacework != nil {
 		lm := map[string]interface{}{}
@@ -186,15 +188,15 @@ func Save() error {
 		}
 	}
 	if configFileRead != "" && configFileRead != ConfigFile {
-		log.Infof("Migrating legacy config file {info:%s} to {info:%s}", configFileRead, ConfigFile)
+		log.Infof("Migrating legacy config file {primary:%s} to {info:%s}", configFileRead, ConfigFile)
 		err := os.Rename(configFileRead, ConfigFile)
 		if err != nil {
-			log.Errorf("Could not rename legacy config file {info:%s} to {info:%s}: {danger:%s}",
+			log.Errorf("Could not rename legacy config file {primary:%s} to {primary:%s}: {danger:%s}",
 				configFileRead, ConfigFile, err.Error())
 			return err
 		}
 	}
-	log.Infof("Updating {info:%s}\n", ConfigFile)
+	log.Infof("Updating {primary:%s}\n", ConfigFile)
 	file, err := os.OpenFile(ConfigFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err == nil {
 		defer file.Close()
@@ -203,7 +205,7 @@ func Save() error {
 		err = enc.Encode(GlobalConfig)
 	}
 	if err != nil {
-		log.Errorf("Failed to save {info:%s}: {danger:%s}", ConfigFile, err.Error())
+		log.Errorf("Failed to save {primary:%s}: {danger:%s}", ConfigFile, err.Error())
 	}
 	return err
 }

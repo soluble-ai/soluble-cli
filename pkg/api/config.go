@@ -112,7 +112,7 @@ func (c *Config) GetDomain() string {
 // Verify that the configuration chosen is usuable
 // In particular, verify that LW_ACCOUNT is the same, because otherwise Organization
 // is likely to be wrong.
-func (c *Config) Validate(verifyOrg bool) error {
+func (c *Config) Validate() error {
 	// Try and detect a couple of situations where the IAC component
 	// is not configured properly and tell the user what to do
 	if !config.IsRunningAsComponent() {
@@ -124,6 +124,11 @@ func (c *Config) Validate(verifyOrg bool) error {
 	configuredAccount := config.Get().ConfiguredAccount
 	laceworkProfileName := config.Get().LaceworkProfileName
 	profileName := config.Get().ProfileName
+	if config.IsRunningAsComponent() && config.Get().APIToken != "" {
+		log.Errorf("The IAC profile {info:%s} can only be used when directly invoking soluble and not when running with the Lacework CLI",
+			profileName)
+		return fmt.Errorf("cannot use 'lacework iac ...' with this profile")
+	}
 	if c.LegacyAPIToken == "" && c.LaceworkAccount == "" {
 		if configuredAccount != "" {
 			log.Errorf("The IAC profile {info:%s} cannot be used when invoking the IAC component directly.",
@@ -162,9 +167,9 @@ func (c *Config) Validate(verifyOrg bool) error {
 			if c.LaceworkAccount != "" && c.LaceworkAccount != lwp.Account {
 				log.Errorf("The IAC profile {info:%s} is configured to use account {info:%s} but is running with account {info:%s}",
 					profileName, lwp.Account, c.LaceworkAccount)
-				log.Infof("Run {primary:%s configure --reconfigure} to change configuration, or",
+				log.Infof("Run {primary:%s configure reconfigure} to change configuration, or",
 					config.CommandInvocation())
-				log.Infof("use {primary:%s configure --iac-profile <new-name>} to create a new profile for this account",
+				log.Infof("use {primary:%s configure switch-profile <new-name>} to create a new profile for this account",
 					config.CommandInvocation())
 				return fmt.Errorf("configuration is invalid")
 			}
@@ -172,26 +177,18 @@ func (c *Config) Validate(verifyOrg bool) error {
 				profileName, laceworkProfileName)
 			configuredAccount = c.LaceworkAccount
 		}
-		if verifyOrg {
-			if c.Organization == "" {
-				log.Errorf("The IAC profile {info:%s} has not been configured, please run {primary:%s configure}",
-					profileName, config.CommandInvocation())
-				return fmt.Errorf("configure required")
+		if c.OrganizationFromConfigFile {
+			// If the Organization comes from a config file, then the config
+			// file must match the account
+			if laceworkProfileName == "" && c.LaceworkAccount != configuredAccount {
+				log.Errorf("The IAC profile {info:%s} is configured to use account {info:%s} but is running with {info:%s}",
+					profileName, configuredAccount, c.LaceworkAccount)
+				log.Errorf("Run {primary:%s configure reconfigure} to change configuration, or use the {primary:--iac-profile <profile>} to use a different profile",
+					config.CommandInvocation(), config.CommandInvocation())
+				return fmt.Errorf("configuration is invalid")
 			}
-			if c.OrganizationFromConfigFile {
-				// If the Organization comes from a config file, then the config
-				// file must match the account
-				if laceworkProfileName == "" && c.LaceworkAccount != configuredAccount {
-					log.Errorf("The IAC profile {info:%s} is configured to use account {info:%s} but is running with {info:%s}",
-						profileName, configuredAccount, c.LaceworkAccount)
-					log.Errorf("Run {primary:%s configure --reconfigure} to change configuration, or use {primary:%s configure --iac-profile <new-name>} to create a new profile for this account",
-						config.CommandInvocation(), config.CommandInvocation())
-					return fmt.Errorf("configuration is invalid")
-				}
-			}
-			log.Infof("Using lacework authentication for account {info:%s} IAC organization {info:%s}",
-				configuredAccount, c.Organization)
 		}
+		log.Infof("Using lacework authentication for account {info:%s}", c.LaceworkAccount)
 		return nil
 	}
 	return nil

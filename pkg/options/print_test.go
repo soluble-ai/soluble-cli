@@ -17,9 +17,13 @@ package options
 import (
 	"bytes"
 	"io"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/soluble-ai/go-jnode"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPrintResult(t *testing.T) {
@@ -53,4 +57,20 @@ func fromJSON(s string) *jnode.Node {
 		panic(err)
 	}
 	return n
+}
+
+func TestAtlantisFormat(t *testing.T) {
+	assert := assert.New(t)
+	p := &PrintOpts{
+		OutputFormat: []string{"atlantis"},
+	}
+	n, err := util.ReadJSONFile("testdata/assessment.json.gz")
+	assert.NoError(err)
+	s := &strings.Builder{}
+	p.outputSource = func() io.Writer {
+		return s
+	}
+	p.PrintResult(n)
+	exp, _ := os.ReadFile("testdata/atlantis.txt")
+	assert.Equal(string(exp), s.String())
 }
