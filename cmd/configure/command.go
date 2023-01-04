@@ -36,7 +36,7 @@ func Command() *cobra.Command {
 		listProfilesCmd(),
 		updateProfileCmd(),
 		setConfigCmd(),
-		setProfileCmd(),
+		switchProfileCmd(),
 		migrateCmd(),
 		reconfigCmd(),
 	)
@@ -91,43 +91,6 @@ func getProfiles(names []string) *jnode.Node {
 		a.Append(m)
 	}
 	return n
-}
-
-func setProfileCmd() *cobra.Command {
-	opts := newProfileOpts()
-	var (
-		copyFrom  string
-		apiServer string
-	)
-	c := &cobra.Command{
-		Use:     "switch-profile <profile>",
-		Aliases: []string{"new", "set-profile"},
-		Short:   "Set the current IAC profile (or create a new one)",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
-			config.SelectProfile(args[0])
-			if copyFrom != "" {
-				if err := config.CopyProfile(copyFrom); err != nil {
-					return err
-				}
-			}
-			cfg := config.Get()
-			if apiServer != "" {
-				cfg.APIServer = apiServer
-			}
-			if err := config.Save(); err != nil {
-				return err
-			}
-			opts.PrintResult(getProfiles([]string{name}))
-			return nil
-		},
-	}
-	opts.Register(c)
-	c.Flags().StringVar(&copyFrom, "copy-from", "", "Copy the profile from another")
-	_ = c.MarkFlagRequired("name")
-	c.Flags().StringVar(&apiServer, "api-server", "", "Configure APIServer to `url`")
-	return c
 }
 
 func updateProfileCmd() *cobra.Command {
@@ -247,53 +210,101 @@ func migrateCmd() *cobra.Command {
 	}
 }
 
+type switchProfileOptions struct {
+	options.PrintClientOpts
+	laceworkProfile string
+	reset           bool
+}
+
+func (o *switchProfileOptions) Register(cmd *cobra.Command) {
+	o.PrintClientOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.Lookup("api-server").Hidden = false
+	orgFlag := flags.Lookup("iac-organization")
+	orgFlag.Hidden = false
+	orgFlag.Usage = "The IAC organization to use.  Use an empty value to set the IAC organization to the default org."
+	flags.Lookup("disable-tls-verify").Hidden = false
+	flags.Lookup("iac-api-token").Hidden = false
+	if !config.IsRunningAsComponent() {
+		flags.StringVar(&o.laceworkProfile, "lacework-profile", "", "Enable Lacework authentication using the Lacework CLI profile `name`")
+	}
+	flags.BoolVar(&o.reset, "reset", false, "Reset the configuration to default")
+	o.PrintOpts = *newProfileOpts()
+}
+
+func (o *switchProfileOptions) saveValues(cmd *cobra.Command) error {
+	flags := cmd.Flags()
+	if o.reset {
+		config.Get().Reset()
+	}
+	if o.laceworkProfile != "" {
+		cfg := config.Get()
+		if err := cfg.SetLaceworkProfile(o.laceworkProfile); err != nil {
+			return err
+		}
+		cfg.APIToken = ""
+		cfg.ConfiguredAccount = ""
+	}
+	api, err := o.GetAPIClient()
+	if err != nil {
+		return err
+	}
+	if flags.Changed("iac-organization") {
+		api.Organization = o.APIConfig.Organization
+		if api.Organization == "" {
+			if err := o.ConfigureDefaultOrganization(); err != nil {
+				return err
+			}
+		} else {
+			if err := o.ValidateOrganization(); err != nil {
+				return err
+			}
+		}
+	}
+	cfg := config.Get()
+	cfg.APIServer = api.APIServer
+	cfg.APIToken = api.LegacyAPIToken
+	cfg.Organization = api.Organization
+	if err := config.Save(); err != nil {
+		return err
+	}
+	o.PrintResult(cfg.PrintableJSON())
+	return nil
+}
+
+func switchProfileCmd() *cobra.Command {
+	opts := &switchProfileOptions{}
+	var copyFrom string
+	c := &cobra.Command{
+		Use:     "switch-profile <profile>",
+		Aliases: []string{"new", "set-profile"},
+		Short:   "Switch IAC profiles (or create a new one)",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config.SelectProfile(args[0])
+			if copyFrom != "" {
+				if err := config.CopyProfile(copyFrom); err != nil {
+					return err
+				}
+			}
+			return opts.saveValues(cmd)
+		},
+	}
+	opts.Register(c)
+	c.Flags().StringVar(&copyFrom, "copy-from", "", "Copy the profile from another")
+	return c
+}
+
 func reconfigCmd() *cobra.Command {
-	opts := &options.ClientOpts{}
-	print := &PrintConfigOpts{}
+	opts := &switchProfileOptions{}
 	c := &cobra.Command{
 		Use:     "reconfigure",
 		Aliases: []string{"reconfig"},
 		Short:   "Modify the current profile",
-		Long: `Modify the current profile.
-		
-Use this command to update the current profile's IAC organization
-with the --iac-organization flag.  Use a valid of "" to update the
-configuratio to the default IAC organization.
-`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.Get()
-			flags := cmd.Flags()
-			api, err := opts.GetAPIClient()
-			if err != nil {
-				return err
-			}
-			if flags.Changed("iac-organization") {
-				api.Organization = opts.APIConfig.Organization
-				if api.Organization == "" {
-					if err := opts.ConfigureDefaultOrganization(); err != nil {
-						return err
-					}
-				} else {
-					if err := opts.ValidateOrganization(); err != nil {
-						return err
-					}
-				}
-			}
-			cfg.APIServer = api.APIServer
-			cfg.APIToken = api.LegacyAPIToken
-			cfg.Organization = api.Organization
-			if err := config.Save(); err != nil {
-				return err
-			}
-			print.PrintConfig()
-			return nil
+			return opts.saveValues(cmd)
 		},
 	}
 	opts.Register(c)
-	flags := c.Flags()
-	flags.Lookup("api-server").Hidden = false
-	flags.Lookup("iac-organization").Hidden = false
-	flags.Lookup("disable-tls-verify").Hidden = false
-	print.Register(c)
 	return c
 }

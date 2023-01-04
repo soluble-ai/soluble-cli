@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/soluble-ai/go-jnode"
@@ -165,14 +166,29 @@ func (c *ProfileT) GetLaceworkProfile() *LaceworkProfile {
 	return c.lacework
 }
 
-func (c *ProfileT) SetLaceworkProfile(name string) {
-	if name == "" {
-		name = "default"
-	}
+func (c *ProfileT) SetLaceworkProfile(name string) error {
 	c.LaceworkProfileName = name
+	if name == "" {
+		c.lacework = nil
+		return nil
+	}
 	c.lacework = getLaceworkProfile(name)
-	if c.lacework != nil {
-		log.Debugf("Found lacework profile {info:%s}", name)
+	if c.lacework == nil {
+		log.Errorf("The lacework profile {danger:%s} does not exist.", name)
+		var names []string
+		for name := range laceworkProfiles {
+			names = append(names, name)
+		}
+		log.Infof("The available lacework profiles are: {primary:%s}", strings.Join(names, " "))
+		return fmt.Errorf("the lacework profile %s does not exist", name)
+	}
+	return nil
+}
+
+func (c *ProfileT) Reset() {
+	name := c.ProfileName
+	*c = ProfileT{
+		ProfileName: name,
 	}
 }
 
