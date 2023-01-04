@@ -50,8 +50,14 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 	return &HiddenOptionsGroup{
 		Name: "client-options",
 		Long: "These flags control how the CLI connects to lacework IAC",
+		Example: `
+The following environment variables are also supported:
+
+  LW_IAC_ORGANIZATION - the IAC organization ID
+  SOLUBLE_API_TOKEN - the legacy Soluble API token
+  LW_IAC_API_URL - the IAC api server to use (default https://api.soluble.cloud)`,
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
-			flags.StringVar(&opts.APIConfig.APIServer, "api-server", "", "The lacework IAC API server `url` (by default $SOLUBLE_API_URL if set, or https://api.soluble.cloud)")
+			flags.StringVar(&opts.APIConfig.APIServer, "api-server", "", "The lacework IAC API server `url`")
 			flags.BoolVarP(&opts.APIConfig.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
 			flags.DurationVar(&opts.APIConfig.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
 				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
@@ -59,14 +65,14 @@ func (opts *ClientOpts) GetClientOptionsGroup() *HiddenOptionsGroup {
 			flags.Float64Var(&opts.APIConfig.RetryWaitSeconds, "api-retry-wait", 1,
 				"The initial time in `seconds` to wait between retry attempts, e.g. 0.5 to wait 500 millis")
 			flags.StringSliceVar(&opts.APIConfig.Headers, "api-header", nil, "Set custom headers in the form `name:value` on requests")
-			flags.StringVar(&opts.APIConfig.Organization, "iac-organization", "", "The IAC organization `id` to use (by default $LW_IAC_ORGANIZATION if set.)")
+			flags.StringVar(&opts.APIConfig.Organization, "iac-organization", "", "The IAC organization `id` to use")
 			if !config.IsRunningAsComponent() {
 				// The lacework CLI eats --organization, so we can only define this
 				// flag when not running as a component.
 				flags.StringVar(&opts.nonComponentOrgFlag, "organization", "",
 					"The soluble organization `id` to use.  Overrides the value of --iac-organization.")
 			}
-			flags.StringVar(&opts.APIConfig.LegacyAPIToken, "iac-api-token", "", "The legacy authentication `token` (read from profile by default)")
+			flags.StringVar(&opts.APIConfig.LegacyAPIToken, "iac-api-token", "", "The legacy authentication `token`")
 			flags.StringVar(&opts.APIConfig.LaceworkAccount, "account", "", "The Lacework account")
 		},
 	}

@@ -40,6 +40,9 @@ func Command() *cobra.Command {
 				log.Infof("Already logged in to {primary:%s}, use --reset to re-authenticate", config.Get().APIServer)
 				return nil
 			}
+			if reset {
+				config.Get().Reset()
+			}
 			if app == "" {
 				cfg := opts.APIConfig.SetValues()
 				app = cfg.GetAppURL()
