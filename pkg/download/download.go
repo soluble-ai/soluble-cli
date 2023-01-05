@@ -280,7 +280,7 @@ func download(spec *Spec, req *http.Request) (int, io.Reader, error) {
 	if spec.APIServerArtifact != "" {
 		resp, err := spec.APIServer.Download(spec.APIServerArtifact)
 		if err != nil {
-			return resp.StatusCode(), nil, err
+			return 0, nil, err
 		}
 		body := bytes.NewReader(resp.Body())
 		return resp.StatusCode(), body, nil
@@ -288,9 +288,8 @@ func download(spec *Spec, req *http.Request) (int, io.Reader, error) {
 		req.BasicAuth()
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return resp.StatusCode, nil, err
+			return 0, nil, err
 		}
-		defer resp.Body.Close()
 		return resp.StatusCode, resp.Body, nil
 	}
 }
@@ -320,6 +319,10 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		}
 	}
 	statusCode, body, err := download(spec, req)
+	if err != nil {
+		return nil, err
+	}
+
 	if statusCode != http.StatusOK && statusCode != http.StatusNoContent {
 		log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
 			statusCode)
