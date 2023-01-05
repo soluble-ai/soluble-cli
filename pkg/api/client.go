@@ -278,13 +278,13 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	return result, nil
 }
 
-func (c *Client) Download(path string) ([]byte, error) {
+func (c *Client) Download(path string) (*resty.Response, error) {
 	req := c.R()
 	resp, err := c.execute(req, resty.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Body(), nil
+	return resp, nil
 }
 
 func (c *Client) GetOrganization() string {
