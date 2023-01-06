@@ -134,15 +134,14 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
 		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
 			api.Organization), url)
+		if err != nil {
+			return "", err
+		}
 		if d.StatusCode == http.StatusNoContent {
 			var zero string
 			o.customPoliciesDir = &zero
 			log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 			return *o.customPoliciesDir, nil
-		} else {
-			if err != nil {
-				return "", err
-			}
 		}
 		dir = d.Dir
 	}
