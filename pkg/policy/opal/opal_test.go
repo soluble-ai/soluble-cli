@@ -39,7 +39,7 @@ func TestPoliciesFail(t *testing.T) {
 	assert.Equal(1, tm.Passed)
 }
 
-func TestGetCustomPoliciesDir(t *testing.T) {
+func TestGetCustomPoliciesDir204(t *testing.T) {
 	assert := assert.New(t)
 	apiConfig := &api.Config{
 		APIServer:        "https://api.test",
@@ -69,7 +69,6 @@ func TestGetCustomPoliciesDir(t *testing.T) {
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://api.test/api/v1/org/1234/policies/opal/policies.zip",
 		httpmock.NewBytesResponder(http.StatusNoContent, []byte{}))
-	httpmock.RegisterNoResponder(httpmock.NewBytesResponder(http.StatusNoContent, []byte{}))
 
 	customPoliciesDir, err := o.GetCustomPoliciesDir("opal")
 
