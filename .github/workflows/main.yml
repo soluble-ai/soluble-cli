@@ -50,6 +50,7 @@ jobs:
         SOLUBLE_API_TOKEN: ${{ secrets.SOLUBLE_API_TOKEN }}
         SOLUBLE_API_SERVER: https://api.demo.soluble.cloud
         SOLUBLE_ORGANIZATION: "114816640272"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Caching docker images for test
       uses: satackey/action-docker-layer-caching@v0.0.11
       continue-on-error: true
