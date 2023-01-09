@@ -16,10 +16,13 @@ package download
 
 import (
 	"context"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v32/github"
+	"golang.org/x/oauth2"
 )
 
 func isLatestTag(tag string) bool {
@@ -38,7 +41,15 @@ func parseGithubRepo(url string) (string, string) {
 }
 
 func getGithubReleaseAsset(owner, repo, tag string, releaseMatcher GithubReleaseMatcher) (*github.RepositoryRelease, *github.ReleaseAsset, error) {
-	client := github.NewClient(nil)
+	var hc *http.Client
+	// Use GITHUB_TOKEN if available to avoid anonymous rate limits
+	if gt := os.Getenv("GITHUB_TOKEN"); gt != "" {
+		hc = oauth2.NewClient(context.Background(),
+			oauth2.StaticTokenSource(&oauth2.Token{
+				AccessToken: gt,
+			}))
+	}
+	client := github.NewClient(hc)
 	var release *github.RepositoryRelease
 	var err error
 	ctx, cf := context.WithTimeout(context.Background(), 10*time.Second)
