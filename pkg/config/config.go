@@ -273,7 +273,8 @@ func Load() {
 				if util.FileExists(legacyConfigFile) {
 					configFileRead = legacyConfigFile
 					migrationAvailable = true
-					log.Warnf("Using legacy config file {warning:%s}, use {primary:soluble config migrate} to migrate", configFileRead)
+					log.Warnf("Using legacy config file {warning:%s}, use {primary:%s config migrate} to migrate",
+						configFileRead, CommandInvocation())
 				}
 			}
 		}
