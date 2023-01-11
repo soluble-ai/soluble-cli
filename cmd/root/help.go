@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/spf13/cobra"
@@ -29,7 +30,7 @@ func setupHelp(rootCmd *cobra.Command) {
 	rootCmd.SetHelpCommand(helpCommand(rootCmd))
 	rootCmd.SetUsageTemplate(`Usage:{{if .Runnable}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
-  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+  {{ laceworkCommandPath $ }} [command]{{end}}{{if gt (len .Aliases) 0}}
 
 Aliases:
 {{.NameAndAliases}}{{end}}{{if .HasExample}}
@@ -51,12 +52,12 @@ Global Flags:
 {{.InheritedFlags.FlagUsagesWrapped 100 | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
   
 Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
-  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+  {{ rpad ( laceworkCommandPath . ) .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
   
-Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+Use "{{ laceworkCommandPath $ }} [command] --help" for more information about a command.{{end}}
 {{- if (and .Runnable (not .Annotations.ShowInheritedFlags)) }}
 
-Some options have been hidden, use "{{ helpPath $ }} -a" to display all options{{end}}
+Some options have been hidden, use "{{ helpPath $ }} --all-options" to display all options{{end}}
 
 `)
 	globalOptionsHelp := &cobra.Command{
@@ -127,11 +128,21 @@ func init() {
 		if len(path) > 1 {
 			helpPath = append(helpPath, path[1:]...)
 		}
-		return strings.Join(helpPath, " ")
+		result := strings.Join(helpPath, " ")
+		if config.IsRunningAsComponent() {
+			return fmt.Sprintf("lacework %s", result)
+		}
+		return result
 	})
 	cobra.AddTemplateFunc("joinCommas", func(vals []string) string {
 		return strings.Join(vals, ",")
 	})
 	cobra.AddTemplateFunc("wrap", wrap)
 	cobra.AddTemplateFunc("plus", func(i, j int) int { return i + j })
+	cobra.AddTemplateFunc("laceworkCommandPath", func(cmd *cobra.Command) string {
+		if config.IsRunningAsComponent() {
+			return fmt.Sprintf("lacework %s", cmd.CommandPath())
+		}
+		return cmd.CommandPath()
+	})
 }

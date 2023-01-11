@@ -42,6 +42,16 @@ func (group *HiddenOptionsGroup) Register(cmd *cobra.Command) {
 		}
 		cmd.Flags().AddFlag(f)
 	})
+	if cmd.Annotations == nil {
+		cmd.Annotations = map[string]string{}
+	}
+	hog := cmd.Annotations["HiddenOptionGroups"]
+	if hog == "" {
+		hog = group.Name
+	} else {
+		hog = fmt.Sprintf("%s %s", hog, group.Name)
+	}
+	cmd.Annotations["HiddenOptionGroups"] = hog
 }
 
 func (group *HiddenOptionsGroup) GetHelpCommand() *cobra.Command {
