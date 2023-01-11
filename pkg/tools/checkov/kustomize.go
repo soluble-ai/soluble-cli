@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -14,8 +15,9 @@ import (
 
 type Kustomize struct {
 	tools.DirectoryBasedToolOpts
+	KustomizeOverlays []string
 
-	kustomizationName string
+	overlayPaths []string
 }
 
 var _ tools.Interface = (*Kustomize)(nil)
@@ -26,21 +28,39 @@ func (k *Kustomize) Name() string {
 
 func (k *Kustomize) Register(cmd *cobra.Command) {
 	k.DirectoryBasedToolOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.StringSliceVar(&k.KustomizeOverlays, "kustomize-overlays", nil, "Process kustomize overlays in `dirs`.  May be repeated.")
 }
 
 func (k *Kustomize) Validate() error {
 	if err := k.DirectoryBasedToolOpts.Validate(); err != nil {
 		return err
 	}
-	for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
-		file := filepath.Join(k.GetDirectory(), name)
-		if util.FileExists(file) {
-			k.kustomizationName = name
-			break
+	var dirs []string
+	if len(k.KustomizeOverlays) == 0 {
+		dirs = []string{k.GetDirectory()}
+	} else {
+		for _, dir := range k.KustomizeOverlays {
+			rel, err := filepath.Rel(k.GetDirectory(), dir)
+			if err != nil || strings.HasPrefix(rel, "../") {
+				return fmt.Errorf("kustomize overlay %s is not relative to %s", dir, k.GetDirectory())
+			}
+			dirs = append(dirs, rel)
 		}
 	}
-	if k.kustomizationName == "" {
-		return fmt.Errorf("no kustomization file in %s", k.GetDirectory())
+	for _, dir := range dirs {
+		found := false
+		for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
+			file := filepath.Join(k.GetDirectory(), dir, name)
+			if util.FileExists(file) {
+				k.overlayPaths = append(k.overlayPaths, file)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("no kustomization file in %s", filepath.Join(k.GetDirectory(), dir))
+		}
 	}
 	return nil
 }
