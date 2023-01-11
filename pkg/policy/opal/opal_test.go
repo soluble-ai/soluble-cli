@@ -54,17 +54,16 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 			RunOpts: tools.RunOpts{
 				PrintClientOpts: options.PrintClientOpts{
 					ClientOpts: options.ClientOpts{
-						Client: &api.Client{
-							Client: c.Client,
-							Config: *apiConfig,
-						},
+						APIConfig: c.Config,
 					},
 				},
 			},
 			Tool: &opal.Tool{},
 		},
 	}
-	httpmock.ActivateNonDefault(o.ToolOpts.RunOpts.ClientOpts.Client.Client.GetClient())
+
+	api, err := o.RunOpts.ClientOpts.GetAPIClient()
+	httpmock.ActivateNonDefault(api.GetClient().GetClient())
 	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://api.test/api/v1/org/1234/policies/opal/policies.zip",

@@ -29,9 +29,9 @@ import (
 type ClientOpts struct {
 	APIConfig      api.Config
 	DefaultTimeout int
-	Client         *api.Client
 
 	nonComponentOrgFlag string
+	client              *api.Client
 	unauthClient        *api.Client
 }
 
@@ -91,7 +91,7 @@ func (opts *ClientOpts) MustGetAPIClient() *api.Client {
 }
 
 func (opts *ClientOpts) GetAPIClient() (*api.Client, error) {
-	if opts.Client == nil {
+	if opts.client == nil {
 		if opts.nonComponentOrgFlag != "" {
 			opts.APIConfig.Organization = opts.nonComponentOrgFlag
 		}
@@ -100,15 +100,15 @@ func (opts *ClientOpts) GetAPIClient() (*api.Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts.Client = api.NewClient(&opts.APIConfig)
-		opts.Client.NoOrganizationHook = func() error {
+		opts.client = api.NewClient(&opts.APIConfig)
+		opts.client.NoOrganizationHook = func() error {
 			if err := opts.ConfigureDefaultOrganization(); err != nil {
 				return err
 			}
 			return config.Save()
 		}
 	}
-	return opts.Client, nil
+	return opts.client, nil
 }
 
 func (opts *ClientOpts) GetUnauthenticatedAPIClient() *api.Client {
@@ -140,7 +140,7 @@ func (opts *ClientOpts) RequireAuthentication() error {
 }
 
 func (opts *ClientOpts) ConfigureDefaultOrganization() error {
-	n, err := opts.Client.Get("/api/v1/users/profile")
+	n, err := opts.client.Get("/api/v1/users/profile")
 	if err != nil {
 		return fmt.Errorf("could not get IAC organization - %w", err)
 	}
@@ -157,19 +157,19 @@ func (opts *ClientOpts) ConfigureDefaultOrganization() error {
 	}
 	log.Infof("Configuring IAC to use organization {primary:%s}", orgID)
 	config.Get().Organization = orgID
-	config.Get().ConfiguredAccount = opts.Client.LaceworkAccount
-	opts.Client.Organization = orgID
+	config.Get().ConfiguredAccount = opts.client.LaceworkAccount
+	opts.client.Organization = orgID
 	return nil
 }
 
 func (opts *ClientOpts) ValidateOrganization() error {
-	n, err := opts.Client.Get("/api/v1/users/profile")
+	n, err := opts.client.Get("/api/v1/users/profile")
 	if err != nil {
 		return fmt.Errorf("could not get IAC organizations - %w", err)
 	}
 	for _, org := range n.Path("data").Path("organizations").Elements() {
 		orgID := getText(org.Path("orgId"))
-		if orgID == opts.Client.Organization {
+		if orgID == opts.client.Organization {
 			return nil
 		}
 	}
