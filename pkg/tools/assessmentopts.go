@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/spf13/afero"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -59,16 +60,16 @@ func (o *AssessmentOpts) GetAssessmentHiddenOptions() *options.HiddenOptionsGrou
 	return &options.HiddenOptionsGroup{
 		Name: "tool-options",
 		Long: "Options for running tools",
-		Example: `
+		Example: config.ExpandCommandInvocation(`
 A tool run can optionally exit with exit code 2 if the assessment contains
 failed findings.  For example:
 		
 # Fail if 1 or more high or critical severity findings in this build:
-soluble ... --fail high=1
+{{ .CommandInvocation }} ... --fail high=1
 # Or shorter:
-soluble ... --fail high
+{{ .CommandInvocation }} ... --fail high
 
-The severity levels are critical, high, medium, low, and info in that order.`,
+The severity levels are critical, high, medium, low, and info in that order.`),
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", true, "Don't use custom policies")
 			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use custom policies from `dir`.")
