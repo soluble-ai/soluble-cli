@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/soluble-ai/soluble-cli/pkg/api"
+
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
@@ -121,11 +123,11 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil
 	}
-	api, err := o.GetAPIClient()
+	apiClient, err := o.GetAPIClient()
 	if err != nil {
 		return "", err
 	}
-	if api.LegacyAPIToken == "" && api.LaceworkAPIToken == "" {
+	if apiClient.LegacyAPIToken == "" && apiClient.LaceworkAPIToken == "" {
 		return "", nil
 	}
 
@@ -134,8 +136,14 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if dir == "" {
 		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
 		downloaded, err = o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
-			api.Organization), url, o.CacheDuration)
+			apiClient.Organization), url, o.CacheDuration)
 		if err != nil {
+			if api.IsErrNoContent(err) {
+				var zero string
+				o.customPoliciesDir = &zero
+				log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
+				return *o.customPoliciesDir, nil
+			}
 			return "", err
 		}
 		dir = downloaded.Dir
@@ -196,12 +204,15 @@ func ExtractArchives(dir string, archives []string) error {
 	for _, a := range archives {
 		a = filepath.Join(dir, a)
 		f, err := fs.Open(a)
+		if os.IsNotExist(err) {
+			continue
+		}
 		if err != nil {
 			return err
 		}
 
 		unpack := archive.Unzip
-		// unpack the zip into dir, policies dir by convention will be unpacked from the zip
+		// unpack the zip into dir, policies dir by convention will be unzipped
 		// recreating dir/policies
 		err = unpack(f, afero.NewBasePathFs(fs, dir), nil)
 		if err != nil {
