@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -63,6 +64,21 @@ func (h httpError) Is(err error) bool {
 	default:
 		return false
 	}
+}
+
+type ErrNoContent string
+
+func (d ErrNoContent) Error() string {
+	return string(d)
+}
+
+func (d ErrNoContent) Is(err error) bool {
+	_, ok := err.(ErrNoContent)
+	return ok
+}
+
+func IsErrNoContent(err error) bool {
+	return errors.Is(err, ErrNoContent(""))
 }
 
 func NewClient(config *Config) *Client {
@@ -278,13 +294,16 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	return result, nil
 }
 
-func (c *Client) Download(path string) (*resty.Response, error) {
+func (c *Client) Download(path string) ([]byte, error) {
 	req := c.R()
 	resp, err := c.execute(req, resty.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+	if resp.StatusCode() == http.StatusNoContent {
+		return nil, ErrNoContent("ErrNoContent")
+	}
+	return resp.Body(), nil
 }
 
 func (c *Client) GetOrganization() string {

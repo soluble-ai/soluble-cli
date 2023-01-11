@@ -50,7 +50,7 @@ func TestClient(t *testing.T) {
 	}
 	b, err := c.Download("download")
 	if assert.NoError(err) {
-		assert.Exactly([]byte{1, 2, 3, 4}, b.Body())
+		assert.Exactly([]byte{1, 2, 3, 4}, b)
 	}
 	c.APIPrefix = "/api/v1/x"
 	n, err = c.Get("org/{org}/foo")

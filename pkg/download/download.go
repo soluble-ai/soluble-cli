@@ -28,8 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-resty/resty/v2"
-
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/download/gcs"
@@ -52,7 +50,6 @@ type Download struct {
 	Dir               string
 	InstallTime       time.Time
 	OverrideExe       string `json:"-"`
-	StatusCode        int
 }
 
 type DownloadMeta struct {
@@ -76,7 +73,7 @@ type Spec struct {
 
 type APIServer interface {
 	GetHostURL() string
-	Download(path string) (*resty.Response, error)
+	Download(path string) ([]byte, error)
 }
 
 type urlResolverFunc func(requestedVersion string) (version string, url string, err error)
@@ -277,21 +274,26 @@ func (meta *DownloadMeta) updateLatestInfo(requestedVersion, actualVersion strin
 	return nil
 }
 
-func download(spec *Spec, req *http.Request) (int, io.Reader, error) {
+func download(spec *Spec, req *http.Request, name string) (io.Reader, error) {
 	if spec.APIServerArtifact != "" {
 		resp, err := spec.APIServer.Download(spec.APIServerArtifact)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
-		body := bytes.NewReader(resp.Body())
-		return resp.StatusCode(), body, nil
+		body := bytes.NewReader(resp)
+		return body, nil
 	} else {
 		req.BasicAuth()
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
-		return resp.StatusCode, resp.Body, nil
+		if resp.StatusCode != http.StatusOK {
+			log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", name,
+				resp.StatusCode)
+			return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
+		}
+		return resp.Body, nil
 	}
 }
 func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, options []downloadOption) (*Download, error) {
@@ -319,16 +321,11 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 			return nil, err
 		}
 	}
-	statusCode, body, err := download(spec, req)
+	body, err := download(spec, req, meta.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if statusCode != http.StatusOK && statusCode != http.StatusNoContent {
-		log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
-			statusCode)
-		return nil, fmt.Errorf("%s returned %d", spec.URL, statusCode)
-	}
 	_, err = io.Copy(w, body)
 	if err != nil {
 		return nil, err
@@ -341,20 +338,17 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		// remove special fs characters from tag
 		Dir:         filepath.Join(m.downloadDir, meta.Name, noslashdotdots(actualVersion)),
 		InstallTime: time.Now(),
-		StatusCode:  statusCode,
 	}
 	meta.removeInstalledVersion(d.Version)
-	if statusCode == http.StatusOK {
-		meta.Installed = append(meta.Installed, d)
-		err = d.Install(archiveFile)
-		if err != nil {
-			return nil, err
-		}
-		meta.updateLatestInfo(spec.RequestedVersion, actualVersion)
-		err = m.save(meta)
-		if err != nil {
-			return nil, err
-		}
+	meta.Installed = append(meta.Installed, d)
+	err = d.Install(archiveFile)
+	if err != nil {
+		return nil, err
+	}
+	meta.updateLatestInfo(spec.RequestedVersion, actualVersion)
+	err = m.save(meta)
+	if err != nil {
+		return nil, err
 	}
 
 	return d, nil

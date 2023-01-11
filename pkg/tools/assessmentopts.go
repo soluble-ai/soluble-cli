@@ -2,9 +2,10 @@ package tools
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/soluble-ai/soluble-cli/pkg/api"
 
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/spf13/afero"
@@ -120,11 +121,11 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil
 	}
-	api, err := o.GetAPIClient()
+	apiClient, err := o.GetAPIClient()
 	if err != nil {
 		return "", err
 	}
-	if api.LegacyAPIToken == "" && api.LaceworkAPIToken == "" {
+	if apiClient.LegacyAPIToken == "" && apiClient.LaceworkAPIToken == "" {
 		return "", nil
 	}
 
@@ -133,15 +134,15 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if dir == "" {
 		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
 		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
-			api.Organization), url)
+			apiClient.Organization), url)
 		if err != nil {
+			if api.IsErrNoContent(err) {
+				var zero string
+				o.customPoliciesDir = &zero
+				log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
+				return *o.customPoliciesDir, nil
+			}
 			return "", err
-		}
-		if d.StatusCode == http.StatusNoContent {
-			var zero string
-			o.customPoliciesDir = &zero
-			log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
-			return *o.customPoliciesDir, nil
 		}
 		dir = d.Dir
 	}
