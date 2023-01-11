@@ -48,13 +48,13 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 		LegacyAPIToken:   "token",
 		LaceworkAPIToken: "token",
 	}
-	c := api.NewClient(apiConfig)
+
 	o := &tools.AssessmentOpts{
 		ToolOpts: tools.ToolOpts{
 			RunOpts: tools.RunOpts{
 				PrintClientOpts: options.PrintClientOpts{
 					ClientOpts: options.ClientOpts{
-						APIConfig: c.Config,
+						APIConfig: *apiConfig,
 					},
 				},
 			},
@@ -62,8 +62,8 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 		},
 	}
 
-	api, err := o.RunOpts.ClientOpts.GetAPIClient()
-	httpmock.ActivateNonDefault(api.GetClient().GetClient())
+	client, err := o.RunOpts.ClientOpts.GetAPIClient()
+	httpmock.ActivateNonDefault(client.GetClient().GetClient())
 	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://api.test/api/v1/org/1234/policies/opal/policies.zip",
