@@ -62,7 +62,7 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 		},
 	}
 
-	client, err := o.RunOpts.ClientOpts.GetAPIClient()
+	client, _ := o.RunOpts.ClientOpts.GetAPIClient()
 	httpmock.ActivateNonDefault(client.GetClient().GetClient())
 	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder(http.MethodGet,
