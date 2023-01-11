@@ -73,7 +73,6 @@ The following environment variables are also supported:
 					"The soluble organization `id` to use.  Overrides the value of --iac-organization.")
 			}
 			flags.StringVar(&opts.APIConfig.LegacyAPIToken, "iac-api-token", "", "The legacy authentication `token`")
-			flags.StringVar(&opts.APIConfig.LaceworkAccount, "account", "", "The Lacework account")
 		},
 	}
 }
