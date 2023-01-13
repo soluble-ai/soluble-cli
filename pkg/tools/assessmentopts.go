@@ -5,8 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/soluble-ai/soluble-cli/pkg/api"
+
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
+	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/spf13/afero"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -120,24 +123,30 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	if o.customPoliciesDir != nil {
 		return *o.customPoliciesDir, nil
 	}
-	api, err := o.GetAPIClient()
+	apiClient, err := o.GetAPIClient()
 	if err != nil {
 		return "", err
 	}
-	if api.LegacyAPIToken == "" && api.LaceworkAPIToken == "" {
+	if apiClient.LegacyAPIToken == "" && apiClient.LaceworkAPIToken == "" {
 		return "", nil
 	}
 
 	dir := o.CustomPoliciesDir
-
+	var downloaded *download.Download
 	if dir == "" {
-		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.tgz", o.Tool.Name())
-		d, err := o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
-			api.Organization), url)
+		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
+		downloaded, err = o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
+			apiClient.Organization), url, o.CacheDuration)
 		if err != nil {
+			if api.IsErrNoContent(err) {
+				var zero string
+				o.customPoliciesDir = &zero
+				log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
+				return *o.customPoliciesDir, nil
+			}
 			return "", err
 		}
-		dir = d.Dir
+		dir = downloaded.Dir
 	}
 	// if the directory is empty, then treat that the same as no custom policies
 	fs, err := os.ReadDir(dir)
@@ -149,10 +158,12 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		o.customPoliciesDir = &zero
 		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
 	} else {
-		// we need to unpack custom and lacework policies
-		err := extractArchives(dir, []string{"policies.tar.gz", "lacework_policies.tar.gz"})
-		if err != nil {
-			return "", err
+		if !downloaded.IsCached {
+			// extract policies if we are not using the cached policies
+			err := ExtractArchives(dir, []string{"policies.zip", "lacework_policies.zip"})
+			if err != nil {
+				return "", err
+			}
 		}
 		store := policy.NewDownloadStore(dir)
 		dest, err := os.MkdirTemp("", "policy*")
@@ -181,7 +192,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 	return *o.customPoliciesDir, nil
 }
 
-func extractArchives(dir string, archives []string) error {
+func ExtractArchives(dir string, archives []string) error {
 	// policies dir by convention is where all policies are stored
 	policiesDir := filepath.Join(dir, policy.Policies)
 
@@ -193,12 +204,15 @@ func extractArchives(dir string, archives []string) error {
 	for _, a := range archives {
 		a = filepath.Join(dir, a)
 		f, err := fs.Open(a)
+		if os.IsNotExist(err) {
+			continue
+		}
 		if err != nil {
 			return err
 		}
 
-		unpack := archive.Untar
-		// unpack the tar into dir, policies dir by convention will be unpacked from the tar
+		unpack := archive.Unzip
+		// unpack the zip into dir, policies dir by convention will be unzipped
 		// recreating dir/policies
 		err = unpack(f, afero.NewBasePathFs(fs, dir), nil)
 		if err != nil {

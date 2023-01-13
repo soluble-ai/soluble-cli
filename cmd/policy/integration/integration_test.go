@@ -10,7 +10,7 @@ import (
 )
 
 func TestPolicyVet(t *testing.T) {
-	vet := test.NewCommand(t, "early-access", "policy", "vet",
+	vet := test.NewCommand(t, "policy", "vet",
 		"-d", "../../../pkg/policy/checkov/testdata", "--format", "json")
 	vet.Must(vet.Run())
 	n := vet.JSON()
@@ -20,7 +20,7 @@ func TestPolicyVet(t *testing.T) {
 }
 
 func TestPolicyTest(t *testing.T) {
-	test := test.NewCommand(t, "early-access", "policy", "test",
+	test := test.NewCommand(t, "policy", "test",
 		"-d", "../../../pkg/policy/checkov/testdata", "--format", "json")
 	test.Must(test.Run())
 	n := test.JSON()

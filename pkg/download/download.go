@@ -50,6 +50,7 @@ type Download struct {
 	Dir               string
 	InstallTime       time.Time
 	OverrideExe       string `json:"-"`
+	IsCached          bool
 }
 
 type DownloadMeta struct {
@@ -274,6 +275,28 @@ func (meta *DownloadMeta) updateLatestInfo(requestedVersion, actualVersion strin
 	return nil
 }
 
+func download(spec *Spec, req *http.Request, name string) (io.Reader, error) {
+	if spec.APIServerArtifact != "" {
+		resp, err := spec.APIServer.Download(spec.APIServerArtifact)
+		if err != nil {
+			return nil, err
+		}
+		body := bytes.NewReader(resp)
+		return body, nil
+	} else {
+		req.BasicAuth()
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", name,
+				resp.StatusCode)
+			return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
+		}
+		return resp.Body, nil
+	}
+}
 func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, options []downloadOption) (*Download, error) {
 	base, err := getBaseName(spec.URL)
 	if err != nil {
@@ -299,26 +322,11 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 			return nil, err
 		}
 	}
-	var body io.Reader
-	if spec.APIServerArtifact != "" {
-		dat, err := spec.APIServer.Download(spec.APIServerArtifact)
-		if err != nil {
-			return nil, err
-		}
-		body = bytes.NewReader(dat)
-	} else {
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			log.Errorf("Request to install {warning:%s} returned status code {danger:%d}", meta.Name,
-				resp.StatusCode)
-			return nil, fmt.Errorf("%s returned %d", spec.URL, resp.StatusCode)
-		}
-		body = resp.Body
+	body, err := download(spec, req, meta.Name)
+	if err != nil {
+		return nil, err
 	}
+
 	_, err = io.Copy(w, body)
 	if err != nil {
 		return nil, err
@@ -343,6 +351,7 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	if err != nil {
 		return nil, err
 	}
+
 	return d, nil
 }
 
@@ -353,17 +362,23 @@ func noslashdotdots(s string) string {
 }
 
 func (meta *DownloadMeta) FindVersion(version string, cacheTime time.Duration, stale bool) *Download {
+	isCached := false
 	if isLatestTag(version) {
 		if cacheTime == 0 {
 			cacheTime = 24 * time.Hour
 		}
-		if meta.LatestVersion != "" && (stale || meta.LatestCheckTime.After(time.Now().Add(-cacheTime))) {
+		isCached = meta.LatestCheckTime.After(time.Now().Add(-cacheTime))
+		if meta.LatestVersion != "" && (stale || isCached) {
 			version = meta.LatestVersion
 		} else {
 			return nil
 		}
 	}
-	return meta.findVersionExactly(version)
+	download := meta.findVersionExactly(version)
+	if download != nil {
+		download.IsCached = isCached
+	}
+	return download
 }
 
 func (meta *DownloadMeta) findVersionExactly(version string) *Download {

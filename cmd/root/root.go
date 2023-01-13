@@ -36,6 +36,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/kustomizescan"
 	"github.com/soluble-ai/soluble-cli/cmd/logincmd"
 	modelcmd "github.com/soluble-ai/soluble-cli/cmd/model"
+	"github.com/soluble-ai/soluble-cli/cmd/policy"
 	"github.com/soluble-ai/soluble-cli/cmd/postcmd"
 	"github.com/soluble-ai/soluble-cli/cmd/print"
 	"github.com/soluble-ai/soluble-cli/cmd/query"
@@ -161,6 +162,7 @@ func addBuiltinCommands(rootCmd *cobra.Command) {
 		kustomizescan.Command(),
 		print.Command(),
 		configure.Command(),
+		policy.Command(),
 	)
 	if !config.IsRunningAsComponent() {
 		rootCmd.AddCommand(logincmd.Command())

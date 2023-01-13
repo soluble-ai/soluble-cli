@@ -60,6 +60,10 @@ func (m *M) Register(cmd *cobra.Command) {
 	_ = cmd.MarkFlagRequired("directory")
 }
 
+func (m *M) RegisterDownload(cmd *cobra.Command) {
+	m.RunOpts.Register(cmd)
+}
+
 func (m *M) ValidatePolicies() ValidateResult {
 	var result ValidateResult
 	for _, policyType := range policy.GetPolicyTypes() {

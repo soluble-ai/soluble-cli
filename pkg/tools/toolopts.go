@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -32,6 +33,7 @@ type ToolOpts struct {
 	Tool               Interface
 	RepoRoot           string
 	UseEmptyConfigFile bool
+	CacheDuration      time.Duration
 
 	config      *Config
 	repoRootSet bool
@@ -71,6 +73,8 @@ func (o *ToolOpts) Register(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&o.UseEmptyConfigFile, "use-empty-config-file", false, "Use an empty tool configuration file.  (For testing only.)")
 	flags.Lookup("use-empty-config-file").Hidden = true
+	flags.DurationVar(&o.CacheDuration, "cache-duration", 1*time.Minute, "Cache downloaded policies for the given cache duration.")
+	flags.Lookup("cache-duration").Hidden = true
 }
 
 func (o *ToolOpts) Validate() error {
