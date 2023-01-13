@@ -4,7 +4,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/cmd/armscan"
 	"github.com/soluble-ai/soluble-cli/cmd/cdkscan"
 	"github.com/soluble-ai/soluble-cli/cmd/dockerfilescan"
-	"github.com/soluble-ai/soluble-cli/cmd/policy"
 	"github.com/soluble-ai/soluble-cli/cmd/tfplan"
 	"github.com/soluble-ai/soluble-cli/cmd/tfplanscan"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
@@ -21,7 +20,6 @@ func earlyAccessCommand() *cobra.Command {
 		Hidden:  true,
 	}
 	c.AddCommand(
-		policy.Command(),
 		tfplan.Command(),
 		armscan.Command(),
 		cdkscan.Command(),

@@ -1,8 +1,7 @@
 package policy
 
 import (
-	"archive/tar"
-	"compress/gzip"
+	"archive/zip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -203,68 +202,69 @@ func (m *Store) PolicyCount() (count int) {
 	return
 }
 
-func (m *Store) CreateTarBall(path string) error {
+func (m *Store) CreateZipArchive(path string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	gz := gzip.NewWriter(f)
-	w := tar.NewWriter(gz)
-	if err := m.writePolicies(w); err != nil {
+	zipWriter := zip.NewWriter(f)
+	if err := m.writePolicies(zipWriter); err != nil {
 		return err
 	}
-	if err := m.writeUploadMetadata(w); err != nil {
+	if err := m.writeUploadMetadata(zipWriter); err != nil {
 		return err
 	}
-	if err := w.Close(); err != nil {
+	zipWriter.Flush()
+	if err := zipWriter.Close(); err != nil {
 		return err
 	}
-	log.Infof("Created tarball with {info:%d} policies", m.PolicyCount())
-	return gz.Close()
+	log.Infof("Created zip file with {info:%d} policies", m.PolicyCount())
+	return nil
 }
 
-func (m *Store) writeUploadMetadata(w *tar.Writer) error {
+func (m *Store) writeUploadMetadata(zipWriter *zip.Writer) error {
 	env := xcp.GetCIEnv(m.Dir)
 	dat, err := json.MarshalIndent(env, "", "  ")
 	if err != nil {
 		return err
 	}
-	h := &tar.Header{
-		Typeflag: tar.TypeReg,
-		Name:     "policies-upload-metadata.json",
-		Size:     int64(len(dat)),
-		ModTime:  time.Now(),
-		Mode:     0644,
+	header := &zip.FileHeader{
+		Name:               "policies-upload-metadata.json",
+		Modified:           time.Now(),
+		Method:             zip.Deflate,
+		UncompressedSize64: uint64(len(dat)),
 	}
-	if err := w.WriteHeader(h); err != nil {
+	header.SetMode(0644)
+	ioWriter, err := zipWriter.CreateHeader(header)
+	if err != nil {
 		return err
 	}
-	if _, err := w.Write(dat); err != nil {
+	if _, err := ioWriter.Write(dat); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Store) writePolicies(w *tar.Writer) error {
-	err := m.writePolicyRootPath(w)
+func (m *Store) writePolicies(zipWriter *zip.Writer) error {
+	_, err := m.writePolicyRootPath(zipWriter)
 	if err != nil {
 		return err
 	}
 	for _, policyType := range GetPolicyTypes() {
 		policies := m.Policies[policyType]
 		if policies != nil {
-			err = m.writePolicyTypePath(w, policyType)
+			_, err = m.writePolicyTypePath(zipWriter, policyType)
 			if err != nil {
 				return err
 			}
 		}
 		for _, policy := range policies {
 			log.Infof("Including {info:%s} from {primary:%s}", policy.ID, policy.Path)
-			if err := m.writePolicyFiles(w, policy); err != nil {
+			if err := m.writePolicyFiles(zipWriter, policy); err != nil {
 				return err
 			}
-			if err := m.writePolicyMetadata(w, policy); err != nil {
+			if err := m.writePolicyMetadata(zipWriter, policy); err != nil {
 				return err
 			}
 		}
@@ -272,7 +272,7 @@ func (m *Store) writePolicies(w *tar.Writer) error {
 	return nil
 }
 
-func (m *Store) writePolicyMetadata(w *tar.Writer, policy *Policy) error {
+func (m *Store) writePolicyMetadata(zipWriter *zip.Writer, policy *Policy) error {
 	dat, err := yaml.Marshal(policy.Metadata)
 	if err != nil {
 		return err
@@ -281,23 +281,24 @@ func (m *Store) writePolicyMetadata(w *tar.Writer, policy *Policy) error {
 	if err != nil {
 		return err
 	}
-	h := &tar.Header{
-		Typeflag: tar.TypeReg,
-		Name:     fmt.Sprintf("%s/metadata.yaml", policyPath),
-		Size:     int64(len(dat)),
-		ModTime:  time.Now(),
-		Mode:     0644,
+	header := &zip.FileHeader{
+		Name:               fmt.Sprintf("%s/metadata.yaml", policyPath),
+		UncompressedSize64: uint64((len(dat))),
+		Modified:           time.Now(),
+		Method:             zip.Deflate,
 	}
-	if err := w.WriteHeader(h); err != nil {
+	header.SetMode(0644)
+	ioWriter, err := zipWriter.CreateHeader(header)
+	if err != nil {
 		return err
 	}
-	if _, err := w.Write(dat); err != nil {
+	if _, err := ioWriter.Write(dat); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Store) writePolicyFiles(w *tar.Writer, policy *Policy) error {
+func (m *Store) writePolicyFiles(zipWriter *zip.Writer, policy *Policy) error {
 	return filepath.Walk(policy.Path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -309,36 +310,39 @@ func (m *Store) writePolicyFiles(w *tar.Writer, policy *Policy) error {
 		if err != nil {
 			return err
 		}
-		h := &tar.Header{
-			Typeflag: tar.TypeReg,
-			Name:     rpath,
-			Size:     info.Size(),
-			ModTime:  info.ModTime(),
-			Mode:     0644,
+		header, err := zip.FileInfoHeader(info)
+		header.Name = rpath
+		header.Method = zip.Deflate
+		if err != nil {
+			return err
 		}
-		if base := filepath.Base(path); base[0] == '.' {
+		if info.IsDir() {
+			rpath = fmt.Sprintf("%s/", rpath)
+			header.Name = rpath
+			header.SetMode(0755)
+			_, err = zipWriter.CreateHeader(header)
+			if err != nil {
+				return err
+			}
+		} else if base := filepath.Base(path); base[0] == '.' {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
-		}
-		if info.IsDir() {
-			h.Typeflag = tar.TypeDir
-			h.Mode = 0755
-		}
-		if err := w.WriteHeader(h); err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		if _, err := io.Copy(w, f); err != nil {
-			return err
+		} else {
+			policyFile, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer policyFile.Close()
+			header.SetMode(0644)
+			ioWriter, err := zipWriter.CreateHeader(header)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(ioWriter, policyFile); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -365,34 +369,33 @@ func (m *Store) GetPolicyUploadMetadata() (map[string]string, error) {
 	return res, err
 }
 
-func (m *Store) writePolicyRootPath(w *tar.Writer) error {
+func (m *Store) writePolicyRootPath(zipWriter *zip.Writer) (io.Writer, error) {
 	path := filepath.Dir(fmt.Sprintf("%s/%s", m.Dir, Policies))
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	header := &tar.Header{
-		Typeflag: tar.TypeDir,
-		Name:     Policies,
-		ModTime:  fileInfo.ModTime(),
-		Mode:     0755,
-	}
-	return w.WriteHeader(header)
+	header, _ := zip.FileInfoHeader(fileInfo)
+	header.Name = fmt.Sprintf("%s/", Policies)
+	header.SetMode(0755)
+	header.Method = zip.Deflate
+	return zipWriter.CreateHeader(header)
 }
 
-func (m *Store) writePolicyTypePath(w *tar.Writer, policyType PolicyType) error {
+func (m *Store) writePolicyTypePath(zipWriter *zip.Writer, policyType PolicyType) (io.Writer, error) {
 	path := filepath.Dir(fmt.Sprintf("%s/%s/%s", m.Dir, Policies, policyType.GetName()))
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	header := &tar.Header{
-		Typeflag: tar.TypeDir,
-		Name:     fmt.Sprintf("policies/%s", policyType.GetName()),
-		ModTime:  fileInfo.ModTime(),
-		Mode:     0755,
+	header, err := zip.FileInfoHeader(fileInfo)
+	if err != nil {
+		return nil, err
 	}
-	return w.WriteHeader(header)
+	header.Name = fmt.Sprintf("%s/%s/", Policies, policyType.GetName())
+	header.SetMode(0755)
+	header.Method = zip.Deflate
+	return zipWriter.CreateHeader(header)
 }
 
 func GetPolicyTypes() (res []PolicyType) {
