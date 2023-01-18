@@ -21,15 +21,21 @@ import (
 
 type cidetector int
 
-var _ FileDetector = cidetector(0)
+var (
+	_ FileDetector = cidetector(0)
+	_ DirDetector  = cidetector(0)
+)
 
-func (cidetector) DetectDirName(m *Manifest, path string) {
+func (cidetector) DetectDirName(m *Manifest, path string) bool {
 	switch path {
 	case ".buildkite":
 		m.CISystems.Add("buildkite")
 	case ".circleci":
 		m.CISystems.Add("circleci")
+	case ".github":
+		return true
 	}
+	return false
 }
 
 func (cidetector) DetectFileName(m *Manifest, path string) ContentDetector {

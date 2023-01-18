@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
@@ -14,8 +15,9 @@ import (
 
 type Kustomize struct {
 	tools.DirectoryBasedToolOpts
+	Include []string
 
-	kustomizationName string
+	overlays []string
 }
 
 var _ tools.Interface = (*Kustomize)(nil)
@@ -26,26 +28,64 @@ func (k *Kustomize) Name() string {
 
 func (k *Kustomize) Register(cmd *cobra.Command) {
 	k.DirectoryBasedToolOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.StringSliceVar(&k.Include, "include", nil, "Look for kustomize overlays in these directory `patterns`.  Each pattern is a gitignore-style string e.g. '**/prod*' would include all overlays in directories that start with 'prod'.  Use --include '**' to run against all overlays.  May be repeated.  Without this flag the scan will only look in the target directory (non-recursive.)")
 }
 
 func (k *Kustomize) Validate() error {
 	if err := k.DirectoryBasedToolOpts.Validate(); err != nil {
 		return err
 	}
-	for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
-		file := filepath.Join(k.GetDirectory(), name)
-		if util.FileExists(file) {
-			k.kustomizationName = name
-			break
+	if len(k.Include) > 0 {
+		include := ignore.CompileIgnoreLines(k.Include...)
+		m := k.GetInventory()
+		k.overlays = nil
+		for _, dir := range m.KustomizeDirectories.Values() {
+			if include.MatchesPath(dir) {
+				overlay := k.findKustomizationFile(dir)
+				if overlay != "" {
+					k.overlays = append(k.overlays, overlay)
+				}
+			}
 		}
-	}
-	if k.kustomizationName == "" {
-		return fmt.Errorf("no kustomization file in %s", k.GetDirectory())
+	} else {
+		overlay := k.findKustomizationFile("")
+		if overlay == "" {
+			return fmt.Errorf("no kustomization file in %s", k.GetDirectory())
+		}
+		k.overlays = []string{overlay}
 	}
 	return nil
 }
 
+func (k *Kustomize) findKustomizationFile(dir string) string {
+	for _, name := range []string{"kustomization.yaml", "kustomization.yml"} {
+		file := filepath.Join(dir, name)
+		if util.FileExists(filepath.Join(k.GetDirectory(), file)) {
+			return file
+		}
+	}
+	return ""
+}
+
 func (k *Kustomize) Run() (*tools.Result, error) {
+	var combinedResult *tools.Result
+	for _, overlay := range k.overlays {
+		result, err := k.runOnce(overlay)
+		if err != nil || result.ExecuteResult.FailureType != "" {
+			return result, err
+		}
+		if combinedResult == nil {
+			combinedResult = result
+		} else {
+			mergeResults(combinedResult.Data, result.Data)
+		}
+	}
+
+	return combinedResult, nil
+}
+
+func (k *Kustomize) runOnce(overlay string) (*tools.Result, error) {
 	if err := k.makeKustomizeAvailable(); err != nil {
 		return nil, err
 	}
@@ -56,7 +96,7 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 	defer os.RemoveAll(outDirectory)
 	args := []string{"build", "--output", outDirectory}
 	template := exec.Command("kustomize", args...)
-	template.Dir = k.GetDirectory()
+	template.Dir = filepath.Join(k.GetDirectory(), filepath.Dir(overlay))
 	template.Stderr = os.Stderr
 	template.Stdout = os.Stderr
 	exec := k.ExecuteCommand(template)
@@ -69,7 +109,7 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 		Framework:              "kubernetes",
 		workingDir:             outDirectory,
 		pathTranslationFunc: func(s string) string {
-			return k.kustomizationName
+			return overlay
 		},
 	}
 	if err := checkov.Validate(); err != nil {

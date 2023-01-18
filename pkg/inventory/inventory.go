@@ -50,7 +50,9 @@ type ContentDetector interface {
 }
 
 type DirDetector interface {
-	DetectDirName(m *Manifest, path string)
+	// Return true if the directory should be recursed even if
+	// it starts with "."
+	DetectDirName(m *Manifest, path string) bool
 }
 
 type FinalizeDetector interface {
@@ -80,10 +82,6 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 			log.Warnf("Could not scan {info:%s}: {warning:%s}", path, err)
 			return nil
 		}
-		if info.IsDir() && info.Name() == ".git" {
-			// skip .git directory
-			return filepath.SkipDir
-		}
 		if isdir := info.IsDir(); isdir || info.Type().IsRegular() {
 			relpath := path
 			if filepath.IsAbs(relpath) {
@@ -91,8 +89,18 @@ func (m *Manifest) scan(root string, detectors ...interface{}) {
 			}
 			var cds []ContentDetector
 			if isdir {
+				// we will skip directories that start with "." unless a DirDetector
+				// says otherwise, e.g. ciDetector wants to look in .github dirs
+				skip := info.Name()[0] == '.'
 				for _, dd := range dirDetectors {
-					dd.DetectDirName(m, relpath)
+					if dd.DetectDirName(m, relpath) {
+						if skip {
+							skip = false
+						}
+					}
+				}
+				if skip {
+					return filepath.SkipDir
 				}
 			} else {
 				for _, fd := range fileDetectors {
