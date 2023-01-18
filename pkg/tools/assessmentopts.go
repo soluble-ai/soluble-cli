@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -138,7 +139,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 		downloaded, err = o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
 			apiClient.Organization), url, o.CacheDuration)
 		if err != nil {
-			if api.IsErrNoContent(err) {
+			if errors.Is(err, api.ErrNoContent) {
 				var zero string
 				o.customPoliciesDir = &zero
 				log.Infof("{primary:%s} has no custom policies", o.Tool.Name())

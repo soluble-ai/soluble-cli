@@ -66,20 +66,7 @@ func (h httpError) Is(err error) bool {
 	}
 }
 
-type ErrNoContent string
-
-func (d ErrNoContent) Error() string {
-	return string(d)
-}
-
-func (d ErrNoContent) Is(err error) bool {
-	_, ok := err.(ErrNoContent)
-	return ok
-}
-
-func IsErrNoContent(err error) bool {
-	return errors.Is(err, ErrNoContent(""))
-}
+var ErrNoContent = errors.New("no content")
 
 func NewClient(config *Config) *Client {
 	c := &Client{
@@ -301,7 +288,7 @@ func (c *Client) Download(path string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode() == http.StatusNoContent {
-		return nil, ErrNoContent("ErrNoContent")
+		return nil, ErrNoContent
 	}
 	return resp.Body(), nil
 }
