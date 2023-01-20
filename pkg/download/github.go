@@ -62,9 +62,22 @@ func getGithubReleaseAsset(owner, repo, tag string, releaseMatcher GithubRelease
 	if err != nil {
 		return nil, nil, err
 	}
-	assets, _, err := client.Repositories.ListReleaseAssets(ctx, owner, repo, release.GetID(), nil)
-	if err != nil {
-		return nil, nil, err
+	var (
+		assets []*github.ReleaseAsset
+		page   int
+	)
+	for {
+		pageAssets, resp, err := client.Repositories.ListReleaseAssets(ctx, owner, repo, release.GetID(), &github.ListOptions{
+			Page: page,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		assets = append(assets, pageAssets...)
+		if resp.NextPage == 0 {
+			break
+		}
+		page = resp.NextPage
 	}
 	asset, err := chooseReleaseAsset(assets, releaseMatcher)
 	if err != nil {
