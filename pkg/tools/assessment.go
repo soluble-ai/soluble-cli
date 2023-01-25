@@ -50,9 +50,9 @@ func processResult(result *Result) error {
 		// exit with error
 		exit.Code = 2
 		exit.AddFunc(func() {
-			log.Errorf("{primary:%s} has failed - {danger:%s}", o.Tool.Name(), result.ExecuteResult.FailureMessage)
+			log.Errorf("{primary:%s} has failed - {danger:%s}", o.Tool.Name(), result.ExecuteResult.CombinedOutput)
 		})
-		fmt.Fprintln(os.Stderr, result.ExecuteResult.CombinedOutput)
+		fmt.Fprintln(os.Stderr, result.ExecuteResult.FailureMessage)
 		if !o.UploadErrors {
 			// If we're not going to upload the errors, then we're done
 			return nil
