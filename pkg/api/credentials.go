@@ -14,9 +14,10 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 )
 
-// Credentials are saved in ~/.config/cli-credentials in toml format
+// Credentials are saved in ~/.config/iac/credentials in toml format
 // very much like the AWS cli does.  The file is updated atomically, but
 // with no provision for coordinating parallel invocations of the CLI.
 
@@ -59,9 +60,9 @@ func loadCredentials() Credentials {
 func getCredentialsPath() (string, error) {
 	credentialsDir := os.Getenv("SOLUBLE_CONFIG_DIR")
 	if credentialsDir != "" {
-		return filepath.Join(credentialsDir, "cli-credentials"), nil
+		return filepath.Join(credentialsDir, "iac", "credentials"), nil
 	}
-	return homedir.Expand("~/.config/lacework/cli-credentials")
+	return homedir.Expand("~/.config/lacework/iac/credentials")
 }
 
 func (c Credentials) Find(profileName string) *ProfileCredentials {
@@ -82,19 +83,23 @@ func (c Credentials) Save() error {
 		return err
 	}
 	dir := filepath.Dir(path)
-	temp, err := os.CreateTemp(dir, "cli-credentials*")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+	w, err := util.NewAtomicFileWriter(path)
 	if err != nil {
 		return err
 	}
-	enc := toml.NewEncoder(temp)
+	defer w.Close()
+	if err := w.Temp.Chmod(0600); err != nil {
+		return err
+	}
+	enc := toml.NewEncoder(w)
 	if err = enc.Encode(credentials); err != nil {
 		return err
 	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
 	log.Debugf("Saving credentials to {primary:%s}", path)
-	return os.Rename(temp.Name(), path)
+	return w.Rename()
 }
 
 func (p *ProfileCredentials) IsNearExpiration() bool {

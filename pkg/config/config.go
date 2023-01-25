@@ -213,12 +213,18 @@ func Save() error {
 		}
 	}
 	log.Infof("Updating {primary:%s}\n", ConfigFile)
-	file, err := os.OpenFile(ConfigFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	file, err := util.NewAtomicFileWriter(ConfigFile)
 	if err == nil {
 		defer file.Close()
-		enc := json.NewEncoder(file)
-		enc.SetIndent("", "  ")
-		err = enc.Encode(GlobalConfig)
+		err = file.Temp.Chmod(0600)
+		if err == nil {
+			enc := json.NewEncoder(file)
+			enc.SetIndent("", "  ")
+			err = enc.Encode(GlobalConfig)
+			if err == nil {
+				err = file.Rename()
+			}
+		}
 	}
 	if err != nil {
 		log.Errorf("Failed to save {primary:%s}: {danger:%s}", ConfigFile, err.Error())

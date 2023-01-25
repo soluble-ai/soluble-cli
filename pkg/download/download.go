@@ -34,6 +34,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download/terraform"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/repotree"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/afero"
 )
 
@@ -96,7 +97,7 @@ func NewManager() *Manager {
 		}
 		downloadDir = filepath.Join(root, ".downloads")
 	} else {
-		downloadDir = filepath.Join(config.ConfigDir, "downloads")
+		downloadDir = filepath.Join(config.ConfigDir, "iac", "downloads")
 	}
 	return &Manager{
 		downloadDir: downloadDir,
@@ -250,7 +251,7 @@ func (m *Manager) Remove(name, version string) error {
 }
 
 func (m *Manager) save(meta *DownloadMeta) error {
-	f, err := os.Create(filepath.Join(m.downloadDir, meta.Name, "meta.json"))
+	f, err := util.NewAtomicFileWriter(filepath.Join(m.downloadDir, meta.Name, "meta.json"))
 	if err != nil {
 		return err
 	}
@@ -262,7 +263,7 @@ func (m *Manager) save(meta *DownloadMeta) error {
 		return err
 	}
 	m.meta = nil
-	return nil
+	return f.Rename()
 }
 
 func (meta *DownloadMeta) updateLatestInfo(requestedVersion, actualVersion string) *Download {
@@ -284,7 +285,6 @@ func download(spec *Spec, req *http.Request, name string) (io.Reader, error) {
 		body := bytes.NewReader(resp)
 		return body, nil
 	} else {
-		req.BasicAuth()
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, err
@@ -307,7 +307,7 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 		return nil, err
 	}
 	archiveFile := filepath.Join(nameDir, base)
-	w, err := os.Create(archiveFile)
+	w, err := util.NewAtomicFileWriter(archiveFile)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +326,6 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = io.Copy(w, body)
 	if err != nil {
 		return nil, err
@@ -342,6 +341,9 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	}
 	meta.removeInstalledVersion(d.Version)
 	meta.Installed = append(meta.Installed, d)
+	if err := w.Rename(); err != nil {
+		return nil, err
+	}
 	err = d.Install(archiveFile)
 	if err != nil {
 		return nil, err
@@ -351,7 +353,6 @@ func (meta *DownloadMeta) install(m *Manager, spec *Spec, actualVersion string, 
 	if err != nil {
 		return nil, err
 	}
-
 	return d, nil
 }
 

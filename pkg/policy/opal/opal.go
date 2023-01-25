@@ -50,9 +50,7 @@ func preparePolicy(policy *policies.Policy, target policies.Target, dest string)
 }
 
 func (opalPolicies) GetTestRunner(runOpts tools.RunOpts, target policies.Target) tools.Single {
-	t := &opal.Tool{
-		ExtraArgs: []string{"--no-built-ins"},
-	}
+	t := &opal.Tool{}
 	switch target {
 	case policies.ARM:
 		t.InputType = "arm"
