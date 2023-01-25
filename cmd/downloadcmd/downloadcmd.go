@@ -16,6 +16,7 @@ package downloadcmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
@@ -116,36 +117,6 @@ func installCommand() *cobra.Command {
 	return c
 }
 
-func removeCommand() *cobra.Command {
-	var (
-		name    string
-		version string
-		all     bool
-	)
-	c := &cobra.Command{
-		Use:   "remove",
-		Short: "Remove an installed component",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if name == "" {
-				return fmt.Errorf("--name is required")
-			}
-			if all {
-				version = ""
-			} else if version == "" {
-				return fmt.Errorf("either --version or --all must be given")
-			}
-			m := download.NewManager()
-			return m.Remove(name, version)
-		},
-	}
-	flags := c.Flags()
-	flags.StringVar(&name, "name", "", "The name of the component to remove")
-	flags.StringVar(&version, "version", "", "The version to remove")
-	flags.BoolVar(&all, "all", false, "Remove all versions")
-	return c
-}
-
 func getCommand() *cobra.Command {
 	var name string
 	opts := options.PrintOpts{}
@@ -234,6 +205,44 @@ func getDefaultVersionCommand() *cobra.Command {
 	return c
 }
 
+func cleanCommand() *cobra.Command {
+	var (
+		all  bool
+		name string
+	)
+	c := &cobra.Command{
+		Use:   "clean",
+		Short: "Remove all but the latest version of all downloads",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			m := download.NewManager()
+			for _, dm := range m.List() {
+				if name != "" && name != dm.Name {
+					continue
+				}
+				if all {
+					log.Infof("Removing {primary:%s}", dm.Dir)
+					if err := os.RemoveAll(dm.Dir); err != nil {
+						return err
+					}
+				} else {
+					for _, d := range dm.Installed {
+						if d.Version != dm.LatestVersion {
+							if err := m.Remove(dm.Name, d.Version); err != nil {
+								return err
+							}
+						}
+					}
+				}
+			}
+			return nil
+		},
+	}
+	flags := c.Flags()
+	flags.BoolVar(&all, "all", false, "Remove all versions including latest")
+	flags.StringVar(&name, "name", "", "Remove just a specific download")
+	return c
+}
+
 func Command() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "download",
@@ -242,10 +251,10 @@ func Command() *cobra.Command {
 	c.AddCommand(
 		listCommand(),
 		installCommand(),
-		removeCommand(),
 		getCommand(),
 		printDirCommand(),
 		getDefaultVersionCommand(),
+		cleanCommand(),
 	)
 	return c
 }

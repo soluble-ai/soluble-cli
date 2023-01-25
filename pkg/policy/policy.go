@@ -71,23 +71,17 @@ type PolicyType interface {
 var allPolicyTypes = map[string]PolicyType{}
 
 type Store struct {
-	Dir                    string
-	Policies               map[PolicyType][]*Policy
-	PolicyIds              map[string]string
-	SkipPolicyIDResolution bool
+	Dir       string
+	Policies  map[PolicyType][]*Policy
+	PolicyIds map[string]string
 }
 
-func newStore(dir string, skipPolicyIDResolution bool) *Store {
+func NewStore(dir string) *Store {
 	return &Store{
-		Dir:                    dir,
-		Policies:               make(map[PolicyType][]*Policy),
-		PolicyIds:              make(map[string]string),
-		SkipPolicyIDResolution: skipPolicyIDResolution,
+		Dir:       dir,
+		Policies:  make(map[PolicyType][]*Policy),
+		PolicyIds: make(map[string]string),
 	}
-}
-
-func NewDownloadStore(dir string) *Store {
-	return newStore(dir, true)
 }
 
 func RegisterPolicyType(policyType PolicyType) {
@@ -163,17 +157,13 @@ func (m *Store) LoadSinglePolicy(policyType PolicyType, path string) (*Policy, e
 	if policy.Metadata == nil {
 		policy.Metadata = make(Metadata)
 	}
-	if m.SkipPolicyIDResolution {
-		policy.ID = policy.Metadata.GetString("policyId")
-	} else {
-		id, err := m.resolvePolicyID(policyType, path)
-		if err != nil {
-			return nil, err
-		}
-		policy.ID = id
-		policy.Metadata["policyId"] = policy.ID
-		policy.Metadata["sid"] = policy.ID
+	id, err := m.resolvePolicyID(policyType, path)
+	if err != nil {
+		return nil, err
 	}
+	policy.ID = id
+	policy.Metadata["policyId"] = policy.ID
+	policy.Metadata["sid"] = policy.ID
 	log.Debugf("Loaded %s from %s\n", policy.ID, policy.Path)
 	m.Policies[policyType] = append(m.Policies[policyType], policy)
 	for _, target := range allTargets {

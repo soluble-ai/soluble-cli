@@ -166,7 +166,7 @@ func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyT
 				return "", err
 			}
 		}
-		store := policy.NewDownloadStore(dir)
+		store := policy.NewStore(dir)
 		dest, err := os.MkdirTemp("", "policy*")
 		if err != nil {
 			return "", err

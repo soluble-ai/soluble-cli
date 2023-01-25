@@ -96,7 +96,7 @@ func (s *GitSource) GetVersion(name string, content []byte) string {
 func getGitModelDir(url string) (string, error) {
 	hash := sha256.Sum256([]byte(url))
 	name := fmt.Sprintf("%012x", hash[0:6])
-	m := filepath.Join(config.ConfigDir, "cli-models")
+	m := filepath.Join(config.ConfigDir, "iac", "cli-models")
 	return filepath.Join(m, name), nil
 }
 
