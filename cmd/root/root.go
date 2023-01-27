@@ -228,7 +228,6 @@ func setupSimulatedComponentEnv() error {
 	if config.IsRunningAsComponent() {
 		return nil
 	}
-	log.Infof("Setting up environment to simulate component execution")
 	var (
 		account   string
 		apiKey    string
@@ -249,6 +248,7 @@ func setupSimulatedComponentEnv() error {
 	if err != nil {
 		return err
 	}
+	log.Infof("Setting up environment to simulate component execution with account {info:%s}", account)
 	os.Setenv("LW_ACCOUNT", account)
 	os.Setenv("LW_API_KEY", apiKey)
 	os.Setenv("LW_API_SECRET", apiSecret)

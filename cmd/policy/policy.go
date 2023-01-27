@@ -125,6 +125,7 @@ func uploadCommand() *cobra.Command {
 		m          manager.M
 		zipArchive string
 		uploadOpts tools.UploadOpts
+		allowEmpty bool
 	)
 	c := &cobra.Command{
 		Use:   "upload",
@@ -137,6 +138,9 @@ func uploadCommand() *cobra.Command {
 			}
 			if err := m.LoadPolicies(); err != nil {
 				return err
+			}
+			if len(m.Policies) == 0 && !allowEmpty {
+				return fmt.Errorf("no policies found, use --allow-empty to upload no policies")
 			}
 			if res := m.ValidatePolicies(); res.Errors != nil {
 				return res.Errors
@@ -180,9 +184,9 @@ func uploadCommand() *cobra.Command {
 	uploadOpts.DefaultUploadEnabled = true
 	uploadOpts.Register(c)
 	flags.StringVar(&zipArchive, "save-zip-file", "", "Save the upload zip archive to `file`.  By default the archive is written to a temporary file.")
+	flags.BoolVar(&allowEmpty, "allow-empty", false, "Allow upload of no policies.")
 	flags.Lookup("upload").Usage = "Upload policies to lacework.  Use --upload=false to skip uploading."
 	flags.Lookup("upload-errors").Hidden = true // doesn't make sense here
-	_ = c.MarkFlagRequired("directory")
 	return c
 }
 

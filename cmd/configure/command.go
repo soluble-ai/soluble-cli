@@ -251,14 +251,14 @@ func (o *switchProfileOptions) saveValues(cmd *cobra.Command) error {
 	}
 	if flags.Changed("iac-organization") {
 		api.Organization = o.APIConfig.Organization
-		if api.Organization == "" {
-			if err := o.ConfigureDefaultOrganization(); err != nil {
-				return err
-			}
-		} else {
-			if err := o.ValidateOrganization(); err != nil {
-				return err
-			}
+	}
+	if api.Organization == "" {
+		if err := o.ConfigureDefaultOrganization(); err != nil {
+			return err
+		}
+	} else {
+		if err := o.ValidateOrganization(); err != nil {
+			return err
 		}
 	}
 	cfg := config.Get()

@@ -57,7 +57,6 @@ func (m *M) Register(cmd *cobra.Command) {
 	m.RunOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringVarP(&m.Dir, "directory", "d", "", "Load policies from this directory")
-	_ = cmd.MarkFlagRequired("directory")
 }
 
 func (m *M) RegisterDownload(cmd *cobra.Command) {
