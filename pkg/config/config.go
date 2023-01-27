@@ -189,6 +189,7 @@ func (c *ProfileT) Reset() {
 	name := c.ProfileName
 	*c = ProfileT{
 		ProfileName: name,
+		APIServer:   "https://api.soluble.cloud",
 	}
 }
 
