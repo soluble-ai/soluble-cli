@@ -58,7 +58,12 @@ The following environment variables are also supported:
   LW_IAC_API_URL - the IAC api server to use (default https://api.soluble.cloud)`,
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.StringVar(&opts.APIConfig.APIServer, "api-server", "", "The lacework IAC API server `url`")
-			flags.BoolVarP(&opts.APIConfig.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
+			if config.IsRunningAsComponent() {
+				// The lacework CLI eats -k
+				flags.BoolVar(&opts.APIConfig.TLSNoVerify, "disable-tls-verify", false, "Disable TLS verification on api-server")
+			} else {
+				flags.BoolVarP(&opts.APIConfig.TLSNoVerify, "disable-tls-verify", "k", false, "Disable TLS verification on api-server")
+			}
 			flags.DurationVar(&opts.APIConfig.Timeout, "api-timeout", time.Duration(opts.DefaultTimeout)*time.Second,
 				"The `timeout` (e.g. 15s, 500ms) for API requests (0 means no timeout)")
 			flags.IntVar(&opts.APIConfig.RetryCount, "api-retry", 5, "The `number` of times to retry the request")
