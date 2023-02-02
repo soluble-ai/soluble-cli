@@ -2,13 +2,13 @@ package custompolicybuilder
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"gopkg.in/yaml.v3"
 )
@@ -24,6 +24,7 @@ type PolicyTemplate struct {
 	Category  string
 	RsrcType  string
 	Provider  string
+	InputPath string
 }
 
 var categories = []string{
@@ -76,18 +77,18 @@ func getCheckTypes() []string {
 func (pt *PolicyTemplate) PromptInput() error {
 	var qs = []*survey.Question{
 		{
+			Name: "InputPath",
+			Prompt: &survey.Input{
+				Message: "Policies directory path.",
+				Default: "policies"},
+			Validate: pt.validatePolicyDirectory(),
+		},
+		{
 			Name: "provider",
 			Prompt: &survey.Select{
 				Message: "Select provider:",
 				Options: providers,
 			},
-		},
-		{
-			Name: "dir",
-			Prompt: &survey.Input{
-				Message: "Policies directory path",
-				Default: "policies"},
-			Validate: validatePolicyDirectory(),
 		},
 		{
 			Name: "checkType",
@@ -140,7 +141,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 		},
 	}
 
-	if err := survey.Ask(qs, pt); err == nil {
+	if err := survey.Ask(qs, pt); err != nil {
 		return err
 	}
 	return nil
@@ -161,33 +162,84 @@ func (pt *PolicyTemplate) validatePolicyName() func(interface{}) error {
 	}
 }
 
-func validatePolicyDirectory() func(interface{}) error {
+func (pt *PolicyTemplate) createPoliciesDirectoryPrompt(dir, message string) error {
+	create := false
+	err := survey.AskOne(&survey.Confirm{
+		Message: message,
+	},
+		&create)
+
+	if err != nil {
+		return err
+	}
+	if create {
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			// if directory already exists, prompt user to input this path
+			// to confirm this is the intended target directory
+			return fmt.Errorf("\033[34m %s \033[0m already exists. Input this path to confirm this is the target directory", dir)
+		}
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return err
+		} else {
+			log.Infof("created: %s", dir)
+		}
+		pt.Dir = dir
+	} else {
+		return fmt.Errorf("provide path to a 'policies' directory")
+	}
+	return nil
+}
+
+func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 	return func(inputDir interface{}) error {
 		dir := inputDir.(string)
-		if inputDir == "policies" {
+		pt.Dir = dir
+
+		// path points to a policies dir
+		if isPoliciesPath(dir) {
+			// check dir exists
 			if _, err := os.Stat(dir); os.IsNotExist(err) {
-				return fmt.Errorf("could not find '%v' directory in current directory."+
-					"\ncreate 'policies' directory or use -d to target an existing policies directory", dir)
+				// if dir doesn't exist offer to create it
+				err := pt.createPoliciesDirectoryPrompt(dir,
+					dir+" is not an existing policies directory. Create this directory now?")
+				if err != nil {
+					return err
+				}
+			}
+		} else if dir == "." || dir == "./" {
+			// check current dir is named policies
+			workingDir, _ := os.Getwd()
+			if workingDir != "policies" {
+				// offer to create `policies` dir in current dir
+				err := pt.createPoliciesDirectoryPrompt("./policies",
+					"current directory is not named policies. Create policies directory in current directory?")
+				if err != nil {
+					return err
+				}
 			}
 		} else {
-			split := strings.LastIndex(dir, "/")
-			if split == -1 {
-				return fmt.Errorf("invalid directory: %v", dir+
-					"\ntarget an existing policies directory.")
-			}
-			last := dir[split:]
-			if last != "/policies" {
-				return fmt.Errorf("invalid directory path: %v", dir+
-					"\nprovide path to existing policies directory")
-			} else {
-				if _, err := os.Stat(dir); os.IsNotExist(err) {
-					return fmt.Errorf("could not find directory: %v", dir+
-						"\ntarget an existing policies directory.")
-				}
+			// path does not point to a policies dir
+			// offer to create `policies dir in provided path
+			err := pt.createPoliciesDirectoryPrompt(filepath.Join(dir, "policies"),
+				dir+" path does not point to a policies directory. Create policies directory here?")
+			if err != nil {
+				return err
 			}
 		}
 		return nil
 	}
+}
+
+func isPoliciesPath(path string) bool {
+	if path == "policies" {
+		return true
+	}
+	split := strings.LastIndex(path, "/")
+	if split == -1 {
+		return false
+	}
+	last := path[split:]
+	return last == "/policies"
 }
 
 func (pt *PolicyTemplate) CreateCustomPolicyTemplate() error {
@@ -245,13 +297,13 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 	data, err := yaml.Marshal(&metadata)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err2 := os.WriteFile(metadataPath, data, os.ModePerm)
 
 	if err2 != nil {
-		log.Fatal(err2)
+		return err2
 	}
 	return nil
 }
@@ -282,7 +334,7 @@ func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
 	err := os.WriteFile(regoPath, []byte(regoTemplate), os.ModePerm)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	return nil
 }
