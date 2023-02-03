@@ -2,24 +2,19 @@ package opal
 
 import (
 	"net/http"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
-	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
-
 	"github.com/soluble-ai/soluble-cli/pkg/policy/manager"
+	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPolicies(t *testing.T) {
 	assert := assert.New(t)
-	m := InitM(t)
+	m := &manager.M{}
 	err := m.DetectPolicy("testdata/passing/policies")
 	assert.NoError(err)
 	assert.Equal(1, len(m.Policies))
@@ -32,7 +27,7 @@ func TestPolicies(t *testing.T) {
 
 func TestPoliciesFail(t *testing.T) {
 	assert := assert.New(t)
-	m := InitM(t)
+	m := &manager.M{}
 	err := m.DetectPolicy("testdata/failing/policies")
 	assert.NoError(err)
 	assert.Equal(1, len(m.Policies))
@@ -60,11 +55,10 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 						APIConfig: *apiConfig,
 					},
 				},
-				ToolPath: getToolPath(t),
 			},
-			Tool: &opal.Tool{},
 		},
 	}
+	o.Tool = GetTestOpal(o.RunOpts, "tf")
 
 	client, _ := o.RunOpts.ClientOpts.GetAPIClient()
 	httpmock.ActivateNonDefault(client.GetClient().GetClient())
@@ -78,19 +72,4 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 	assert.Equal(1, httpmock.GetTotalCallCount())
 	assert.NoError(err)
 	assert.Equal(customPoliciesDir, "")
-}
-
-func InitM(t *testing.T) *manager.M {
-	toolPath := getToolPath(t)
-	return &manager.M{RunOpts: tools.RunOpts{ToolPath: toolPath}}
-}
-
-func getToolPath(t *testing.T) string {
-	toolPath, ok := os.LookupEnv("TEST_OPAL_TOOL_PATH")
-	if ok {
-		// TEST_OPAL_TOOL_PATH should be set to the binary location under the opal repo to run the tests with a local opal binary
-		log.Infof("TEST_OPAL_TOOL_PATH=%s", toolPath)
-		assert.True(t, strings.HasSuffix(toolPath, "bin/opal"), "env var %s=%s is not a valid opal executable path", "TEST_OPAL_TOOL_PATH", toolPath)
-	}
-	return toolPath
 }
