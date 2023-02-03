@@ -8,6 +8,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
 	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
@@ -88,6 +89,7 @@ func getToolPath(t *testing.T) string {
 	toolPath, ok := os.LookupEnv("TEST_OPAL_TOOL_PATH")
 	if ok {
 		// TEST_OPAL_TOOL_PATH should be set to the binary location under the opal repo to run the tests with a local opal binary
+		log.Infof("TEST_OPAL_TOOL_PATH=%s", toolPath)
 		assert.True(t, strings.HasSuffix(toolPath, "bin/opal"), "env var %s=%s is not a valid opal executable path", "TEST_OPAL_TOOL_PATH", toolPath)
 	}
 	return toolPath
