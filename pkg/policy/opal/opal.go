@@ -50,6 +50,16 @@ func preparePolicy(policy *policies.Policy, target policies.Target, dest string)
 }
 
 func (opalPolicies) GetTestRunner(runOpts tools.RunOpts, target policies.Target) tools.Single {
+	return GetTestOpal(runOpts, target)
+}
+
+func GetTestOpal(runOpts tools.RunOpts, target policies.Target) tools.Single {
+	toolPath, ok := os.LookupEnv("TEST_OPAL_TOOL_PATH")
+	if ok {
+		// TEST_OPAL_TOOL_PATH should be set to the binary location under the opal repo to run the tests with a local opal binary
+		log.Infof("TEST_OPAL_TOOL_PATH=%s", toolPath)
+		runOpts.ToolPath = toolPath
+	}
 	t := &opal.Tool{}
 	switch target {
 	case policies.ARM:
