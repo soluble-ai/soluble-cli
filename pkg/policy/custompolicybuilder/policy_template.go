@@ -209,7 +209,7 @@ func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 		} else if dir == "." || dir == "./" {
 			// check current dir is named policies
 			workingDir, _ := os.Getwd()
-			if workingDir != "policies" {
+			if !isPoliciesPath(workingDir) {
 				// offer to create `policies` dir in current dir
 				err := pt.createPoliciesDirectoryPrompt("./policies",
 					"current directory is not named policies. Create policies directory in current directory?")
