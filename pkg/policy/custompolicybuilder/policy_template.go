@@ -195,8 +195,9 @@ func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 		dir := inputDir.(string)
 		pt.Dir = dir
 
-		// path points to a policies dir
-		if isPoliciesPath(dir) {
+		switch {
+		case isPoliciesPath(dir):
+			// path points to a policies dir
 			// check dir exists
 			if _, err := os.Stat(dir); os.IsNotExist(err) {
 				// if dir doesn't exist offer to create it
@@ -206,7 +207,7 @@ func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 					return err
 				}
 			}
-		} else if dir == "." || dir == "./" {
+		case dir == "." || dir == "./":
 			// check current dir is named policies
 			workingDir, _ := os.Getwd()
 			if !isPoliciesPath(workingDir) {
@@ -217,7 +218,7 @@ func (pt *PolicyTemplate) validatePolicyDirectory() func(interface{}) error {
 					return err
 				}
 			}
-		} else {
+		default:
 			// path does not point to a policies dir
 			// offer to create `policies dir in provided path
 			err := pt.createPoliciesDirectoryPrompt(filepath.Join(dir, "policies"),
