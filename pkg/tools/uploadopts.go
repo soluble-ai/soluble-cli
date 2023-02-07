@@ -59,6 +59,14 @@ func (o *UploadOpts) AppendUploadOptions(dir string, options []api.Option) []api
 
 func (o *UploadOpts) getPRDIffText(dir string) []byte {
 	buf := &bytes.Buffer{}
+	gsbuf := &bytes.Buffer{}
+	gs := exec.Command("git", "status")
+	gs.Stdout = gsbuf
+	err := gs.Run()
+	if err != nil {
+		return nil
+	}
+	log.Warnf("git status foo %s", string(gsbuf.Bytes()))
 	// #nosec G204
 	diff := exec.Command("git", "diff", "-z", "--name-status", fmt.Sprintf("%s...HEAD", o.GitPRBaseRef))
 	fmt.Fprintf(buf, "# %s\n", strings.Join(diff.Args, " "))
@@ -66,6 +74,8 @@ func (o *UploadOpts) getPRDIffText(dir string) []byte {
 	diff.Stdout = buf
 	if err := diff.Run(); err != nil {
 		log.Warnf("Could not determine PR diffs - {warning:%s}", err)
+		log.Warnf("Could not determine PR diffs - {warning:%s}", dir)
+		log.Warnf("Could not determine PR diffs - {warning:%s}", string(buf.Bytes()))
 		return nil
 	}
 	return buf.Bytes()
