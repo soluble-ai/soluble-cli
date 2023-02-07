@@ -47,6 +47,64 @@ var categories = []string{
 	"general",
 	"backup & recovery",
 }
+var gcpResourceTypes = []string{
+	"google_bigquery_dataset",
+	"google_compute_instance",
+	"google_dns_managed_zone",
+	"google_kms_crypto_key",
+	"google_storage_bucket",
+	"google_logging_project_sink",
+}
+
+var azureResourceTypes = []string{
+	"azurerm_app_service",
+	"azurerm_role_definition",
+	"azurerm_key_vault",
+	"azurerm_kubernetes_cluster",
+	"azurerm_monitor_diagnostic_setting",
+	"azurerm_mysql_server",
+	"azurerm_application_gateway",
+	"azurerm_network_security_group",
+	"azurerm_network_watcher_flow_log",
+	"azurerm_postgresql_server",
+	"azurerm_security_center_contact",
+	"azurerm_sql_server",
+	"azurerm_sql_database",
+	"azurerm_diagnostic_settings",
+	"azurerm_storage_account",
+}
+var awsResourceTypes = []string{
+	"aws_api_gateway",
+	"aws_cloudfront_distribution",
+	"aws_cloudTrail",
+	"aws_dynamodb_table",
+	"aws_ebc_volume",
+	"aws_elasticache_cluster",
+	"aws_elb",
+	"aws_lb",
+	"aws_iam_policy",
+	"aws_iam_group",
+	"aws_iam_group_policy",
+	"aws_iam_role",
+	"aws_iam_role_policy",
+	"aws_iam_role_policy_attachment",
+	"aws_iam_user",
+	"aws_iam_user_policy",
+	"aws_iam_user_policy_attachment",
+	"aws_iam_instance_profile",
+	"aws_iam_account_password_policy",
+	"aws_lambda_function",
+	"aws_db_instance",
+	"aws_rds_cluster",
+	"aws_redshift_cluster",
+	"aws_s3_bucket",
+	"aws_security_group",
+	"aws_sns_topic_subscription",
+	"aws_vpc",
+	"aws_flow_log",
+	"aws_network_acl",
+	"aws_wafv2_web_acl",
+}
 
 var severity = []string{
 	"info",
@@ -80,8 +138,8 @@ func (pt *PolicyTemplate) PromptInput() error {
 			Name: "InputPath",
 			Prompt: &survey.Input{
 				Message: "Policies directory path.",
-				Default: "policies"},
-			Validate: pt.validatePolicyDirectory(),
+			},
+			Validate: survey.ComposeValidators(survey.Required, pt.validatePolicyDirectory()),
 		},
 		{
 			Name: "provider",
@@ -119,17 +177,43 @@ func (pt *PolicyTemplate) PromptInput() error {
 		},
 		{
 			Name: "category",
-			Prompt: &survey.Select{
+			Prompt: &survey.Input{
 				Message: "Category",
-				Options: categories,
 				Help:    "functional grouping of the check",
+				Suggest: func(input string) []string {
+					return categories
+				},
+			},
+			Validate: func(input interface{}) error {
+				if isValid := regexp.MustCompile(`(^[a-z][a-z_]*$)`).MatchString(input.(string)); !isValid {
+					return fmt.Errorf("\ncategory must: \n-start with lowercase letter \n-only contain lowercase letters and underscored")
+				}
+				return nil
 			},
 		},
 		{
 			Name: "rsrcType",
 			Prompt: &survey.Input{
-				Message: "ResourceType",
-				Help:    "For example: aws_s3_bucket",
+				Message: "ResourceType\033[37m for suggestions, type aws, google or azure then tab",
+				Help:    "enter custom resource type or type aws, gcp or azure then tab for suggestions",
+				Suggest: func(input string) []string {
+					var suggestions []string
+					switch input {
+					case "aws":
+						suggestions = awsResourceTypes
+					case "google", "gcp":
+						suggestions = gcpResourceTypes
+					case "azure":
+						suggestions = azureResourceTypes
+					}
+					return suggestions
+				},
+			},
+			Validate: func(input interface{}) error {
+				if isValid := regexp.MustCompile(`(^[a-z][a-z_]*$)`).MatchString(input.(string)); !isValid {
+					return fmt.Errorf("\nResource Type must: \n-start with lowercase letter \n-only contain lowercase letters and underscored")
+				}
+				return nil
 			},
 		},
 		{
