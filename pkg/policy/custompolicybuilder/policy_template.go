@@ -48,6 +48,7 @@ var categories = []string{
 	"backup & recovery",
 }
 var gcpResourceTypes = []string{
+	"multiple",
 	"google_bigquery_dataset",
 	"google_compute_instance",
 	"google_dns_managed_zone",
@@ -57,6 +58,7 @@ var gcpResourceTypes = []string{
 }
 
 var azureResourceTypes = []string{
+	"multiple",
 	"azurerm_app_service",
 	"azurerm_role_definition",
 	"azurerm_key_vault",
@@ -74,6 +76,7 @@ var azureResourceTypes = []string{
 	"azurerm_storage_account",
 }
 var awsResourceTypes = []string{
+	"multiple",
 	"aws_api_gateway",
 	"aws_cloudfront_distribution",
 	"aws_cloudTrail",
@@ -194,8 +197,8 @@ func (pt *PolicyTemplate) PromptInput() error {
 		{
 			Name: "rsrcType",
 			Prompt: &survey.Input{
-				Message: "ResourceType\033[37m for suggestions, type aws, google or azure then tab",
-				Help:    "enter custom resource type or type aws, gcp or azure then tab for suggestions",
+				Message: "ResourceType\033[37m for suggestions type aws, google or azure then tab",
+				Help:    "for multiple resource types use multiple",
 				Suggest: func(input string) []string {
 					var suggestions []string
 					switch input {
@@ -205,6 +208,8 @@ func (pt *PolicyTemplate) PromptInput() error {
 						suggestions = gcpResourceTypes
 					case "azure":
 						suggestions = azureResourceTypes
+					case "m":
+						suggestions = append(suggestions, "multiple")
 					}
 					return suggestions
 				},
@@ -409,6 +414,9 @@ func (pt *PolicyTemplate) GeneratePolicyTemplate() error {
 			"\n\ninput_type := \"" + policy.InputTypeForTarget[policy.Target(pt.CheckType)] + "\""
 
 	if pt.RsrcType != "" {
+		if pt.RsrcType == "multiple" {
+			pt.RsrcType = strings.ToUpper(pt.RsrcType)
+		}
 		regoTemplate += "\n\nresource_type := \"" + pt.RsrcType + "\""
 	}
 
