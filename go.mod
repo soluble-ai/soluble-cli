@@ -11,7 +11,7 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.6.0
-	github.com/hashicorp/hcl/v2 v2.16.0
+	github.com/hashicorp/hcl/v2 v2.16.1
 	github.com/jarcoal/httpmock v1.3.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.17
