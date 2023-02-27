@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/soluble-ai/soluble-cli/cmd/test"
@@ -27,4 +28,11 @@ func TestPolicyTest(t *testing.T) {
 	assert := assert.New(t)
 	assert.Equal(4, n.Path("passed").AsInt(), n)
 	assert.Equal(0, n.Path("failed").AsInt(), n)
+}
+
+func TestPolicyConvertHidden(t *testing.T) {
+	test := test.NewCommand(t, "policy", "--help")
+	test.Must(test.Run())
+	assert := assert.New(t)
+	assert.False(strings.Contains(test.Out.String(), "convert"))
 }
