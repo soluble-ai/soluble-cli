@@ -234,7 +234,11 @@ func updateChecks(results *jnode.Node, name string, checks *jnode.Node) {
 
 func (t *Tool) processChecks(result *tools.Result, checks *jnode.Node, checkType string, pass bool) *jnode.Node {
 	for _, n := range checks.Elements() {
-		if codeBlockIsSensitive(n, pass) {
+		if checkType == "kubernetes" && pass {
+			// kubernetes line numbers span the entire file, so to mitigate large
+			// result files we remove code blocks for passed tests
+			n.Remove("code_block")
+		} else if codeBlockIsSensitive(n, pass) {
 			n.Remove("code_block")
 		}
 		filePath := n.Path("file_path").AsText()
