@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -69,20 +70,46 @@ func (k *Kustomize) findKustomizationFile(dir string) string {
 }
 
 func (k *Kustomize) Run() (*tools.Result, error) {
-	var combinedResult *tools.Result
+	var (
+		combinedResult *tools.Result
+		failedResult   *tools.Result
+		combinedOuput  strings.Builder
+	)
 	for _, overlay := range k.overlays {
 		result, err := k.runOnce(overlay)
+		if err != nil && result == nil {
+			return nil, err
+		}
+		if result != nil {
+			combinedOuput.WriteString(result.ExecuteResult.CombinedOutput.String())
+		}
 		if err != nil || result.ExecuteResult.FailureType != "" {
-			return result, err
+			if result != nil {
+				if failedResult == nil {
+					failedResult = result
+				}
+			}
+			if len(k.overlays) == 1 {
+				return result, err
+			}
+			continue
 		}
 		if combinedResult == nil {
 			combinedResult = result
 		} else {
 			mergeResults(combinedResult.Data, result.Data)
+			combinedResult.Findings = append(combinedResult.Findings, result.Findings...)
 		}
 	}
-
-	return combinedResult, nil
+	if combinedResult != nil {
+		combinedResult.ExecuteResult.CombinedOutput = &combinedOuput
+		return combinedResult, nil
+	}
+	if failedResult != nil {
+		failedResult.ExecuteResult.CombinedOutput = &combinedOuput
+		return failedResult, nil
+	}
+	return nil, nil
 }
 
 func (k *Kustomize) runOnce(overlay string) (*tools.Result, error) {
@@ -101,7 +128,7 @@ func (k *Kustomize) runOnce(overlay string) (*tools.Result, error) {
 	template.Stdout = os.Stderr
 	exec := k.ExecuteCommand(template)
 	if !exec.ExpectExitCode(0) {
-		log.Errorf("{primary:Kustomize template} failed.")
+		log.Errorf("{primary:kustomize template} failed.")
 		return exec.ToResult(k.GetDirectory()), nil
 	}
 	checkov := &Tool{
