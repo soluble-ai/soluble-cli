@@ -115,8 +115,12 @@ for p in \
     # which ultimately supports reproducible binary build by
     # removing otherwise hardcoded filesystem paths in the binary.
     set -x
+    xldflags="$ldflags"
+    if [ ${os_arch[0]} == "linux" ]; then
+        xldflags="$xldflags -extldflags -static"
+    fi
     GOOS=${os_arch[0]} GOARCH=${os_arch[1]} \
-        go build -o target/soluble${os_arch[3]} -tags ci,osusergo,netgo -trimpath "$ldflags"
+        go build -o target/soluble${os_arch[3]} -tags ci,osusergo,netgo -trimpath "$xldflags" 
     { set +x; } 2> /dev/null
     cp LICENSE README.md target
     pkg=${os_arch[2]}
