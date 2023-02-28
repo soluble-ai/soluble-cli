@@ -109,7 +109,7 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 		failedResult.ExecuteResult.CombinedOutput = &combinedOuput
 		return failedResult, nil
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no kustomize templates found")
 }
 
 func (k *Kustomize) runOnce(overlay string) (*tools.Result, error) {
