@@ -47,8 +47,13 @@ const (
 	Kubernetes     = IACPlatform("kubernetes")
 )
 
+type AssessmentTool interface {
+	GetAssessmentOptions() *AssessmentOpts
+	GetToolOptions() *ToolOpts
+}
+
 type Result struct {
-	Tool             Single
+	Tool             AssessmentTool
 	Data             *jnode.Node
 	Findings         assessments.Findings
 	Values           map[string]string

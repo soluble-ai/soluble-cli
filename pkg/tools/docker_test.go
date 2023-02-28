@@ -48,7 +48,7 @@ func TestDocker(t *testing.T) {
 		res, err := dt.run(true)
 		assert.NoError(err)
 		assert.Contains(string(res.Output), "Hello from Docker!")
-		assert.Contains(res.CombinedOutput, "Hello from Docker!")
+		assert.Contains(res.CombinedOutput.String(), "Hello from Docker!")
 	}
 }
 
