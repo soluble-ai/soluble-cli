@@ -31,7 +31,7 @@ type ExecuteResult struct {
 	FailureType    FailureType
 	FailureMessage string
 	ExitCode       int
-	CombinedOutput string
+	CombinedOutput *strings.Builder
 	Output         []byte
 }
 
@@ -64,7 +64,7 @@ func executeCommand(cmd *exec.Cmd) *ExecuteResult {
 	if err := redaction.RedactStream(bytes.NewReader(out), s); err != nil {
 		log.Warnf("Could not redact output of {info:%s} - {warning:%s}", cmd.Args[0], err)
 	}
-	result.CombinedOutput = s.String()
+	result.CombinedOutput = s
 	if output != nil {
 		result.Output = output.Bytes()
 	}
@@ -86,9 +86,9 @@ func (r *ExecuteResult) SetUploadValues(values map[string]string) {
 }
 
 func (r *ExecuteResult) AppendUploadOptions(compressFiles bool, options []api.Option) []api.Option {
-	if len(r.CombinedOutput) > 0 {
+	if r.CombinedOutput.Len() > 0 {
 		var toolLogOpt api.Option
-		src := strings.NewReader(r.CombinedOutput)
+		src := strings.NewReader(r.CombinedOutput.String())
 		if compressFiles {
 			gz := compress.NewGZIPPipe(src)
 			toolLogOpt = xcp.WithFileFromReader("tool_log", "tool.log.gz", gz)

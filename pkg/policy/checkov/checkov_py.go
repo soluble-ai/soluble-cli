@@ -123,10 +123,10 @@ func (h checkovPython) ValidatePolicies(runOpts tools.RunOpts, policies []*polic
 	}
 	validate.Valid = len(policies)
 	if result.ExecuteResult != nil {
-		if strings.Contains(result.ExecuteResult.CombinedOutput, "Traceback") {
+		if strings.Contains(result.ExecuteResult.CombinedOutput.String(), "Traceback") {
 			// Look for individual policies
 			for _, policy := range policies {
-				if strings.Contains(result.ExecuteResult.CombinedOutput, policy.ID) {
+				if strings.Contains(result.ExecuteResult.CombinedOutput.String(), policy.ID) {
 					err = multierror.Append(fmt.Errorf("the python policy in %s does not load in checkov", policy.Path))
 					validate.Valid--
 					validate.Invalid++

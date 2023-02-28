@@ -14,7 +14,7 @@ import (
 
 func TestKustomizeScan(t *testing.T) {
 	assert := assert.New(t)
-	tool := test.NewTool(t, "kustomize-scan", "-d", "../../k8sscan/integration/testdata/kust",
+	tool := test.NewTool(t, "kustomize-scan", "-d", "testdata", "--include", "**",
 		"--use-empty-config-file").WithFingerprints()
 	tool.Must(tool.Run())
 	repoRoot, err := repotree.FindRepoRoot("")
@@ -27,12 +27,12 @@ func TestKustomizeScan(t *testing.T) {
 
 func TestKustomizeUpload(t *testing.T) {
 	assert := assert.New(t)
-	tool := test.NewTool(t, "kustomize-scan", "-d", "../../k8sscan/integration/testdata/kust",
+	tool := test.NewTool(t, "kustomize-scan", "-d", "testdata", "--include", "**",
 		"--use-empty-config-file", "--format", "json").WithUpload(true)
 	tool.Must(tool.Run())
 	n := tool.JSON()
 	findings := n.Get(0).Path("findings")
-	assert.Greater(findings.Size(), 30)
+	assert.Equal(findings.Size(), 4)
 	params := n.Get(0).Path("params")
 	assert.Equal("kustomize", params.Path("IAC_PLATFORM").AsText())
 	assert.Equal("0", params.Path("EXIT_CODE").AsText())
