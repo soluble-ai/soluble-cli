@@ -63,6 +63,12 @@ func (m *M) RegisterDownload(cmd *cobra.Command) {
 	m.RunOpts.Register(cmd)
 }
 
+func (m *M) RegisterUpload(cmd *cobra.Command) {
+	m.RunOpts.Register(cmd)
+	flags := cmd.Flags()
+	flags.StringVarP(&m.Dir, "directory", "d", "", "Load policies from this directory. Path should point to the parent directory of your /policies directory.")
+}
+
 func (m *M) ValidatePolicies() ValidateResult {
 	var result ValidateResult
 	for _, policyType := range policy.GetPolicyTypes() {
