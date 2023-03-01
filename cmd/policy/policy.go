@@ -143,7 +143,9 @@ func uploadCommand() *cobra.Command {
 				return err
 			}
 			if len(m.Policies) == 0 && !allowEmpty {
-				return fmt.Errorf("no policies found, use --allow-empty to upload no policies")
+				return fmt.Errorf("no policies found" +
+					"\n\t - Ensure path provided points to the parent directory of the /policies directory" +
+					"\n\t - or use --allow-empty to upload no policies")
 			}
 			if res := m.ValidatePolicies(); res.Errors != nil {
 				return res.Errors
@@ -182,7 +184,7 @@ func uploadCommand() *cobra.Command {
 			return nil
 		},
 	}
-	m.Register(c)
+	m.RegisterUpload(c)
 	flags := c.Flags()
 	uploadOpts.DefaultUploadEnabled = true
 	uploadOpts.Register(c)
