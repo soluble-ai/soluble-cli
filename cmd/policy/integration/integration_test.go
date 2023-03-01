@@ -43,7 +43,7 @@ func TestPolicyUploadFail(t *testing.T) {
 		"-d", "path/to/policies")
 	err := test.Run()
 	assert.Errorf(err,
-		"no policies found."+
+		"no policies found"+
 			"\n\t - Ensure path provided points to the parent directory of the /policies directory"+
-			"\n\t - or use --allow-empty to upload no policies.")
+			"\n\t - or use --allow-empty to upload no policies")
 }
