@@ -36,3 +36,14 @@ func TestPolicyConvertHidden(t *testing.T) {
 	assert := assert.New(t)
 	assert.False(strings.Contains(test.Out.String(), "convert"))
 }
+
+func TestPolicyUploadFail(t *testing.T) {
+	assert := assert.New(t)
+	test := test.NewCommand(t, "policy", "upload",
+		"-d", "path/to/policies")
+	err := test.Run()
+	assert.Errorf(err,
+		"no policies found."+
+			"\n\t - Ensure path provided points to the parent directory of the /policies directory"+
+			"\n\t - or use --allow-empty to upload no policies.")
+}

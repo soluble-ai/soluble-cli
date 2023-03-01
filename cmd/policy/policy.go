@@ -145,7 +145,7 @@ func uploadCommand() *cobra.Command {
 			if len(m.Policies) == 0 && !allowEmpty {
 				return fmt.Errorf("no policies found." +
 					"\n\t - Ensure path provided points to the parent directory of the /policies directory" +
-					"\n\t - or use --allow-empty to upload no policies. ")
+					"\n\t - or use --allow-empty to upload no policies.")
 			}
 			if res := m.ValidatePolicies(); res.Errors != nil {
 				return res.Errors
