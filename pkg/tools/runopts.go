@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/soluble-ai/go-jnode"
@@ -135,12 +136,18 @@ func (o *RunOpts) InstallTool(spec *download.Spec) (*download.Download, error) {
 	return m.Install(spec)
 }
 
+var toolVersionLock = sync.Mutex{}
+
 func (o *RunOpts) getToolVersion(name string) (*jnode.Node, error) {
 	if o.ToolVersion != "" {
 		return jnode.NewObjectNode().
 			Put("image", o.ToolVersion).
 			Put("version", o.ToolVersion), nil
 	}
+	// SetTempLevel() isn't safe for concurrent use, so we'll just get tool versions
+	// under lock
+	toolVersionLock.Lock()
+	defer toolVersionLock.Unlock()
 	temp := log.SetTempLevel(log.Warning)
 	n, err := o.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
 	temp.Restore()
