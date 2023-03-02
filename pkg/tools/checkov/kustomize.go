@@ -16,9 +16,15 @@ import (
 
 type Kustomize struct {
 	tools.DirectoryBasedToolOpts
-	Include []string
+	Include  []string
+	Parallel int
 
 	overlays []string
+}
+
+type kustomizeOverlayRunResult struct {
+	result *tools.Result
+	err    error
 }
 
 var _ tools.Interface = (*Kustomize)(nil)
@@ -31,6 +37,7 @@ func (k *Kustomize) Register(cmd *cobra.Command) {
 	k.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringSliceVar(&k.Include, "include", nil, "Look for kustomize overlays in these directory `patterns`.  Each pattern is a gitignore-style string e.g. '**/prod*' would include all overlays in directories that start with 'prod'.  Use --include '**' to run against all overlays.  May be repeated.  Without this flag the scan will only look in the target directory (non-recursive.)")
+	flags.IntVar(&k.Parallel, "parallel", 0, "Generate kustomize templates in N threads")
 }
 
 func (k *Kustomize) Validate() error {
@@ -75,30 +82,61 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 		failedResult   *tools.Result
 		combinedOuput  strings.Builder
 	)
-	for _, overlay := range k.overlays {
-		result, err := k.runOnce(overlay)
-		if err != nil && result == nil {
-			return nil, err
+	workers := k.Parallel
+	if workers <= 1 {
+		workers = 1
+	}
+	overlayCh := make(chan string, workers)
+	runResultCh := make(chan *kustomizeOverlayRunResult)
+	defer close(overlayCh)
+	for i := 0; i < workers; i++ {
+		go k.runWorker(overlayCh, runResultCh)
+	}
+	sent := 0
+	received := 0
+loop:
+	for {
+		var runResult *kustomizeOverlayRunResult
+		switch {
+		case sent < len(k.overlays):
+			select {
+			case overlayCh <- k.overlays[sent]:
+				sent++
+			case runResult = <-runResultCh:
+				received++
+			}
+		case received < len(k.overlays):
+			runResult = <-runResultCh
+			received++
+		default:
+			break loop
 		}
-		if result != nil {
-			combinedOuput.WriteString(result.ExecuteResult.CombinedOutput.String())
-		}
-		if err != nil || result.ExecuteResult.FailureType != "" {
+		if runResult != nil {
+			result := runResult.result
+			err := runResult.err
+			if err != nil && result == nil {
+				return nil, err
+			}
 			if result != nil {
-				if failedResult == nil {
-					failedResult = result
+				combinedOuput.WriteString(result.ExecuteResult.CombinedOutput.String())
+			}
+			if err != nil || result.ExecuteResult.FailureType != "" {
+				if result != nil {
+					if failedResult == nil {
+						failedResult = result
+					}
 				}
+				if len(k.overlays) == 1 {
+					return result, err
+				}
+				continue
 			}
-			if len(k.overlays) == 1 {
-				return result, err
+			if combinedResult == nil {
+				combinedResult = result
+			} else {
+				mergeResults(combinedResult.Data, result.Data)
+				combinedResult.Findings = append(combinedResult.Findings, result.Findings...)
 			}
-			continue
-		}
-		if combinedResult == nil {
-			combinedResult = result
-		} else {
-			mergeResults(combinedResult.Data, result.Data)
-			combinedResult.Findings = append(combinedResult.Findings, result.Findings...)
 		}
 	}
 	if combinedResult != nil {
@@ -110,6 +148,20 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 		return failedResult, nil
 	}
 	return nil, fmt.Errorf("no kustomize templates found")
+}
+
+func (k *Kustomize) runWorker(overlayCh <-chan string, resultCh chan<- *kustomizeOverlayRunResult) {
+	for {
+		overlay, more := <-overlayCh
+		if !more {
+			return
+		}
+		result, err := k.runOnce(overlay)
+		resultCh <- &kustomizeOverlayRunResult{
+			result: result,
+			err:    err,
+		}
+	}
 }
 
 func (k *Kustomize) runOnce(overlay string) (*tools.Result, error) {
