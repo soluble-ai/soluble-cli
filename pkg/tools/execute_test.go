@@ -39,3 +39,15 @@ func TestExecuteParseJSON(t *testing.T) {
 	assert.NotNil(n)
 	assert.Equal("world", n.Path("hello").AsText())
 }
+
+func TestExecuteError(t *testing.T) {
+	assert := assert.New(t)
+	failureMessage := "CycleError in aws CycleError: variables form a cycle: aws_instance.nat.provisioner[0].inline"
+	cmd := exec.Command("echo",
+		`{"level":"fatal","msg":"`+failureMessage+`"}`)
+	res := executeCommand(cmd)
+	assert.NotNil(res)
+	assert.Equal(ExecutionFailure, res.FailureType)
+	assert.Equal(failureMessage, res.FailureMessage)
+	assert.False(res.ExpectExitCode(0))
+}
