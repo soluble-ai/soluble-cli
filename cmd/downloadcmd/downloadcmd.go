@@ -180,7 +180,6 @@ func printDirCommand() *cobra.Command {
 }
 
 func getDefaultVersion(opts *options.PrintClientOpts, name string) (*jnode.Node, error) {
-	defer log.SetTempLevel(log.Error - 1).Restore()
 	return opts.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
 }
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	ignore "github.com/sabhiram/go-gitignore"
@@ -37,7 +38,7 @@ func (k *Kustomize) Register(cmd *cobra.Command) {
 	k.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringSliceVar(&k.Include, "include", nil, "Look for kustomize overlays in these directory `patterns`.  Each pattern is a gitignore-style string e.g. '**/prod*' would include all overlays in directories that start with 'prod'.  Use --include '**' to run against all overlays.  May be repeated.  Without this flag the scan will only look in the target directory (non-recursive.)")
-	flags.IntVar(&k.Parallel, "parallel", 0, "Generate kustomize templates in N threads")
+	flags.IntVar(&k.Parallel, "parallel", 0, "Generate kustomize templates in `N` threads.  If N < 0, then use NumCPU / -N e.g. '--parallel -1' uses NumCPU and '--parallel -2' uses NumCPU / 2")
 }
 
 func (k *Kustomize) Validate() error {
@@ -83,8 +84,14 @@ func (k *Kustomize) Run() (*tools.Result, error) {
 		combinedOuput  strings.Builder
 	)
 	workers := k.Parallel
-	if workers <= 1 {
+	switch {
+	case workers == 0:
 		workers = 1
+	case workers < 0:
+		workers = runtime.NumCPU() / -workers
+		if workers == 0 {
+			workers = 1
+		}
 	}
 	overlayCh := make(chan string, workers)
 	runResultCh := make(chan *kustomizeOverlayRunResult)
@@ -140,10 +147,12 @@ loop:
 		}
 	}
 	if combinedResult != nil {
+		combinedResult.Directory = k.GetDirectory()
 		combinedResult.ExecuteResult.CombinedOutput = &combinedOuput
 		return combinedResult, nil
 	}
 	if failedResult != nil {
+		failedResult.Directory = k.GetDirectory()
 		failedResult.ExecuteResult.CombinedOutput = &combinedOuput
 		return failedResult, nil
 	}

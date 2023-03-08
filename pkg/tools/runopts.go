@@ -148,9 +148,7 @@ func (o *RunOpts) getToolVersion(name string) (*jnode.Node, error) {
 	// under lock
 	toolVersionLock.Lock()
 	defer toolVersionLock.Unlock()
-	temp := log.SetTempLevel(log.Warning)
 	n, err := o.GetUnauthenticatedAPIClient().Get(fmt.Sprintf("cli/tools/%s/config", name))
-	temp.Restore()
 	if err != nil {
 		log.Errorf("Could not determine the version of {primary:%s} to use - {danger:%s}", name, err)
 		return nil, err
