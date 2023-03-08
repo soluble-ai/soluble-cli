@@ -103,17 +103,3 @@ func Warnf(template string, args ...interface{}) {
 func Tracef(template string, args ...interface{}) {
 	Log(Trace, template, args...)
 }
-
-type TempLevel struct {
-	orig int
-}
-
-func SetTempLevel(level int) *TempLevel {
-	t := &TempLevel{orig: Level}
-	Level = level
-	return t
-}
-
-func (l *TempLevel) Restore() {
-	Level = l.orig
-}

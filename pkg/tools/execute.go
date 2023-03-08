@@ -8,8 +8,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/capture"
@@ -36,11 +34,6 @@ type ExecuteResult struct {
 	ExitCode       int
 	CombinedOutput *strings.Builder
 	Output         []byte
-}
-
-type ExecuteError struct {
-	Level logrus.Level `json:"level"`
-	Msg   string       `json:"msg"`
 }
 
 func executeCommand(cmd *exec.Cmd) *ExecuteResult {
@@ -73,7 +66,9 @@ func executeCommand(cmd *exec.Cmd) *ExecuteResult {
 		log.Warnf("Could not redact output of {info:%s} - {warning:%s}", cmd.Args[0], err)
 	}
 	result.CombinedOutput = s
-	var execErr ExecuteError
+	var execErr struct {
+		Msg string `json:"msg"`
+	}
 	if err := json.Unmarshal(out, &execErr); err == nil {
 		if execErr.Msg != "" {
 			result.FailureType = ExecutionFailure

@@ -173,7 +173,7 @@ func (c *Config) Validate() error {
 					config.CommandInvocation())
 				return fmt.Errorf("configuration is invalid")
 			}
-			log.Infof("IAC profile {info:%s} is linked to lacework profile {info:%s}",
+			log.Debugf("IAC profile {info:%s} is linked to lacework profile {info:%s}",
 				profileName, laceworkProfileName)
 			configuredAccount = c.LaceworkAccount
 		}
@@ -188,7 +188,7 @@ func (c *Config) Validate() error {
 				return fmt.Errorf("configuration is invalid")
 			}
 		}
-		log.Infof("Using lacework authentication for account {info:%s}", c.LaceworkAccount)
+		log.Debugf("Using lacework authentication for account {info:%s}", c.LaceworkAccount)
 		return nil
 	}
 	return nil

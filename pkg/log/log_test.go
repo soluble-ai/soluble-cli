@@ -33,25 +33,6 @@ func TestLog(t *testing.T) {
 	}
 }
 
-func TestTemp(t *testing.T) {
-	Configure()
-	w := bytes.Buffer{}
-	color.Output = &w
-	color.NoColor = true
-	func() {
-		t := SetTempLevel(Error)
-		defer t.Restore()
-		Infof("hello")
-	}()
-	if s := w.String(); s != "" {
-		t.Error(s)
-	}
-	Infof("There")
-	if s := w.String(); s != "[ Info] There\n" {
-		t.Error(s)
-	}
-}
-
 func TestStartupLogging(t *testing.T) {
 	assert := assert.New(t)
 	DeferUntilConfigured()
