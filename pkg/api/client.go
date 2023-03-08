@@ -197,21 +197,32 @@ func (c *Client) execute(r *resty.Request, method, path string, options []Option
 		return nil, err
 	case resp != nil && resp.IsError():
 		t := time.Since(r.Time).Truncate(time.Millisecond)
-		log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Method,
-			r.URL, resp.StatusCode(), t)
-		log.Errorf("{warning:%s}\n", resp.String())
-		if resp.StatusCode() == 401 || resp.StatusCode() == 404 {
-			log.Infof("Are you not logged in?  Use {info:%s auth profile} to verify.", cfg.CommandInvocation())
-			log.Infof("See {primary:https://docs.lacework.com/iac/} for more information.")
+		if shouldLog(path) {
+			log.Errorf("{info:%s} {primary:%s} returned {danger:%d} in {secondary:%s}\n", r.Method,
+				r.URL, resp.StatusCode(), t)
+			log.Errorf("{warning:%s}\n", resp.String())
+			if resp.StatusCode() == 401 || resp.StatusCode() == 404 {
+				log.Infof("Are you not logged in?  Use {info:%s auth profile} to verify.", cfg.CommandInvocation())
+				log.Infof("See {primary:https://docs.lacework.com/iac/} for more information.")
+			}
 		}
 		return resp, httpError(fmt.Sprintf("%s returned %d", r.URL, resp.StatusCode()))
 	default:
 		t := time.Since(r.Time).Truncate(time.Millisecond)
 		log.Tracef("%v", resp.Result())
-		log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Method,
-			r.URL, resp.StatusCode(), t)
+		if shouldLog(path) {
+			log.Infof("{info:%s} {primary:%s} returned {success:%d} in {secondary:%s}\n", r.Method,
+				r.URL, resp.StatusCode(), t)
+		}
 		return resp, nil
 	}
+}
+
+func shouldLog(path string) bool {
+	if strings.Contains(path, "cli/tools/") && strings.HasSuffix(path, "/config") {
+		return false
+	}
+	return true
 }
 
 func (c *Client) Post(path string, body *jnode.Node, options ...Option) (*jnode.Node, error) {

@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 )
@@ -42,8 +43,10 @@ type DockerTool struct {
 	PropagateEnvironmentVars []string
 }
 
-// NB - not concurrent
-var pulled = map[string]bool{}
+var (
+	pulled   = map[string]bool{}
+	pullLock sync.Mutex
+)
 
 func (d DockerError) Error() string {
 	return string(d)
@@ -82,19 +85,28 @@ func hasDocker(options ...func(*exec.Cmd)) error {
 	}
 }
 
+func (t *DockerTool) pull() {
+	pullLock.Lock()
+	defer pullLock.Unlock()
+	if pulled[t.Image] {
+		return
+	}
+	pulled[t.Image] = true
+	// #nosec G204
+	pull := exec.Command("docker", "pull", t.Image)
+	out, err := pull.Output()
+	if err != nil {
+		os.Stderr.Write(out)
+		log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
+	}
+}
+
 func (t *DockerTool) run(skipPull bool) (*ExecuteResult, error) {
 	if err := hasDocker(); err != nil {
 		return nil, err
 	}
-	if !skipPull || pulled[t.Image] {
-		pulled[t.Image] = true
-		// #nosec G204
-		pull := exec.Command("docker", "pull", t.Image)
-		out, err := pull.Output()
-		if err != nil {
-			os.Stderr.Write(out)
-			log.Warnf("docker pull {primary:%s} failed: {warning:%s}", t.Image, err)
-		}
+	if !skipPull {
+		t.pull()
 	}
 	args := t.getArgs(os.Getenv)
 	run := exec.Command("docker", args...)
