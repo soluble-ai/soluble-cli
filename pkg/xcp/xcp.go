@@ -16,11 +16,14 @@ package xcp
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/soluble-ai/go-jnode"
@@ -94,14 +97,35 @@ func WithCIEnvBody(dir string) api.Option {
 // For XCPPost, include a file from a reader.
 func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 	closer, _ := reader.(io.Closer)
+	var err error
 	return api.CloseableOptionFunc(func(req *resty.Request) {
-		req.SetFileReader(param, filename, reader)
+		// need to use SetFile not SetFileReader to allow retries https://github.com/go-resty/resty/issues/334
+		var path string
+		file, ok := reader.(*os.File)
+		if ok {
+			path = file.Name()
+		} else {
+			// this is not a file, write the data to a file in a temp dir
+			path, err = util.GetTempFilePath(filename)
+			content, err := ioutil.ReadAll(reader)
+			if err != nil {
+				return
+			}
+			err = os.WriteFile(path, content, 0600)
+			if err != nil {
+				return
+			}
+		}
+		req.SetFile(param, path)
 		log.Debugf("...including {secondary:%s}", filename)
 	}, func() error {
 		if closer != nil {
-			return closer.Close()
+			closeErr := closer.Close()
+			if err == nil {
+				err = closeErr
+			}
 		}
-		return nil
+		return err
 	})
 }
 

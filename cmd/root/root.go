@@ -20,6 +20,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/soluble-ai/soluble-cli/pkg/util"
+
 	"github.com/soluble-ai/soluble-cli/cmd/auth"
 	"github.com/soluble-ai/soluble-cli/cmd/build"
 	"github.com/soluble-ai/soluble-cli/cmd/cfnscan"
@@ -94,9 +96,16 @@ func Command() *cobra.Command {
 					return err
 				}
 			}
+			err := util.CreateRootTempDir()
+			if err != nil {
+				return err
+			}
+			log.Debugf("Created root temp dir: %s", util.GetRootTempDir())
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			dir := util.RemoveRootTempDir()
+			log.Debugf("Removed root temp dir: %s", dir)
 			if exit.Code != 0 {
 				if exit.Func != nil {
 					exit.Func()
