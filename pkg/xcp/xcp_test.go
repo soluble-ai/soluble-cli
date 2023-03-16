@@ -15,15 +15,38 @@
 package xcp
 
 import (
+	"bytes"
+	"compress/gzip"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/compress"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	readerTestData = "Hello Laceworld!"
+)
+
+func setupTest(t *testing.T) func(t *testing.T) {
+	log.Infof(fmt.Sprintf("setup %s", t.Name()))
+	_ = util.CreateRootTempDir()
+
+	return func(t *testing.T) {
+		log.Infof(fmt.Sprintf("teardown %s", t.Name()))
+		util.RemoveRootTempDir()
+	}
+}
+
 func TestGetCIEnv(t *testing.T) {
-	assert := assert.New(t)
+	assertions := assert.New(t)
 	saveEnv := os.Environ()
 	defer func() {
 		os.Clearenv()
@@ -60,19 +83,19 @@ func TestGetCIEnv(t *testing.T) {
 		}
 	}
 
-	assert.True(contains(env, "BUILD_ID"))
-	assert.True(contains(env, "JOB_BASE_NAME"))
-	assert.True(contains(env, "KUBERNETES_PORT"))
-	assert.True(contains(env, "SOLUBLE_METADATA_CI_SYSTEM"))
-	assert.True(contains(env, "RUN_ARTIFACTS_DISPLAY_URL"))
-	assert.False(contains(env, "TF_VAR_adminpassword"))
-	assert.False(contains(env, "TF_VAR_adminusername"))
-	assert.False(contains(env, "ARM_TENANT_ID"))
-	assert.False(contains(env, "ARM_CLIENT_SECRET"))
+	assertions.True(contains(env, "BUILD_ID"))
+	assertions.True(contains(env, "JOB_BASE_NAME"))
+	assertions.True(contains(env, "KUBERNETES_PORT"))
+	assertions.True(contains(env, "SOLUBLE_METADATA_CI_SYSTEM"))
+	assertions.True(contains(env, "RUN_ARTIFACTS_DISPLAY_URL"))
+	assertions.False(contains(env, "TF_VAR_adminpassword"))
+	assertions.False(contains(env, "TF_VAR_adminusername"))
+	assertions.False(contains(env, "ARM_TENANT_ID"))
+	assertions.False(contains(env, "ARM_CLIENT_SECRET"))
 }
 
 func TestAtlantisCIEnv(t *testing.T) {
-	assert := assert.New(t)
+	assertions := assert.New(t)
 	saveEnv := os.Environ()
 	defer func() {
 		os.Clearenv()
@@ -95,8 +118,8 @@ func TestAtlantisCIEnv(t *testing.T) {
 	}
 
 	// make sure atlantis env variables are available
-	assert.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
-	assert.True(contains(env, "ATLANTIS_PULL_NUM"))
+	assertions.True(contains(env, "ATLANTIS_TERRAFORM_VERSION"))
+	assertions.True(contains(env, "ATLANTIS_PULL_NUM"))
 	for _, kv := range os.Environ() {
 		if strings.HasSuffix(kv, "=yyy") {
 			if strings.HasPrefix(kv, "PULL_NUM") ||
@@ -114,6 +137,99 @@ func TestNormalizeGitRemote(t *testing.T) {
 	if s := normalizeGitRemote("git@github.com:fizz/buzz.git"); s != "github.com/fizz/buzz" {
 		t.Error(s)
 	}
+}
+
+func TestCompressedGetFileReaderFromStringReader(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+	reader := strings.NewReader(readerTestData)
+	gzReader := compress.NewGZIPPipe(reader)
+	// assert we can read from the call to writeFileFromReader(filename string, reader io.Reader)
+	assertWriteCompressedFileFromReader(t, "compressedfile", gzReader)
+}
+
+func TestGetFileReaderFromStringReader(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+	reader := strings.NewReader(readerTestData)
+	// assert we can read from the call to writeFileFromReader(filename string, reader io.Reader)
+	assertWriteFileFromReader(t, "afile", reader)
+}
+
+func TestCompressedGetFileReaderFromFile(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+	file, err := os.CreateTemp("", "helloworld.txt")
+	assert.NoError(t, err)
+	defer os.Remove(file.Name())
+
+	err = os.WriteFile(file.Name(), []byte(readerTestData), 0600)
+	assert.NoError(t, err)
+	gzReader := compress.NewGZIPPipe(file)
+	// assert we can read from the call to writeFileFromReader(filename string, reader io.Reader)
+	assertWriteCompressedFileFromReader(t, "compressedfile", gzReader)
+}
+
+func TestGetFileReaderFromFile(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+	file, err := os.CreateTemp("", "helloworld.txt")
+	assert.NoError(t, err)
+	defer os.Remove(file.Name())
+	err = os.WriteFile(file.Name(), []byte(readerTestData), 0600)
+	assert.NoError(t, err)
+	// assert we can read from the call to writeFileFromReader(filename string, reader io.Reader)
+	assertWriteFileFromReader(t, "afile", file)
+}
+
+func TestCompressedGetFileReaderFromBytesReader(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+	reader := bytes.NewReader([]byte(readerTestData))
+	gzReader := compress.NewGZIPPipe(reader)
+	// assert we can read from the call to writeFileFromReader(filename string, reader io.Reader)
+	assertWriteCompressedFileFromReader(t, "compressedfile", gzReader)
+}
+
+func TestGetFileReaderFromBytesReader(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+	reader := bytes.NewReader([]byte(readerTestData))
+	// assert we can read from the call to writeFileFromReader(filename string, reader io.Reader)
+	assertWriteFileFromReader(t, "afile", reader)
+}
+
+func assertWriteCompressedFileFromReader(t *testing.T, filename string, reader io.Reader) {
+	// should always return a reader which can be read
+	path, err := writeFileFromReader(filename, reader)
+	assert.NoError(t, err)
+	file, err := os.Open(path)
+	assert.NoError(t, err)
+	// gzip reader to read the compressed data
+	gzr, err := gzip.NewReader(file)
+	assert.NoError(t, err)
+	// read all the data
+	bytesRead, err := ioutil.ReadAll(gzr)
+	assert.NoError(t, err)
+	// convert to string
+	actualData := string(bytesRead)
+	// assert that the actual data read meets the expected data from the io.readSeeker
+	assert.Equal(t, readerTestData, actualData)
+}
+
+func assertWriteFileFromReader(t *testing.T, filename string, reader io.Reader) {
+	// should always return a reader which can be read
+	path, err := writeFileFromReader(filename, reader)
+	assert.NoError(t, err)
+	file, err := os.Open(path)
+	assert.NoError(t, err)
+	// read all the data
+	bytesRead, err := ioutil.ReadAll(file)
+	assert.NoError(t, err)
+	// convert to string
+	actualData := string(bytesRead)
+	// assert that the actual data read meets the expected data from the io.readSeeker
+	assert.Equal(t, readerTestData, actualData)
 }
 
 func contains(s map[string]string, searchStr string) bool {
