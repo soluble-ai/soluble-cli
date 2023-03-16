@@ -24,9 +24,25 @@ func TestScan(t *testing.T) {
 }
 
 func TestScanUploadJSON(t *testing.T) {
-	test.RequireAPIToken(t)
 	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--use-empty-config-file", "--format", "json").
 		WithUpload(true)
+	assertScan(t, tool, []string{
+		"config.yml", "results.json", "tool.log", "findings.json",
+		"fingerprints.json", "git-status-z.txt",
+	})
+}
+
+func TestScanUploadJSONCompressResults(t *testing.T) {
+	tool := test.NewTool(t, "tf-scan", "-d", "testdata", "--use-empty-config-file", "--format", "json", "--x-compress-results").
+		WithUpload(true)
+	assertScan(t, tool, []string{
+		"config.yml", "results.json.gz", "tool.log.gz", "findings.json",
+		"fingerprints.json", "git-status-z.txt",
+	})
+}
+
+func assertScan(t *testing.T, tool *test.Tool, expectedFiles []string) {
+	test.RequireAPIToken(t)
 	tool.Must(tool.Run())
 	n := tool.JSON()
 	assert := assert.New(t)
@@ -49,10 +65,7 @@ func TestScanUploadJSON(t *testing.T) {
 		slash := strings.LastIndexByte(f, '/')
 		files = append(files, f[slash+1:])
 	}
-	assert.ElementsMatch(files, []string{
-		"config.yml", "results.json", "tool.log", "findings.json",
-		"fingerprints.json", "git-status-z.txt",
-	})
+	assert.ElementsMatch(files, expectedFiles)
 }
 
 func TestCheckovVarFile(t *testing.T) {

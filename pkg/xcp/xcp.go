@@ -101,20 +101,9 @@ func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 	return api.CloseableOptionFunc(func(req *resty.Request) {
 		// need to use SetFile not SetFileReader to allow retries https://github.com/go-resty/resty/issues/334
 		var path string
-		file, ok := reader.(*os.File)
-		if ok {
-			path = file.Name()
-		} else {
-			// this is not a file, write the data to a file in a temp dir
-			path, err = util.GetTempFilePath(filename)
-			content, err := ioutil.ReadAll(reader)
-			if err != nil {
-				return
-			}
-			err = os.WriteFile(path, content, 0600)
-			if err != nil {
-				return
-			}
+		path, err = writeFileFromReader(filename, reader)
+		if err != nil {
+			return
 		}
 		req.SetFile(param, path)
 		log.Debugf("...including {secondary:%s}", filename)
@@ -127,6 +116,27 @@ func WithFileFromReader(param, filename string, reader io.Reader) api.Option {
 		}
 		return err
 	})
+}
+
+func writeFileFromReader(filename string, reader io.Reader) (string, error) {
+	var path string
+	var err error
+	file, ok := reader.(*os.File)
+	if ok {
+		path = file.Name()
+	} else {
+		// this is not a file, write the data to a file in a temp dir
+		path, err = util.GetTempFilePath(filename)
+		content, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return "", err
+		}
+		err = os.WriteFile(path, content, 0600)
+		if err != nil {
+			return "", err
+		}
+	}
+	return path, err
 }
 
 func WithFile(path string) (api.Option, error) {
