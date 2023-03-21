@@ -21,7 +21,7 @@ type Tool struct {
 	VarFiles             []string
 	ExtraArgs            []string
 	EnableModuleDownload bool
-	
+
 	iacPlatform tools.IACPlatform
 }
 
@@ -84,7 +84,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 			result.AddValue("TERRAFORM_GET_FAILED", "true")
 		}
 	}
-	d, err := t.InstallTool(&download.Spec{Name: "opal"})
+
+	d, err := t.InstallTool(&download.Spec{
+		Name: "opal",
+		URL:  "github.com/lacework/opal-releases",
+	})
+
 	if err != nil {
 		return nil, err
 	}
