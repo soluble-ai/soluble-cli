@@ -5,13 +5,14 @@ SHELL := bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
-default: build
+default: help
 
 GOLANGCILINTVERSION?=1.50.0
 
 SHELL=/bin/bash
 VERSION?=$(shell git describe --tags --dirty --always)
-LDFLAGS=-X 'github.com/soluble-ai/soluble-cli/pkg/version.Version=${VERSION}' -X 'github.com/soluble-ai/soluble-cli/pkg/version.BuildTime=${build_time}'
+BUILD_TIME=$(shell date -u +%Y-%m-%dT%H:%M:%S+00:00)
+LDFLAGS=-X 'github.com/soluble-ai/soluble-cli/pkg/version.Version=${VERSION}' -X 'github.com/soluble-ai/soluble-cli/pkg/version.BuildTime=${BUILD_TIME}'
 
 .PHONY: help
 help:
@@ -76,7 +77,7 @@ integration-test-configure: ## configure integration test for github action, do 
 .PHONY: integration-test
 integration-test: integration-test-verify coverage ## run integration test suite
 	@if go run main.go configure show --format 'value(ProfileName)' | egrep -e '-test' > /dev/null; then \
-		@echo "Running go test (integration tests)"; \
+		echo "Running go test (integration tests)"; \
 		go test -tags=integration -timeout 60s ./.../integration; \
 	else \
 		echo "Skipping integration tests because the current profile does not end in -test"; \
@@ -90,8 +91,8 @@ dist: ## build binary with optional file extension (ext) and package (pkg) for g
 	cp LICENSE README.md target/$(os)_$(arch)
 	$(eval name=soluble_$(VERSION)_$(os)_$(arch))
 	@echo "Packaging $(name)"
-	if [ "$(pkg)" = "tar" ]; then \
-		GZIP=-9 tar cvfz ./dist/$(name).tar.gz -C target/$(os)_$(arch) .; \
+	@if [ "$(pkg)" = "tar" ]; then \
+		tar cvf ./dist/$(name).tar.gz --use-compress-program='gzip -9' -C target/$(os)_$(arch) .; \
 	elif [ "$(pkg)" = "zip" ]; then \
 		zip -j ./dist/$(name).zip target/$(os)_$(arch)/*; \
 	fi
@@ -107,7 +108,7 @@ bin: ## build binary with optional file extension (ext) for a specific os and ar
 dist-clean:
 	rm -rf ./dist
 
-.PHONY: dist-all
+.PHONY: dist-all ## build all binaries and packages
 dist-all: dist-clean \
 	lint \
 	linux-amd64-tar \
@@ -116,6 +117,8 @@ dist-all: dist-clean \
 	darwin-arm64-tar \
 	windows-amd64-zip
 
+.PHONY: dist-all-test
+dist-all-test: integration-test dist-all ## run all tests, build all binaries and packages
 
 .PHONY: iac-darwin-component
 iac-darwin-component: darwin-amd64-tar ## Convenience target to build and deploy iac component for local MAC development
@@ -132,15 +135,15 @@ linux-arm64-tar:
 
 .PHONY: darwin-arm64-tar
 darwin-arm64-tar:
-	make dist os="darwin" arch="arm64" pkg="tar"
-
-.PHONY: windows-amd64-zip
-windows-amd64-zip:
-	make dist os="windows" arch="amd64" pkg="zip" ext=".exe"
+	make dist os="darwin" arch="arm64" pkg="tar" ext="" ldflags=""
 
 .PHONY: darwin-amd64-tar
 darwin-amd64-tar:
-	make dist os="darwin" arch="amd64" pkg="tar"
+	make dist os="darwin" arch="amd64" pkg="tar"  ext="" ldflags=""
+
+.PHONY: windows-amd64-zip
+windows-amd64-zip:
+	make dist os="windows" arch="amd64" pkg="zip" ext=".exe" ldflags=""
 
 .PHONY: install-tools
 install-tools: ## Install go indirect dependencies
