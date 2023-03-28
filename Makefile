@@ -120,10 +120,21 @@ dist-all: dist-clean \
 .PHONY: dist-all-test
 dist-all-test: integration-test dist-all ## run all tests, build all binaries and packages
 
-.PHONY: iac-darwin-component
-iac-darwin-component: darwin-amd64-tar ## Convenience target to build and deploy iac component for local MAC development
+.PHONY: install-darwin-iac
+install-darwin-iac: darwin-amd64-tar ## Convenience target to build and deploy iac component for local MAC development
 	make bin os="darwin" arch="amd64"
+	mkdir -p ~/.config/lacework/components/iac
+	VERSION=$(VERSION) envsubst < scripts/.dev.template > $$HOME/.config/lacework/components/iac/.dev
 	cp target/darwin_amd64/soluble $$HOME/.config/lacework/components/iac/iac
+
+.PHONY: uninstall-darwin-iac
+uninstall-darwin-iac:## Convenience target to build and deploy iac component for local MAC development
+	@rm -rf ~/.config/lacework/components/iac
+	@echo "Development version uninstalled, run:"
+	@echo
+	@echo "  lacework components install iac"
+	@echo
+	@echo "to restore the old version"
 
 .PHONY: linux-amd64-tar
 linux-amd64-tar:
