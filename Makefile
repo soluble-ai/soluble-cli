@@ -92,7 +92,7 @@ dist: ## build binary with optional file extension (ext) and package (pkg) for g
 	$(eval name=soluble_$(VERSION)_$(os)_$(arch))
 	@echo "Packaging $(name)"
 	@if [ "$(pkg)" = "tar" ]; then \
-		tar cvf ./dist/$(name).tar.gz --use-compress-program='gzip -9' --strip-components=1 -C target/$(os)_$(arch) .; \
+		pushd . && cd target/$(os)_$(arch) && tar cvf ../../dist/$(name).tar.gz --use-compress-program='gzip -9' * && popd; \
 	elif [ "$(pkg)" = "zip" ]; then \
 		zip -j ./dist/$(name).zip target/$(os)_$(arch)/*; \
 	fi
