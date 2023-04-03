@@ -21,11 +21,6 @@ on:
     branches: [ master]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - run: | 
-        echo "Temp placeholder for previous required check"
   tests:
     timeout-minutes: 10
     runs-on: ubuntu-latest
