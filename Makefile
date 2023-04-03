@@ -63,7 +63,7 @@ coverage: prepare ## go unit tests
 
 .PHONY: lint
 lint: prepare ## lint all code
-	golangci-lint run -E stylecheck -E gosec -E goimports -E misspell -E gocritic -E whitespace -E goprintffuncname -e G402;
+	golangci-lint run --timeout 120s -E stylecheck -E gosec -E goimports -E misspell -E gocritic -E whitespace -E goprintffuncname -e G402;
 
 .PHONY: integration-test-configure
 integration-test-configure: ## configure integration test for github action, do not use in local dev
@@ -121,14 +121,14 @@ dist-all: dist-clean \
 dist-all-test: integration-test dist-all ## run all tests, build all binaries and packages
 
 .PHONY: install-darwin-iac
-install-darwin-iac: darwin-amd64-tar ## Convenience target to build and deploy iac component for local MAC development
+install-darwin-iac: darwin-amd64-tar ## Convenience target to build and deploy the lacework iac component for local MAC development
 	make bin os="darwin" arch="amd64"
 	mkdir -p ~/.config/lacework/components/iac
 	VERSION=$(VERSION) envsubst < scripts/.dev.template > $$HOME/.config/lacework/components/iac/.dev
 	cp target/darwin_amd64/soluble $$HOME/.config/lacework/components/iac/iac
 
 .PHONY: uninstall-darwin-iac
-uninstall-darwin-iac:## Convenience target to build and deploy iac component for local MAC development
+uninstall-darwin-iac:## Uninstall the lacework iac component
 	@rm -rf ~/.config/lacework/components/iac
 	@echo "Development version uninstalled, run:"
 	@echo
