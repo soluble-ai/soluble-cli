@@ -61,8 +61,11 @@ func processResult(result *Result) error {
 		}
 	}
 	result.AddValues(result.Tool.GetToolOptions().GetStandardXCPValues())
-	if len(o.customPolicyMetadata) > 0 {
-		addCustomPolicyMetadata(result, o.customPolicyMetadata)
+	if len(o.CustomPolicyMetadata) > 0 {
+		addCustomPolicyMetadata(result, o.CustomPolicyMetadata)
+	}
+	if len(o.LaceworkPolicyMetadata) > 0 {
+		addLaceworkPolicyMetadata(result, o.LaceworkPolicyMetadata)
 	}
 	if result.Directory != "" {
 		result.UpdateFileFingerprints()
@@ -151,6 +154,22 @@ func writeResultValues(w io.Writer, result *Result) {
 
 func addCustomPolicyMetadata(result *Result, metadata map[string]string) {
 	for k, v := range metadata {
-		result.AddValue(fmt.Sprintf("CUSTOM_POLICY_%s", k), v)
+		key := fmt.Sprintf("CUSTOM_POLICY_%s", k)
+		if key == "CUSTOM_POLICY_UPLOAD_PATH" {
+			log.Infof(fmt.Sprintf("Custom policy reference: %s", strings.TrimPrefix(v, "custom_policies/")))
+		}
+		log.Debugf(fmt.Sprintf("%s: %s", key, v))
+		result.AddValue(key, v)
+	}
+}
+
+func addLaceworkPolicyMetadata(result *Result, metadata map[string]string) {
+	for k, v := range metadata {
+		key := fmt.Sprintf("LACEWORK_POLICY%s", k)
+		if key == "LACEWORK_POLICY_UPLOAD_PATH" {
+			log.Infof(fmt.Sprintf("Lacework policy reference: %s", strings.TrimPrefix(v, "custom_policies/")))
+		}
+		log.Debugf(fmt.Sprintf("%s: %s", key, v))
+		result.AddValue(key, v)
 	}
 }

@@ -338,8 +338,8 @@ func (m *Store) writePolicyFiles(zipWriter *zip.Writer, policy *Policy) error {
 	})
 }
 
-func (m *Store) GetPolicyUploadMetadata() (map[string]string, error) {
-	dat, err := os.ReadFile(filepath.Join(m.Dir, "policies-upload-metadata.json"))
+func (m *Store) GetPolicyUploadMetadata(filename string) (map[string]string, error) {
+	dat, err := os.ReadFile(filepath.Join(m.Dir, filename))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
