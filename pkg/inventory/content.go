@@ -15,8 +15,8 @@
 package inventory
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/tidwall/gjson"
