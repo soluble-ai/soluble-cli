@@ -16,6 +16,7 @@ package inventory
 
 import (
 	"os"
+	"fmt"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -61,9 +62,7 @@ func decodeYAML(buf []byte) map[string]string {
 	_ = yaml.Unmarshal(buf, &m)
 	r := map[string]string{}
 	for k, v := range m {
-		if s, ok := v.(string); ok {
-			r[k] = s
-		}
+		r[k] = fmt.Sprintf("%v", v)
 	}
 	return r
 }
