@@ -215,8 +215,10 @@ func (pt *PolicyTemplate) PromptInput() error {
 				},
 			},
 			Validate: func(input interface{}) error {
-				if isValid := regexp.MustCompile(`(^[a-z][a-z_]*$)`).MatchString(input.(string)); !isValid {
-					return fmt.Errorf("\nResource Type must: \n-start with lowercase letter \n-only contain lowercase letters and underscored")
+				if isValid := regexp.MustCompile(`(^[a-z][a-z0-9_]*[a-z0-9]$)`).MatchString(input.(string)); !isValid {
+					return fmt.Errorf("\nResource type must: \n- start with lowercase letter \n" +
+						"- Only contain lowercase letters, numeric digits, and underscores\n" +
+						"- End with a lowercase letter or numeric digit")
 				}
 				return nil
 			},
