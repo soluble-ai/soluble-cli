@@ -1,9 +1,19 @@
 package opal
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+
+	"github.com/soluble-ai/soluble-cli/pkg/api"
+	"github.com/soluble-ai/soluble-cli/pkg/archive"
+	"github.com/soluble-ai/soluble-cli/pkg/exit"
+	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/policy"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
@@ -93,13 +103,57 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	customPoliciesDir, err := t.GetCustomPoliciesDir("opal")
+
+	// create a unique temp dir for downloaded policies
+	customPoliciesDir, err := util.GetTempDirPath()
 	if err != nil {
 		return nil, err
 	}
+	// if the PreparedCustomPoliciesDir is set, policies are loaded from here and not downloaded
+	preparedPoliciesDir := t.PreparedCustomPoliciesDir
+	if preparedPoliciesDir == "" {
+		apiClient, err := t.GetAPIClient()
+		if err != nil {
+			return nil, err
+		}
+		err = DownloadPolicies(apiClient, customPoliciesDir, t.AssessmentOpts)
+		if err != nil {
+			if errors.Is(err, api.ErrNoContent) {
+				log.Infof("There are no custom policies available for {primary:%s} ", t.Name())
+				return &tools.Result{}, nil
+			}
+			return nil, err
+		}
+		store := policy.NewStore(customPoliciesDir)
+		preparedPoliciesDir, err = os.MkdirTemp("", "policy*")
+		if err != nil {
+			return nil, err
+		}
+		exit.AddFunc(func() { _ = os.RemoveAll(preparedPoliciesDir) })
+		if err := store.LoadPoliciesOfType(policy.GetPolicyType("opal")); err != nil {
+			return nil, err
+		}
+		// policies from the customPoliciesDir download dir are prepared in the preparedPoliciesDir
+		if err := store.PreparePolicies(preparedPoliciesDir); err != nil {
+			return nil, err
+		}
+		md, err := store.GetPolicyUploadMetadata("policies-upload-metadata.json")
+		if err != nil {
+			return nil, err
+		}
+		// used in the final assessment
+		t.AssessmentOpts.CustomPolicyMetadata = md
+		lmd, err := store.GetPolicyUploadMetadata("lacework-policies-upload-metadata.json")
+		if err != nil {
+			return nil, err
+		}
+		t.AssessmentOpts.LaceworkPolicyMetadata = lmd
+	}
+
 	args := []string{"run", "--format", "json"}
-	if customPoliciesDir != "" {
-		args = append(args, "--include", customPoliciesDir)
+	// include downloaded custom policies or local prepared policies in the scan
+	if preparedPoliciesDir != "" {
+		args = append(args, "--include", preparedPoliciesDir)
 	}
 	if t.InputType != "" {
 		args = append(args, "--input-type", t.InputType)
@@ -141,4 +195,42 @@ func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
 			},
 		})
 	}
+}
+
+func DownloadPolicies(apiClient *api.Client, dir string, o tools.AssessmentOpts) error {
+	err := os.MkdirAll(dir, 0744)
+	if err != nil {
+		return err
+	}
+	log.Debugf(fmt.Sprintf("Policies downloaded to directory: %s", dir))
+	policyZipPath := filepath.Join(dir, "policies.zip")
+	data, err := apiClient.Download(fmt.Sprintf("/api/v1/org/%s/policies/opal/policies.zip", apiClient.Organization))
+	if err != nil {
+		return err
+	}
+	body := bytes.NewReader(data)
+	policyZipFile, err := os.Create(policyZipPath)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(policyZipFile, body)
+	if err != nil {
+		return err
+	}
+	// check there is a zip
+	err = archive.Do(archive.Unzip, policyZipPath, dir, nil)
+	if err != nil {
+		return err
+	}
+	if o.DisableCustomPolicies && o.PreparedCustomPoliciesDir == "" {
+		// assume disable custom policies does not mean disable lacework policies
+		err = tools.ExtractArchives(dir, []string{"lacework_policies.zip"})
+	} else {
+		err = tools.ExtractArchives(dir, []string{"policies.zip", "lacework_policies.zip"})
+	}
+
+	if err != nil {
+		return err
+	}
+	return err
 }
