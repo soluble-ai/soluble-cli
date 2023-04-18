@@ -20,7 +20,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/soluble-ai/go-jnode"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
@@ -154,20 +153,6 @@ func (o *RunOpts) getToolVersion(name string) (*jnode.Node, error) {
 		return nil, err
 	}
 	return n, nil
-}
-
-func (o *RunOpts) InstallAPIServerArtifact(name, urlPath string, cacheDuration time.Duration) (*download.Download, error) {
-	apiClient, err := o.GetAPIClient()
-	if err != nil {
-		return nil, err
-	}
-	m := download.NewManager()
-	return m.Install(&download.Spec{
-		Name:                       name,
-		APIServerArtifact:          urlPath,
-		APIServer:                  apiClient,
-		LatestReleaseCacheDuration: cacheDuration,
-	})
 }
 
 func (o *RunOpts) ExecuteCommand(c *exec.Cmd) *ExecuteResult {

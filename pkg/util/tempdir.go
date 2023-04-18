@@ -39,11 +39,17 @@ func GetRootTempDir() string {
 // GetTempFilePath - return a unique absolute path for a file with filename
 func GetTempFilePath(filename string) (string, error) {
 	// create a unique tmp dir
-	dir, err := os.MkdirTemp(rootTempDir, "*")
+	dir, err := GetTempDirPath()
 	if err != nil {
 		return "", err
 	}
 	// create the absolute file path
 	path := filepath.Join(dir, filename)
 	return path, nil
+}
+
+// GetTempDirPath - return a unique absolute path for a dir
+func GetTempDirPath() (string, error) {
+	// create a unique tmp dir
+	return os.MkdirTemp(rootTempDir, "*")
 }
