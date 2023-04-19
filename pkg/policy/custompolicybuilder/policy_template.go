@@ -244,7 +244,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 func (pt *PolicyTemplate) validatePolicyName() func(interface{}) error {
 	return func(inputName interface{}) error {
 		if isValid := regexp.MustCompile(`(^[a-z][a-z0-9_]*$)`).MatchString(inputName.(string)); !isValid {
-			return fmt.Errorf("\nPolicy name must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscored")
+			return fmt.Errorf("\nPolicy name must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscores")
 		}
 
 		// avoid overwriting existing policy
