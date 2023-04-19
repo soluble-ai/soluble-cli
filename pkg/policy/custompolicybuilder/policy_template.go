@@ -140,7 +140,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 		{
 			Name: "InputPath",
 			Prompt: &survey.Input{
-				Message: "Policies directory path.",
+				Message: "Policies directory path:",
 			},
 			Validate: survey.ComposeValidators(survey.Required, pt.validatePolicyDirectory()),
 		},
@@ -162,21 +162,24 @@ func (pt *PolicyTemplate) PromptInput() error {
 		{
 			Name: "name",
 			Prompt: &survey.Input{
-				Message: "policy name",
-				Help:    "Policy Name may consist of lowercase letters, numbers and underscores. EG: my_policy_1"},
+				Message: "Policy name:",
+				Help:    "Policy name may consist of lowercase letters, numbers and underscores. e.g. my_policy_1"},
 			Validate: pt.validatePolicyName(),
 		},
 		{
 			Name: "title",
 			Prompt: &survey.Input{
 				Message: "Title",
-				Help:    "Max length is 57",
+				Help:    "Title for your policy. Maximum length is 57 characters. e.g. 'Disk volumes must be encrypted'",
 			},
 			Validate: survey.ComposeValidators(survey.MinLength(1), survey.MaxLength(57)),
 		},
 		{
-			Name:   "desc",
-			Prompt: &survey.Input{Message: "Description"},
+			Name: "desc",
+			Prompt: &survey.Input{
+				Message: "Description",
+				Help:    "Longer description of your policy. You may want to include, for example, what the policy checks for, and the rationale for having the policy.",
+			},
 		},
 		{
 			Name: "category",
@@ -241,7 +244,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 func (pt *PolicyTemplate) validatePolicyName() func(interface{}) error {
 	return func(inputName interface{}) error {
 		if isValid := regexp.MustCompile(`(^[a-z][a-z0-9_]*$)`).MatchString(inputName.(string)); !isValid {
-			return fmt.Errorf("\nname must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscored")
+			return fmt.Errorf("\nPolicy name must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscores")
 		}
 
 		// avoid overwriting existing policy
@@ -276,7 +279,7 @@ func (pt *PolicyTemplate) createPoliciesDirectoryPrompt(dir, message string) err
 		}
 		pt.Dir = dir
 	} else {
-		return fmt.Errorf("provide path to a 'policies' directory")
+		return fmt.Errorf("please provide alternative path to a 'policies' directory")
 	}
 	return nil
 }
