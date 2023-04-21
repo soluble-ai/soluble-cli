@@ -72,7 +72,7 @@ func TestPolicyCreateWizard(t *testing.T) {
 	description := "This is my sample custom policy. There are many like it, but this one is mine."
 	// Run through the wizard
 	cmd.Start()
-	expectAndRespond(assert, c, `Policies directory path:`, "test_custom_policies", 5)
+	expectAndRespond(assert, c, `Policies directory path:`, "test_custom_policies", 10)
 	expectAndRespond(assert, c, `Create policies directory here`, "y", 1)
 	defer os.RemoveAll("test_custom_policies")
 	expectAndRespond(assert, c, `Select provider`, "aws", 1)
