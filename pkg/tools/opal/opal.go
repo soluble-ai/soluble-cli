@@ -87,7 +87,8 @@ func (t *Tool) Run() (*tools.Result, error) {
 		URL:  "github.com/lacework/opal-releases",
 	})
 	if err != nil {
-		return nil, err
+		log.Errorf("Could not run opal scan %s", err)
+		os.Exit(0)
 	}
 
 	// create a unique temp dir for downloaded policies
