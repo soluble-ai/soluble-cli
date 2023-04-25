@@ -18,7 +18,7 @@ import (
 
 // Despite checkov directly supporting helm it's very buggy.  So instead we'll
 // generate the templates ourselves with "helm template" and run checkov on
-// the resulting templates much the same way we do for the CDh.
+// the resulting templates much the same way we do for the CDK.
 type Helm struct {
 	tools.DirectoryBasedToolOpts
 	Include  []string
