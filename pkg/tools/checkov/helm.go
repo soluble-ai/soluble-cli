@@ -195,7 +195,7 @@ func (h *Helm) runOnce(chart string) (*tools.Result, error) {
 	exec := h.ExecuteCommand(template)
 	if !exec.ExpectExitCode(0) {
 		log.Errorf("{primary:helm template} failed.")
-		return exec.ToResult(h.GetDirectory()), nil
+		return exec.ToResult(template.Dir), nil
 	}
 	checkov := &Tool{
 		DirectoryBasedToolOpts: h.DirectoryBasedToolOpts,
@@ -209,7 +209,7 @@ func (h *Helm) runOnce(chart string) (*tools.Result, error) {
 				slash := strings.IndexRune(s[1:], '/')
 				s = s[slash+2:]
 			}
-			return s
+			return filepath.Join(filepath.Dir(chart), s)
 		},
 	}
 	if err := checkov.Validate(); err != nil {
