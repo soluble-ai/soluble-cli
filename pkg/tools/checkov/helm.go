@@ -53,8 +53,6 @@ func (h *Helm) Validate() error {
 		include := ignore.CompileIgnoreLines(h.Include...)
 		m := h.GetInventory()
 		h.charts = nil
-		vals := m.HelmCharts.Values()
-		fmt.Println(vals)
 		for _, dir := range m.HelmCharts.Values() {
 			if include.MatchesPath(dir) {
 				chart := h.findChartFile(dir)
