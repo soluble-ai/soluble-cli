@@ -2,12 +2,13 @@ package custompolicybuilder
 
 import (
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
