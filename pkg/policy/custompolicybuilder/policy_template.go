@@ -194,7 +194,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 				},
 			},
 			Validate: func(input interface{}) error {
-				if isValid := regexp.MustCompile(`(^[A-Z][a-z_]*$)`).MatchString(input.(string)); !isValid {
+				if isValid := regexp.MustCompile(`(^[A-Z][A-Za-z_]*$)`).MatchString(input.(string)); !isValid {
 					return fmt.Errorf("\ncategory must: \n-start with uppercase letter \n-only contain letters and underscores")
 				}
 				return nil
