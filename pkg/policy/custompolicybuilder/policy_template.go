@@ -2,6 +2,8 @@ package custompolicybuilder
 
 import (
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -28,24 +30,24 @@ type PolicyTemplate struct {
 }
 
 var categories = []string{
-	"iam",
-	"storage",
-	"network",
-	"loadbalancers",
-	"compute",
-	"certs",
-	"secrets",
-	"encryption",
-	"tls",
-	"logging",
-	"dns",
-	"queues",
-	"containers",
-	"monitoring",
-	"tools",
-	"security",
-	"general",
-	"backup & recovery",
+	"IAM",
+	"Storage",
+	"Network",
+	"Loadbalancers",
+	"Compute",
+	"Certs",
+	"Secrets",
+	"Encryption",
+	"TLS",
+	"Logging",
+	"Dns",
+	"Queues",
+	"Containers",
+	"Monitoring",
+	"Tools",
+	"Security",
+	"General",
+	"Backup & Recovery",
 }
 var gcpResourceTypes = []string{
 	"multiple",
@@ -110,20 +112,20 @@ var awsResourceTypes = []string{
 }
 
 var severity = []string{
-	"info",
-	"low",
-	"medium",
-	"high",
-	"critical",
+	"Info",
+	"Low",
+	"Medium",
+	"High",
+	"Critical",
 }
 
 var providers = []string{
-	"aws",
-	"gcp",
-	"azure",
-	"kubernetes",
-	"github",
-	"oracle",
+	"AWS",
+	"GCP",
+	"Azure",
+	"Kubernetes",
+	"Github",
+	"Oracle",
 }
 
 func getCheckTypes() []string {
@@ -191,8 +193,8 @@ func (pt *PolicyTemplate) PromptInput() error {
 				},
 			},
 			Validate: func(input interface{}) error {
-				if isValid := regexp.MustCompile(`(^[a-z][a-z_]*$)`).MatchString(input.(string)); !isValid {
-					return fmt.Errorf("\ncategory must: \n-start with lowercase letter \n-only contain lowercase letters and underscored")
+				if isValid := regexp.MustCompile(`(^[A-Z][a-z_]*$)`).MatchString(input.(string)); !isValid {
+					return fmt.Errorf("\ncategory must: \n-start with uppercase letter \n-only contain letters and underscores")
 				}
 				return nil
 			},
@@ -379,10 +381,12 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 		Title       yaml.Node `yaml:"title"`
 	}
 
+	// Ensure CheckType is capitalised for metadata
+	caser := cases.Title(language.English)
 	metadata := Metadata{
 		Category:    pt.Category,
 		CheckTool:   pt.Tool,
-		CheckType:   pt.CheckType,
+		CheckType:   caser.String(pt.CheckType),
 		Description: doubleQuote(pt.Desc),
 		Provider:    pt.Provider,
 		Severity:    pt.Severity,
