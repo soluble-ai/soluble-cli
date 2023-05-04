@@ -41,7 +41,7 @@ var categories = []string{
 	"Encryption",
 	"TLS",
 	"Logging",
-	"Dns",
+	"DNS",
 	"Queues",
 	"Containers",
 	"Monitoring",
