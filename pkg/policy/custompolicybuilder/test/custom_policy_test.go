@@ -28,10 +28,10 @@ func TestCreate_ExpectedMetadataYaml(t *testing.T) {
 		Dir:       "policies",
 		Tool:      "opal",
 		Desc:      "unit test policy",
-		Severity:  "info",
+		Severity:  "Info",
 		Title:     "unit test custom policy",
-		Provider:  "aws",
-		Category:  "general",
+		Provider:  "AWS",
+		Category:  "General",
 	}
 	assert := assert.New(t)
 	if err := setupDirPath("policies"); err != nil {
