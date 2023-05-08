@@ -3,7 +3,9 @@ module github.com/soluble-ai/soluble-cli
 go 1.18
 
 require (
+	github.com/ActiveState/vt10x v1.3.1
 	github.com/AlecAivazis/survey/v2 v2.3.6
+	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/aws/aws-sdk-go-v2/config v1.18.15
 	github.com/fatih/color v1.14.1
 	github.com/go-resty/resty/v2 v2.7.0
@@ -38,6 +40,7 @@ require (
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/creack/pty v1.1.18 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
+	github.com/kr/pty v1.1.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/pjbgf/sha1cd v0.2.3 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
@@ -102,7 +105,7 @@ require (
 	golang.org/x/crypto v0.4.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/text v0.8.0
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

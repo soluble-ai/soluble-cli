@@ -7,6 +7,9 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
@@ -28,24 +31,24 @@ type PolicyTemplate struct {
 }
 
 var categories = []string{
-	"iam",
-	"storage",
-	"network",
-	"loadbalancers",
-	"compute",
-	"certs",
-	"secrets",
-	"encryption",
-	"tls",
-	"logging",
-	"dns",
-	"queues",
-	"containers",
-	"monitoring",
-	"tools",
-	"security",
-	"general",
-	"backup & recovery",
+	"IAM",
+	"Storage",
+	"Network",
+	"Loadbalancers",
+	"Compute",
+	"Certs",
+	"Secrets",
+	"Encryption",
+	"TLS",
+	"Logging",
+	"DNS",
+	"Queues",
+	"Containers",
+	"Monitoring",
+	"Tools",
+	"Security",
+	"General",
+	"Backup & Recovery",
 }
 var gcpResourceTypes = []string{
 	"multiple",
@@ -110,20 +113,20 @@ var awsResourceTypes = []string{
 }
 
 var severity = []string{
-	"info",
-	"low",
-	"medium",
-	"high",
-	"critical",
+	"Info",
+	"Low",
+	"Medium",
+	"High",
+	"Critical",
 }
 
 var providers = []string{
-	"aws",
-	"gcp",
-	"azure",
-	"kubernetes",
-	"github",
-	"oracle",
+	"AWS",
+	"GCP",
+	"Azure",
+	"Kubernetes",
+	"Github",
+	"Oracle",
 }
 
 func getCheckTypes() []string {
@@ -140,7 +143,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 		{
 			Name: "InputPath",
 			Prompt: &survey.Input{
-				Message: "Policies directory path.",
+				Message: "Policies directory path:",
 			},
 			Validate: survey.ComposeValidators(survey.Required, pt.validatePolicyDirectory()),
 		},
@@ -162,21 +165,24 @@ func (pt *PolicyTemplate) PromptInput() error {
 		{
 			Name: "name",
 			Prompt: &survey.Input{
-				Message: "policy name",
-				Help:    "Policy Name may consist of lowercase letters, numbers and underscores. EG: my_policy_1"},
+				Message: "Policy name:",
+				Help:    "Policy name may consist of lowercase letters, numbers and underscores. e.g. my_policy_1"},
 			Validate: pt.validatePolicyName(),
 		},
 		{
 			Name: "title",
 			Prompt: &survey.Input{
 				Message: "Title",
-				Help:    "Max length is 57",
+				Help:    "Title for your policy. Maximum length is 57 characters. e.g. 'Disk volumes must be encrypted'",
 			},
 			Validate: survey.ComposeValidators(survey.MinLength(1), survey.MaxLength(57)),
 		},
 		{
-			Name:   "desc",
-			Prompt: &survey.Input{Message: "Description"},
+			Name: "desc",
+			Prompt: &survey.Input{
+				Message: "Description",
+				Help:    "Longer description of your policy. You may want to include, for example, what the policy checks for, and the rationale for having the policy.",
+			},
 		},
 		{
 			Name: "category",
@@ -188,8 +194,8 @@ func (pt *PolicyTemplate) PromptInput() error {
 				},
 			},
 			Validate: func(input interface{}) error {
-				if isValid := regexp.MustCompile(`(^[a-z][a-z_]*$)`).MatchString(input.(string)); !isValid {
-					return fmt.Errorf("\ncategory must: \n-start with lowercase letter \n-only contain lowercase letters and underscored")
+				if isValid := regexp.MustCompile(`(^[A-Z][A-Za-z_]*$)`).MatchString(input.(string)); !isValid {
+					return fmt.Errorf("\ncategory must: \n-start with uppercase letter \n-only contain letters and underscores")
 				}
 				return nil
 			},
@@ -215,8 +221,10 @@ func (pt *PolicyTemplate) PromptInput() error {
 				},
 			},
 			Validate: func(input interface{}) error {
-				if isValid := regexp.MustCompile(`(^[a-z][a-z_]*$)`).MatchString(input.(string)); !isValid {
-					return fmt.Errorf("\nResource Type must: \n-start with lowercase letter \n-only contain lowercase letters and underscored")
+				if isValid := regexp.MustCompile(`(^[a-z][a-z0-9_]*[a-z0-9]$)`).MatchString(input.(string)); !isValid {
+					return fmt.Errorf("\nResource type must: \n- start with lowercase letter \n" +
+						"- Only contain lowercase letters, numeric digits, and underscores\n" +
+						"- End with a lowercase letter or numeric digit")
 				}
 				return nil
 			},
@@ -239,7 +247,7 @@ func (pt *PolicyTemplate) PromptInput() error {
 func (pt *PolicyTemplate) validatePolicyName() func(interface{}) error {
 	return func(inputName interface{}) error {
 		if isValid := regexp.MustCompile(`(^[a-z][a-z0-9_]*$)`).MatchString(inputName.(string)); !isValid {
-			return fmt.Errorf("\nname must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscored")
+			return fmt.Errorf("\nPolicy name must: \n-start with lowercase letter \n-only contain lowercase letters, numbers and underscores")
 		}
 
 		// avoid overwriting existing policy
@@ -274,7 +282,7 @@ func (pt *PolicyTemplate) createPoliciesDirectoryPrompt(dir, message string) err
 		}
 		pt.Dir = dir
 	} else {
-		return fmt.Errorf("provide path to a 'policies' directory")
+		return fmt.Errorf("please provide alternative path to a 'policies' directory")
 	}
 	return nil
 }
@@ -374,10 +382,12 @@ func (pt *PolicyTemplate) GenerateMetadataYaml() error {
 		Title       yaml.Node `yaml:"title"`
 	}
 
+	// Ensure CheckType is capitalised for metadata
+	caser := cases.Title(language.English)
 	metadata := Metadata{
 		Category:    pt.Category,
 		CheckTool:   pt.Tool,
-		CheckType:   pt.CheckType,
+		CheckType:   caser.String(pt.CheckType),
 		Description: doubleQuote(pt.Desc),
 		Provider:    pt.Provider,
 		Severity:    pt.Severity,

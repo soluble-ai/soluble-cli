@@ -1,7 +1,7 @@
-category: general
-severity: info
+category: General
+severity: Info
 title: "unit test custom policy"
 checkTool: opal
-checkType: terraform
+checkType: Terraform
 description: "unit test policy"
-provider: aws
+provider: AWS

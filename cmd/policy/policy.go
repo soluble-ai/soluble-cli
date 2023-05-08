@@ -3,7 +3,6 @@ package policy
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/soluble-ai/soluble-cli/pkg/policy/policyimporter"
 
@@ -200,26 +199,11 @@ func downloadCommand() *cobra.Command {
 		m manager.M
 	)
 	c := &cobra.Command{
-		Use:   "download",
-		Short: "Download Lacework and custom opal policies.",
+		Use:    "download",
+		Short:  "Download Lacework and custom opal policies.",
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient, err := m.GetAPIClient()
-			if err != nil {
-				return err
-			}
-			if apiClient.LegacyAPIToken == "" && apiClient.LaceworkAPIToken == "" {
-				return nil
-			}
-			url := "/api/v1/org/{org}/policies/opal/policies.zip"
-			d, err := m.InstallAPIServerArtifact(fmt.Sprintf("opal-%s-policies",
-				apiClient.Organization), url, 1*time.Minute)
-			if err != nil {
-				return err
-			}
-			err = tools.ExtractArchives(d.Dir, []string{"policies.zip", "lacework_policies.zip"})
-			if err != nil {
-				return err
-			}
+			log.Infof("This command is deprecated")
 			return nil
 		},
 	}
