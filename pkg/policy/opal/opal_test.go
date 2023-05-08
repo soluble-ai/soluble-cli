@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/soluble-ai/soluble-cli/pkg/tools/opal"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
+
 	"github.com/jarcoal/httpmock"
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
@@ -66,10 +69,10 @@ func TestGetCustomPoliciesDir204(t *testing.T) {
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://api.test/api/v1/org/1234/policies/opal/policies.zip",
 		httpmock.NewBytesResponder(http.StatusNoContent, []byte{}))
-
-	customPoliciesDir, err := o.GetCustomPoliciesDir("opal")
+	customPoliciesDir, err := util.GetTempDirPath()
+	assert.NoError(err)
+	err = opal.DownloadPolicies(client, customPoliciesDir, *o)
 
 	assert.Equal(1, httpmock.GetTotalCallCount())
-	assert.NoError(err)
-	assert.Equal(customPoliciesDir, "")
+	assert.Error(err, "no content")
 }

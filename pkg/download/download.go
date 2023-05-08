@@ -83,7 +83,6 @@ type urlResolverFunc func(requestedVersion string) (version string, url string, 
 var urlResolvers = map[string]urlResolverFunc{
 	"terraform": terraform.GetVersionAndURL,
 	"tfscore":   gcs.NewResolver("soluble-public", "tfscore"),
-	"opal":      gcs.NewResolver("soluble-public", "opal"),
 }
 
 func NewManager() *Manager {

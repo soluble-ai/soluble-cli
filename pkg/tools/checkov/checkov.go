@@ -152,13 +152,10 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.Framework == "terraform" && t.EnableModuleDownload {
 		dt.AppendArgs("--download-external-modules", "true")
 	}
-	customPoliciesDir, err := t.GetCustomPoliciesDir("checkov", "checkov-py")
-	if err != nil {
-		return nil, err
-	}
-	if customPoliciesDir != "" {
-		dt.AppendArgs("--external-checks-dir", customPoliciesDir)
-		dt.Mount(customPoliciesDir, "/policy")
+
+	if t.PreparedCustomPoliciesDir != "" {
+		dt.AppendArgs("--external-checks-dir", t.PreparedCustomPoliciesDir)
+		dt.Mount(t.PreparedCustomPoliciesDir, "/policy")
 	}
 	for _, varFile := range t.relativeVarFiles {
 		dt.AppendArgs("--var-file", varFile)

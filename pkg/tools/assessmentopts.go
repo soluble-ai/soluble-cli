@@ -1,21 +1,15 @@
 package tools
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/soluble-ai/soluble-cli/pkg/api"
-
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/config"
-	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/spf13/afero"
 
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
-	"github.com/soluble-ai/soluble-cli/pkg/exit"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/options"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
 	"github.com/spf13/cobra"
@@ -36,9 +30,9 @@ type AssessmentOpts struct {
 	PreparedCustomPoliciesDir string
 	FailThresholds            []string
 
-	parsedFailThresholds map[string]int
-	customPoliciesDir    *string
-	customPolicyMetadata map[string]string
+	parsedFailThresholds   map[string]int
+	CustomPolicyMetadata   map[string]string
+	LaceworkPolicyMetadata map[string]string
 }
 
 func (o *AssessmentOpts) GetAssessmentOptions() *AssessmentOpts {
@@ -107,90 +101,6 @@ func (o *AssessmentOpts) Validate() error {
 	}
 	o.parsedFailThresholds = parsedFailThresholds
 	return nil
-}
-
-// Prepare and return a directory that contains the custom policies for
-// a tool.  The policyTypeName/morePolicyTypeNames signature requires at least
-// a single policy type to give a hint that the policy manager needs specific
-// support for any given tool, e.g. generate a directory with custom checkov
-// policies requires specific support in the policy manager for checkov.
-func (o *AssessmentOpts) GetCustomPoliciesDir(policyTypeName string, morePolicyTypeNames ...string) (string, error) {
-	if o.PreparedCustomPoliciesDir != "" {
-		return o.PreparedCustomPoliciesDir, nil
-	}
-	if o.DisableCustomPolicies {
-		return "", nil
-	}
-	if o.customPoliciesDir != nil {
-		return *o.customPoliciesDir, nil
-	}
-	apiClient, err := o.GetAPIClient()
-	if err != nil {
-		return "", err
-	}
-	if apiClient.LegacyAPIToken == "" && apiClient.LaceworkAPIToken == "" {
-		return "", nil
-	}
-
-	dir := o.CustomPoliciesDir
-	var downloaded *download.Download
-	if dir == "" {
-		url := fmt.Sprintf("/api/v1/org/{org}/policies/%s/policies.zip", o.Tool.Name())
-		downloaded, err = o.InstallAPIServerArtifact(fmt.Sprintf("%s-%s-policies", o.Tool.Name(),
-			apiClient.Organization), url, o.CacheDuration)
-		if err != nil {
-			if errors.Is(err, api.ErrNoContent) {
-				var zero string
-				o.customPoliciesDir = &zero
-				log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
-				return *o.customPoliciesDir, nil
-			}
-			return "", err
-		}
-		dir = downloaded.Dir
-	}
-	// if the directory is empty, then treat that the same as no custom policies
-	fs, err := os.ReadDir(dir)
-	if err != nil {
-		return "", err
-	}
-	if len(fs) == 0 {
-		var zero string
-		o.customPoliciesDir = &zero
-		log.Infof("{primary:%s} has no custom policies", o.Tool.Name())
-	} else {
-		if !downloaded.IsCached {
-			// extract policies if we are not using the cached policies
-			err := ExtractArchives(dir, []string{"policies.zip", "lacework_policies.zip"})
-			if err != nil {
-				return "", err
-			}
-		}
-		store := policy.NewStore(dir)
-		dest, err := os.MkdirTemp("", "policy*")
-		if err != nil {
-			return "", err
-		}
-		exit.AddFunc(func() { _ = os.RemoveAll(dest) })
-		if err := store.LoadPoliciesOfType(policy.GetPolicyType(policyTypeName)); err != nil {
-			return "", err
-		}
-		for _, policyTypeName := range morePolicyTypeNames {
-			if err := store.LoadPoliciesOfType(policy.GetPolicyType(policyTypeName)); err != nil {
-				return "", err
-			}
-		}
-		if err := store.PreparePolicies(dest); err != nil {
-			return "", err
-		}
-		md, err := store.GetPolicyUploadMetadata()
-		if err != nil {
-			return "", err
-		}
-		o.customPolicyMetadata = md
-		o.customPoliciesDir = &dest
-	}
-	return *o.customPoliciesDir, nil
 }
 
 func ExtractArchives(dir string, archives []string) error {
