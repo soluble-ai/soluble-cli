@@ -7,7 +7,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/aws/aws-sdk-go-v2/config v1.18.15
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.15.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-github/v32 v32.1.0
