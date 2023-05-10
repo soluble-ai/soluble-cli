@@ -12,7 +12,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
-	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/policy"
 
 	"github.com/soluble-ai/go-jnode"
@@ -20,7 +19,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	tf_util "github.com/soluble-ai/soluble-cli/pkg/tools/util"
+	tools_util "github.com/soluble-ai/soluble-cli/pkg/tools/util"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -88,7 +87,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	}
 
 	if t.EnableModuleDownload {
-		err := tf_util.RunTerraformGet(t.GetDirectory(), t.RunOpts)
+		err := tools_util.RunTerraformGet(t.GetDirectory(), t.RunOpts)
 		if err != nil {
 			log.Warnf("{warning:terraform get} failed ")
 			result.AddValue("TERRAFORM_GET_FAILED", "true")
