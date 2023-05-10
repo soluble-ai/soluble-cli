@@ -35,6 +35,8 @@ func TestOsArch(t *testing.T) {
 		{"terrascan_1.1.0_Darwin_x86_64.tar.gz", "darwin", "amd64", true},
 		{"tfsec-checkgen-darwin-amd64", "darwin", "amd64", false},
 		{"tfsec-darwin-amd64", "darwin", "amd64", true},
+		{"opal_0.2.2_darwin_arm64.tar.gz", "darwin", "arm64", true},
+		{"opal_0.2.2_linux_arm64.tar.gz", "linux", "arm64", true},
 	}
 
 	for _, tc := range testCases {

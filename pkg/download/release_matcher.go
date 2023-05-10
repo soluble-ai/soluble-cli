@@ -65,6 +65,7 @@ var avoidSubstrings = []string{
 var archSubstrings = map[string][]string{
 	"amd64": {"_amd64", "_x86_64", "-64bit", "-amd64"},
 	"386":   {"_386", "_x86", "_i386", "-32bit"},
+	"arm64": {"_arm64", "-arm64"},
 }
 
 var osSubstrings = map[string][]string{
@@ -104,9 +105,9 @@ func isMatchingReleaseName(r, o, a string) bool {
 	return IsMatchingArch(r, a) && IsMatchingOS(r, o)
 }
 
-func IsMatchingArch(r, a string) bool {
+func IsMatchingArch(r, arch string) bool {
 	r = strings.ToLower(r)
-	for _, a := range archSubstrings[a] {
+	for _, a := range archSubstrings[arch] {
 		if strings.Contains(r, a) {
 			return true
 		}
