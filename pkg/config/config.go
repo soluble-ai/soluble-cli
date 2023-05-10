@@ -84,6 +84,11 @@ func SelectProfile(name string) bool {
 	return result
 }
 
+func SelectDefaultProfile() bool {
+	log.Warnf("{warning:Using default profile}")
+	return SelectProfile("default")
+}
+
 func CopyProfile(sourceName string) error {
 	if GlobalConfig.CurrentProfile == "" {
 		return fmt.Errorf("no current profile to copy to")
@@ -302,18 +307,27 @@ func Load() {
 	GlobalConfig.Profiles = map[string]*ProfileT{}
 	dat, err := os.ReadFile(configFileRead)
 	if err != nil {
+		log.Errorf("Could not read config file: %s", configFileRead)
 		configFileRead = ""
+		SelectDefaultProfile()
 	} else {
-		_ = json.Unmarshal(dat, GlobalConfig)
+		err = json.Unmarshal(dat, GlobalConfig)
+		if err != nil {
+			log.Errorf("Could not read the contents of config file: %s", configFileRead)
+		}
 		for name, profile := range GlobalConfig.Profiles {
 			profile.ProfileName = name
 			profile.lacework = getLaceworkProfile(profile.LaceworkProfileName)
 		}
+		config = GlobalConfig.Profiles[GlobalConfig.CurrentProfile]
+		if config == nil {
+			if GlobalConfig.CurrentProfile != "" {
+				log.Warnf("{warning:Current profile '%s' does not exist in the config file: %s}", GlobalConfig.CurrentProfile, configFileRead)
+			}
+			SelectDefaultProfile()
+		}
 	}
-	config = GlobalConfig.Profiles[GlobalConfig.CurrentProfile]
-	if config == nil {
-		SelectProfile("default")
-	}
+
 	if config.ProfileName == "" {
 		config.ProfileName = GlobalConfig.CurrentProfile
 	}
