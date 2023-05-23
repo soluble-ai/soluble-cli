@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/lacework/go-sdk/api"
 	"github.com/soluble-ai/go-jnode"
 	cfg "github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
@@ -289,7 +290,36 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	if _, err := c.execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
 		return nil, err
 	}
+	// also post results to cds using the cdk, if it is configured as lacework component
+	if c.Config.IsRunningAsComponent {
+		err := uploadResultsToCDS(c, files)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return result, nil
+}
+
+// function to upload results to CDS, if the iac is configured as component under lacework cli
+func uploadResultsToCDS(c *Client, filesToUpload []string) error {
+	lwApi, err := api.NewClient(c.Config.LaceworkAccount,
+		api.WithApiKeys(c.Config.LaceworkAPIKey, c.Config.LaceworkAPISecret),
+		api.WithApiV2(),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if len(filesToUpload) > 0 {
+		guid, err := lwApi.V2.ComponentData.UploadFiles("results", []string{"iac"}, filesToUpload)
+		if err != nil {
+			log.Errorf("{warning:Unable to upload results %s\n}", err)
+			return err
+		}
+		log.Infof("Successfully uploaded with ID: {info:%s}", guid)
+	}
+	return nil
 }
 
 func (c *Client) Download(path string) ([]byte, error) {
