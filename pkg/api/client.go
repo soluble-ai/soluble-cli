@@ -291,12 +291,14 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		return nil, err
 	}
 	// also post results to cds using the cdk, if it is configured as lacework component
-	if cfg.IsRunningAsComponent() {
-		err := uploadResultsToCDS(c, files)
-		if err != nil {
-			return nil, err
-		}
+	//if cfg.IsRunningAsComponent() {
+	fmt.Println("Uploading results to CDS")
+	err := uploadResultsToCDS(c, files)
+	if err != nil {
+		log.Errorf("upload failed %s", err)
+		return nil, err
 	}
+	//}
 	return result, nil
 }
 
@@ -306,11 +308,9 @@ func uploadResultsToCDS(c *Client, filesToUpload []string) error {
 		api.WithApiKeys(c.Config.LaceworkAPIKey, c.Config.LaceworkAPISecret),
 		api.WithApiV2(),
 	)
-
 	if err != nil {
 		return err
 	}
-
 	if len(filesToUpload) > 0 {
 		guid, err := lwAPI.V2.ComponentData.UploadFiles("results", []string{"iac"}, filesToUpload)
 		if err != nil {
