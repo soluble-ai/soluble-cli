@@ -302,7 +302,7 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 
 // function to upload results to CDS, if the iac is configured as component under lacework cli
 func uploadResultsToCDS(c *Client, filesToUpload []string) error {
-	lwApi, err := api.NewClient(c.Config.LaceworkAccount,
+	lwAPI, err := api.NewClient(c.Config.LaceworkAccount,
 		api.WithApiKeys(c.Config.LaceworkAPIKey, c.Config.LaceworkAPISecret),
 		api.WithApiV2(),
 	)
@@ -312,7 +312,7 @@ func uploadResultsToCDS(c *Client, filesToUpload []string) error {
 	}
 
 	if len(filesToUpload) > 0 {
-		guid, err := lwApi.V2.ComponentData.UploadFiles("results", []string{"iac"}, filesToUpload)
+		guid, err := lwAPI.V2.ComponentData.UploadFiles("results", []string{"iac"}, filesToUpload)
 		if err != nil {
 			log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
