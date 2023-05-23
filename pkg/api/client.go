@@ -291,7 +291,7 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		return nil, err
 	}
 	// also post results to cds using the cdk, if it is configured as lacework component
-	if c.Config.IsRunningAsComponent {
+	if cfg.IsRunningAsComponent() {
 		err := uploadResultsToCDS(c, files)
 		if err != nil {
 			return nil, err
