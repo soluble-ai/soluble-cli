@@ -291,19 +291,25 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		return nil, err
 	}
 	// also post results to cds using the cdk, if it is configured as lacework component
-	//if cfg.IsRunningAsComponent() {
-	fmt.Println("Uploading results to CDS")
-	err := uploadResultsToCDS(c, files)
-	if err != nil {
-		log.Errorf("upload failed %s", err)
-		return nil, err
+	if cfg.IsRunningAsComponent() {
+		// if files are not present directly then look in request and get the files to upload
+		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
+		if len(files) == 0 {
+			for _, v := range req.FormData {
+				files = append(files, v[0])
+			}
+		}
+		err := uploadResultsToCDS(c, module, files)
+		if err != nil {
+			log.Errorf("upload failed %s", err)
+			return nil, err
+		}
 	}
-	//}
 	return result, nil
 }
 
 // function to upload results to CDS, if the iac is configured as component under lacework cli
-func uploadResultsToCDS(c *Client, filesToUpload []string) error {
+func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error {
 	lwAPI, err := api.NewClient(c.Config.LaceworkAccount,
 		api.WithApiKeys(c.Config.LaceworkAPIKey, c.Config.LaceworkAPISecret),
 		api.WithApiV2(),
@@ -311,13 +317,14 @@ func uploadResultsToCDS(c *Client, filesToUpload []string) error {
 	if err != nil {
 		return err
 	}
+	log.Debugf("Uploading %d files to CDS", len(filesToUpload))
 	if len(filesToUpload) > 0 {
-		guid, err := lwAPI.V2.ComponentData.UploadFiles("results", []string{"iac"}, filesToUpload)
+		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{module}, filesToUpload)
 		if err != nil {
 			log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
 		}
-		log.Infof("Successfully uploaded with ID: {info:%s}", guid)
+		log.Infof("Successfully uploaded to CDS with ID: {info:%s}", guid)
 	}
 	return nil
 }
