@@ -394,7 +394,9 @@ func getFilesForCDS(req *resty.Request, files []string, values map[string]string
 			return nil, err
 		}
 		path, _ := util.GetTempFilePath("env_variables.json")
-		os.WriteFile(path, jsonContent, 0600)
+		if err = os.WriteFile(path, jsonContent, 0600); err != nil {
+			return nil, err
+		}
 		files = append(files, path)
 	}
 	return files, nil
