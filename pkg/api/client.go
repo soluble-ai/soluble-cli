@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ import (
 	"github.com/soluble-ai/go-jnode"
 	cfg "github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
 
@@ -294,12 +296,11 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	if cfg.IsRunningAsComponent() {
 		// if files are not present directly then look in request and get the files to upload
 		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
-		if len(files) == 0 {
-			for _, v := range req.FormData {
-				files = append(files, v[0])
-			}
+		files, err := getFilesForCDS(req, files, values)
+		if err != nil {
+			return nil, err
 		}
-		err := uploadResultsToCDS(c, module, files)
+		err = uploadResultsToCDS(c, module, files)
 		if err != nil {
 			log.Errorf("upload failed %s", err)
 			return nil, err
@@ -319,7 +320,8 @@ func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error 
 	}
 	log.Debugf("Uploading %d files to CDS", len(filesToUpload))
 	if len(filesToUpload) > 0 {
-		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{module}, filesToUpload)
+		// TODO: can't use the module name as tag currently limitation from CDS
+		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{"iac"}, filesToUpload)
 		if err != nil {
 			log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
@@ -375,4 +377,25 @@ func CloseableOptionFunc(f func(req *resty.Request), close func() error) Option 
 		optionFunc: optionFunc{f},
 		close:      close,
 	}
+}
+
+// function to get the dirty work done for writing files to CDS
+func getFilesForCDS(req *resty.Request, files []string, values map[string]string) ([]string, error) {
+	if len(files) == 0 {
+		for _, v := range req.FormData {
+			files = append(files, v[0])
+		}
+
+		// add the metadata/env variables from the values as Json object to metadata.json file and upload that as well
+		// this is missing with CDS as it doesn't upload any environment variables
+		// convert the map to a JSON encoded byte slice
+		jsonContent, err := json.Marshal(values)
+		if err != nil {
+			return nil, err
+		}
+		path, _ := util.GetTempFilePath("env_variables.json")
+		os.WriteFile(path, jsonContent, 0600)
+		files = append(files, path)
+	}
+	return files, nil
 }
