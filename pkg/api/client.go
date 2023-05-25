@@ -297,12 +297,12 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		// if files are not present directly then look in request and get the files to upload
 		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
 		files, _ := getFilesForCDS(req, files, values)
-		err := uploadResultsToCDS(c, module, files)
-		if err != nil {
-			// log.Errorf("upload failed %s", err)
-			// CDS upload shouldn't block the other things at the moment
-			// return nil, err
-		}
+		_ = uploadResultsToCDS(c, module, files)
+		// if err != nil {
+		// log.Errorf("upload failed %s", err)
+		// CDS upload shouldn't block the other things at the moment
+		// return nil, err
+		// }
 	}
 	return result, nil
 }
