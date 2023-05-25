@@ -318,8 +318,7 @@ func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error 
 	}
 	log.Debugf("Uploading %d files to CDS", len(filesToUpload))
 	if len(filesToUpload) > 0 {
-		// TODO: can't use the module name as tags are currently limited by CDS
-		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{"iac"}, filesToUpload)
+		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{module}, filesToUpload)
 		if err != nil {
 			// log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
