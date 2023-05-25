@@ -296,14 +296,12 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	if cfg.IsRunningAsComponent() {
 		// if files are not present directly then look in request and get the files to upload
 		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
-		files, err := getFilesForCDS(req, files, values)
-		if err != nil {
-			return nil, err
-		}
-		err = uploadResultsToCDS(c, module, files)
+		files, _ := getFilesForCDS(req, files, values)
+		err := uploadResultsToCDS(c, module, files)
 		if err != nil {
 			log.Errorf("upload failed %s", err)
-			return nil, err
+			// CDS upload shouldn't block the other things at the moment
+			// return nil, err
 		}
 	}
 	return result, nil
@@ -320,10 +318,10 @@ func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error 
 	}
 	log.Debugf("Uploading %d files to CDS", len(filesToUpload))
 	if len(filesToUpload) > 0 {
-		// TODO: can't use the module name as tag currently limitation from CDS
+		// TODO: can't use the module name as tags are currently limited by CDS
 		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{"iac"}, filesToUpload)
 		if err != nil {
-			log.Errorf("{warning:Unable to upload results %s\n}", err)
+			// log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
 		}
 		log.Infof("Successfully uploaded to CDS with ID: {info:%s}", guid)
