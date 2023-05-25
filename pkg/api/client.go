@@ -299,7 +299,7 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		files, _ := getFilesForCDS(req, files, values)
 		err := uploadResultsToCDS(c, module, files)
 		if err != nil {
-			log.Errorf("upload failed %s", err)
+			// log.Errorf("upload failed %s", err)
 			// CDS upload shouldn't block the other things at the moment
 			// return nil, err
 		}
