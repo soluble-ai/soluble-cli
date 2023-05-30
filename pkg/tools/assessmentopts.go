@@ -70,7 +70,7 @@ failed findings.  For example:
 The severity levels are critical, high, medium, low, and info in that order.`),
 		CreateFlagsFunc: func(flags *pflag.FlagSet) {
 			flags.BoolVar(&o.DisableCustomPolicies, "disable-custom-policies", false, "Don't use custom policies")
-			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use custom policies from `dir`.")
+			flags.StringVar(&o.CustomPoliciesDir, "custom-policies", "", "Use opal custom policies from `dir` to run a local assessment, setting upload=false for assessments.")
 			flags.BoolVar(&o.PrintResultOpt, "print-result", false, "Print the JSON result from the tool on stderr")
 			flags.StringVar(&o.SaveResult, "save-result", "", "Save the JSON result from the tool to `file`")
 			flags.BoolVar(&o.PrintResultValues, "print-result-values", false, "Print the result values from the tool on stderr")

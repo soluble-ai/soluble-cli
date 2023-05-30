@@ -96,6 +96,24 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	// if CustomPoliciesDir is present prepare those policies and use them for a local assessment
+	// overriding upload flag and PreparedCustomPoliciesDir
+	if t.CustomPoliciesDir != "" {
+		store := policy.NewStore(t.CustomPoliciesDir)
+		preparedPoliciesDir, err := os.MkdirTemp("", "policy*")
+		if err != nil {
+			return nil, err
+		}
+		t.PreparedCustomPoliciesDir = preparedPoliciesDir
+		exit.AddFunc(func() { _ = os.RemoveAll(preparedPoliciesDir) })
+		if err := store.LoadPoliciesOfType(policy.GetPolicyType("opal")); err != nil {
+			return nil, err
+		}
+		if err := store.PreparePolicies(preparedPoliciesDir); err != nil {
+			return nil, err
+		}
+		t.AssessmentOpts.UploadEnabled = false
+	}
 	// if the PreparedCustomPoliciesDir is set, policies are loaded from here and not downloaded
 	preparedPoliciesDir := t.PreparedCustomPoliciesDir
 	if preparedPoliciesDir == "" {
@@ -180,6 +198,7 @@ func (t *Tool) parseResults(result *tools.Result, n *jnode.Node) {
 			Tool: map[string]string{
 				"policy_id": rr.Path("policy_id").AsText(),
 			},
+			SID: rr.Path("policy_id").AsText(),
 		})
 	}
 }
