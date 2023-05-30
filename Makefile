@@ -127,6 +127,13 @@ install-darwin-iac: darwin-amd64-tar ## Convenience target to build and deploy t
 	VERSION=$(VERSION) envsubst < scripts/.dev.template > $$HOME/.config/lacework/components/iac/.dev
 	cp target/darwin_amd64/soluble $$HOME/.config/lacework/components/iac/iac
 
+.PHONY: install-darwin-arm64-iac
+install-darwin-arm64-iac: darwin-arm64-tar ## Convenience target to build and deploy the lacework iac component for local MAC (M1 Chip) development
+	make bin os="darwin" arch="arm64"
+	mkdir -p ~/.config/lacework/components/iac
+	VERSION=$(VERSION) envsubst < scripts/.dev.template > $$HOME/.config/lacework/components/iac/.dev
+	cp target/darwin_arm64/soluble $$HOME/.config/lacework/components/iac/iac
+
 .PHONY: uninstall-darwin-iac
 uninstall-darwin-iac:## Uninstall the lacework iac component
 	@rm -rf ~/.config/lacework/components/iac

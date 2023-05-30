@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -27,9 +28,11 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/lacework/go-sdk/api"
 	"github.com/soluble-ai/go-jnode"
 	cfg "github.com/soluble-ai/soluble-cli/pkg/config"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
+	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
 
@@ -289,7 +292,40 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	if _, err := c.execute(req, resty.MethodPost, fmt.Sprintf("/api/v1/xcp/%s/data", module), options); err != nil {
 		return nil, err
 	}
+	// also post results to cds using the cdk, if it is configured as lacework component
+	if cfg.IsRunningAsComponent() {
+		// if files are not present directly then look in request and get the files to upload
+		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
+		files, _ := getFilesForCDS(req, files, values)
+		_ = uploadResultsToCDS(c, module, files)
+		// if err != nil {
+		// log.Errorf("upload failed %s", err)
+		// CDS upload shouldn't block the other things at the moment
+		// return nil, err
+		// }
+	}
 	return result, nil
+}
+
+// function to upload results to CDS, if the iac is configured as component under lacework cli
+func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error {
+	lwAPI, err := api.NewClient(c.Config.LaceworkAccount,
+		api.WithApiKeys(c.Config.LaceworkAPIKey, c.Config.LaceworkAPISecret),
+		api.WithApiV2(),
+	)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Uploading %d files to CDS", len(filesToUpload))
+	if len(filesToUpload) > 0 {
+		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{module}, filesToUpload)
+		if err != nil {
+			// log.Errorf("{warning:Unable to upload results %s\n}", err)
+			return err
+		}
+		log.Infof("Successfully uploaded to CDS with ID: {info:%s}", guid)
+	}
+	return nil
 }
 
 func (c *Client) Download(path string) ([]byte, error) {
@@ -338,4 +374,27 @@ func CloseableOptionFunc(f func(req *resty.Request), close func() error) Option 
 		optionFunc: optionFunc{f},
 		close:      close,
 	}
+}
+
+// function to get the dirty work done for writing files to CDS
+func getFilesForCDS(req *resty.Request, files []string, values map[string]string) ([]string, error) {
+	if len(files) == 0 {
+		for _, v := range req.FormData {
+			files = append(files, v[0])
+		}
+
+		// add the metadata/env variables from the values as Json object to metadata.json file and upload that as well
+		// this is missing with CDS as it doesn't upload any environment variables
+		// convert the map to a JSON encoded byte slice
+		jsonContent, err := json.Marshal(values)
+		if err != nil {
+			return nil, err
+		}
+		path, _ := util.GetTempFilePath("env_variables.json")
+		if err = os.WriteFile(path, jsonContent, 0600); err != nil {
+			return nil, err
+		}
+		files = append(files, path)
+	}
+	return files, nil
 }
