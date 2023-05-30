@@ -38,7 +38,7 @@ require (
 )
 
 require (
-	github.com/cloudflare/circl v1.1.0 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/creack/pty v1.1.18 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
