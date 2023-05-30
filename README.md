@@ -43,3 +43,29 @@ Now you can run security scans on your code:
     soluble helm-scan -d ~/my-stuff
 
 See https://docs.lacework.com/iac/ for more information.
+
+## Run As Component
+
+Follow the installation steps from Lacework CLI to configure it
+https://docs.lacework.net/cli/
+
+Run the below commands to get a release version of soluble cli running as IaC component under the lacework cli.
+```
+lacework component install iac
+
+# verify the installation of iac component
+lacework component list
+
+# verify the iac configuration as Component
+lacework iac config show
+```
+
+## Run As Component with local changes
+
+Follow the installation steps from Lacework CLI to configure it
+https://docs.lacework.net/cli/
+
+Run the script to test local changes
+```
+./scripts/lacework.sh tf-scan 
+```
