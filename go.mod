@@ -17,7 +17,7 @@ require (
 	github.com/jarcoal/httpmock v1.3.0
 	github.com/lacework/go-sdk v1.18.3
 	github.com/mattn/go-colorable v0.1.13
-	github.com/mattn/go-isatty v0.0.18
+	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/open-policy-agent/opa v0.49.2
