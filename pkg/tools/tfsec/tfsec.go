@@ -27,6 +27,7 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	tf_util "github.com/soluble-ai/soluble-cli/pkg/tools/util"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -69,12 +70,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 		IACPlatform: tools.Terraform,
 	}
 	if !t.NoInit {
-		tfInit, err := t.runTerraformInit()
+		tfInit, err := tf_util.RunTerraformInit(t.GetDirectory(), t.RunOpts, t.TerraformCommand)
 		if err != nil {
 			log.Warnf("{warning:terraform init} failed ")
 			result.AddValue("TERRAFORM_INIT_FAILED", "true")
 		} else {
-			defer tfInit.restore()
+			defer tfInit.Restore()
 		}
 	}
 	d, err := t.InstallTool(&download.Spec{

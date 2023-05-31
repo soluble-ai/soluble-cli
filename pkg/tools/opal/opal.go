@@ -19,17 +19,18 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/assessments"
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
+	tfutil "github.com/soluble-ai/soluble-cli/pkg/tools/util"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
 
 type Tool struct {
 	tools.DirectoryBasedToolOpts
-	InputType string
-	VarFiles  []string
-	ExtraArgs []string
-
-	iacPlatform tools.IACPlatform
+	InputType            string
+	VarFiles             []string
+	ExtraArgs            []string
+	EnableModuleDownload bool
+	iacPlatform          tools.IACPlatform
 }
 
 var _ tools.Single = (*Tool)(nil)
@@ -50,6 +51,7 @@ func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringSliceVar(&t.VarFiles, "var-file", nil, "Pass additional variable `files` to opal")
+	flags.BoolVar(&t.EnableModuleDownload, "enable-module-download", false, "Use --enable-module-download=true to enable.")
 }
 
 func (t *Tool) Validate() error {
@@ -82,6 +84,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 		Directory:   t.GetDirectory(),
 		IACPlatform: t.iacPlatform,
 	}
+
 	d, err := t.InstallTool(&download.Spec{
 		Name: "opal",
 		URL:  "github.com/lacework/opal-releases",
@@ -96,6 +99,15 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if t.EnableModuleDownload {
+		err := tfutil.RunTerraformGet(t.GetDirectory(), t.RunOpts)
+		if err != nil {
+			log.Warnf("{warning:terraform get} failed ")
+			result.AddValue("TERRAFORM_GET_FAILED", "true")
+		}
+	}
+
 	// if CustomPoliciesDir is present prepare those policies and use them for a local assessment
 	// overriding upload flag and PreparedCustomPoliciesDir
 	if t.CustomPoliciesDir != "" {
@@ -172,12 +184,12 @@ func (t *Tool) Run() (*tools.Result, error) {
 	c := exec.Command(d.GetExePath("opal"), args...)
 	c.Dir = t.GetDirectory()
 	c.Stderr = os.Stderr
-	exec := t.ExecuteCommand(c)
-	result.ExecuteResult = exec
-	if !exec.ExpectExitCode(0, 1) {
+	executeCommand := t.ExecuteCommand(c)
+	result.ExecuteResult = executeCommand
+	if !executeCommand.ExpectExitCode(0, 1) {
 		return result, nil
 	}
-	n, ok := exec.ParseJSON()
+	n, ok := executeCommand.ParseJSON()
 	if !ok {
 		return result, nil
 	}
