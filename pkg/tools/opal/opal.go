@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	tools_util "github.com/soluble-ai/soluble-cli/pkg/tools/util"
+
 	"github.com/soluble-ai/soluble-cli/pkg/api"
 	"github.com/soluble-ai/soluble-cli/pkg/archive"
 	"github.com/soluble-ai/soluble-cli/pkg/exit"
@@ -19,7 +21,6 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/download"
 	"github.com/soluble-ai/soluble-cli/pkg/log"
 	"github.com/soluble-ai/soluble-cli/pkg/tools"
-	tools_util "github.com/soluble-ai/soluble-cli/pkg/tools/util"
 	"github.com/soluble-ai/soluble-cli/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -86,14 +87,6 @@ func (t *Tool) Run() (*tools.Result, error) {
 		IACPlatform: t.iacPlatform,
 	}
 
-	if t.EnableModuleDownload {
-		err := tools_util.RunTerraformGet(t.GetDirectory(), t.RunOpts)
-		if err != nil {
-			log.Warnf("{warning:terraform get} failed ")
-			result.AddValue("TERRAFORM_GET_FAILED", "true")
-		}
-	}
-
 	d, err := t.InstallTool(&download.Spec{
 		Name: "opal",
 		URL:  "github.com/lacework/opal-releases",
@@ -102,6 +95,14 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if err != nil {
 		log.Errorf("Could not run opal scan %s", err)
 		os.Exit(0)
+	}
+
+	if t.EnableModuleDownload {
+		err := tools_util.RunTerraformGet(t.GetDirectory(), t.RunOpts)
+		if err != nil {
+			log.Warnf("{warning:terraform get} failed ")
+			result.AddValue("TERRAFORM_GET_FAILED", "true")
+		}
 	}
 
 	// create a unique temp dir for downloaded policies
