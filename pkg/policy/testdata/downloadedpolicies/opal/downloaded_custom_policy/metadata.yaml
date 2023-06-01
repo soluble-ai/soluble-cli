@@ -1,0 +1,10 @@
+---
+category: "Logging"
+checkTool: "opal"
+checkType: "Terraform"
+description: "an example of a custom policy"
+policyId: "c-opl-downloaded-custom-policy"
+provider: "AWS"
+severity: "Medium"
+sid: "c-opl-downloaded-custom-policy"
+title: "Sample Custom Policy"
