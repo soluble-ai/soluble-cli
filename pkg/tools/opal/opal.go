@@ -111,7 +111,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	// if CustomPoliciesDir is present prepare those policies and use them for a local assessment
 	// overriding upload flag and PreparedCustomPoliciesDir
 	if t.CustomPoliciesDir != "" {
-		store := policy.NewStore(t.CustomPoliciesDir)
+		store := policy.NewDownloadStore(t.CustomPoliciesDir)
 		preparedPoliciesDir, err := os.MkdirTemp("", "policy*")
 		if err != nil {
 			return nil, err
@@ -141,7 +141,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 			}
 			return nil, err
 		}
-		store := policy.NewStore(customPoliciesDir)
+		store := policy.NewDownloadStore(customPoliciesDir)
 		preparedPoliciesDir, err = os.MkdirTemp("", "policy*")
 		if err != nil {
 			return nil, err

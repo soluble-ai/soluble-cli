@@ -34,6 +34,20 @@ func TestResolvePolicyIDExists(t *testing.T) {
 	assert.Equal(t, errors.New("a policy with id: c-mock-a-test-policy already exists"), err)
 }
 
+func TestLoadSinglePolicyCustom(t *testing.T) {
+	store := NewDownloadStore("testdata")
+	policy, err := store.LoadSinglePolicy(GetPolicyType("opal"), "testdata/downloadedpolicies/opal/downloaded_custom_policy")
+	assert.NoError(t, err)
+	assert.Equal(t, policy.ID, "c-opl-downloaded-custom-policy")
+}
+
+func TestLoadSinglePolicyLacework(t *testing.T) {
+	store := NewDownloadStore("testdata")
+	policy, err := store.LoadSinglePolicy(GetPolicyType("opal"), "testdata/downloadedpolicies/opal/downloaded_iac_aws_iam_1")
+	assert.NoError(t, err)
+	assert.Equal(t, policy.ID, "lacework-downloaded-iac-aws-iam-1")
+}
+
 func assertPolicyIDOkay(t *testing.T, store *Store, path string, expected string) {
 	policyID, err := store.resolvePolicyID(mockPolicyType{}, path)
 	assert.Equal(t, expected, policyID)
