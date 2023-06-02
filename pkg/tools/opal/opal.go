@@ -27,7 +27,7 @@ import (
 type Tool struct {
 	tools.DirectoryBasedToolOpts
 	InputType            string
-	VarFiles             []string
+	varFiles             []string
 	ExtraArgs            []string
 	EnableModuleDownload bool
 	iacPlatform          tools.IACPlatform
@@ -50,8 +50,26 @@ func (t *Tool) CommandTemplate() *cobra.Command {
 func (t *Tool) Register(cmd *cobra.Command) {
 	t.DirectoryBasedToolOpts.Register(cmd)
 	flags := cmd.Flags()
-	flags.StringSliceVar(&t.VarFiles, "var-file", nil, "Pass additional variable `files` to opal")
+	flags.StringSliceVar(&t.varFiles, "var-file", nil, "Pass additional variable `files` to opal")
 	flags.BoolVar(&t.EnableModuleDownload, "enable-module-download", false, "Use --enable-module-download=true to enable.")
+}
+
+func (t *Tool) setVarFiles() error {
+	for i, varFile := range t.varFiles {
+		varFile, err := filepath.Abs(varFile)
+		if err != nil {
+			return err
+		}
+		if !util.FileExists(varFile) {
+			return fmt.Errorf("var file %s does not exist", varFile)
+		}
+		t.varFiles[i] = varFile
+	}
+	return nil
+}
+
+func (t *Tool) GetVarFiles() []string {
+	return t.varFiles
 }
 
 func (t *Tool) Validate() error {
@@ -71,10 +89,9 @@ func (t *Tool) Validate() error {
 	default:
 		return fmt.Errorf("opal does not support %s", t.InputType)
 	}
-	for _, varFile := range t.VarFiles {
-		if !util.FileExists(varFile) {
-			return fmt.Errorf("var file %s does not exist", varFile)
-		}
+	err := t.setVarFiles()
+	if err != nil {
+		return err
 	}
 	return t.DirectoryBasedToolOpts.Validate()
 }
@@ -175,7 +192,7 @@ func (t *Tool) Run() (*tools.Result, error) {
 	if t.InputType != "" {
 		args = append(args, "--input-type", t.InputType)
 	}
-	for _, varFile := range t.VarFiles {
+	for _, varFile := range t.GetVarFiles() {
 		args = append(args, "--var-file", varFile)
 	}
 	args = append(args, t.ExtraArgs...)
