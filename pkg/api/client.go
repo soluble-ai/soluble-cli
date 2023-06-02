@@ -303,6 +303,8 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		// CDS upload shouldn't block the other things at the moment
 		// return nil, err
 		// }
+	} else {
+		log.Debugf("Skipping the upload of results to CDS")
 	}
 	return result, nil
 }
