@@ -296,8 +296,8 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 	if cfg.IsRunningAsComponent() {
 		// if files are not present directly then look in request and get the files to upload
 		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
-		files, _ := getFilesForCDS(req, files, values)
-		_ = uploadResultsToCDS(c, module, files)
+		files, _ := getFilesForCDS(req, files, values, result)
+		_ = uploadResultsToCDS(c, files)
 		// if err != nil {
 		// log.Errorf("upload failed %s", err)
 		// CDS upload shouldn't block the other things at the moment
@@ -308,7 +308,7 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 }
 
 // function to upload results to CDS, if the iac is configured as component under lacework cli
-func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error {
+func uploadResultsToCDS(c *Client, filesToUpload []string) error {
 	lwAPI, err := api.NewClient(c.Config.LaceworkAccount,
 		api.WithApiKeys(c.Config.LaceworkAPIKey, c.Config.LaceworkAPISecret),
 		api.WithApiV2(),
@@ -316,14 +316,14 @@ func uploadResultsToCDS(c *Client, module string, filesToUpload []string) error 
 	if err != nil {
 		return err
 	}
-	log.Debugf("Uploading %d files to CDS", len(filesToUpload))
+	log.Infof("Uploading %d files to CDS", len(filesToUpload))
 	if len(filesToUpload) > 0 {
-		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{module}, filesToUpload)
+		guid, err := lwAPI.V2.ComponentData.UploadFiles("iac-results", []string{"iac"}, filesToUpload)
 		if err != nil {
 			// log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
 		}
-		log.Infof("Successfully uploaded to CDS with ID: {info:%s}", guid)
+		log.Infof("Successfully uploaded to CDS: {info:%s}", guid)
 	}
 	return nil
 }
@@ -377,7 +377,7 @@ func CloseableOptionFunc(f func(req *resty.Request), close func() error) Option 
 }
 
 // function to get the dirty work done for writing files to CDS
-func getFilesForCDS(req *resty.Request, files []string, values map[string]string) ([]string, error) {
+func getFilesForCDS(req *resty.Request, files []string, values map[string]string, result *jnode.Node) ([]string, error) {
 	if len(files) == 0 {
 		for _, v := range req.FormData {
 			files = append(files, v[0])
@@ -390,11 +390,20 @@ func getFilesForCDS(req *resty.Request, files []string, values map[string]string
 		if err != nil {
 			return nil, err
 		}
-		path, _ := util.GetTempFilePath("env_variables.json")
-		if err = os.WriteFile(path, jsonContent, 0600); err != nil {
-			return nil, err
-		}
-		files = append(files, path)
+		env_variables_file, err := writeToFile("env_variables.json", jsonContent)
+		files = append(files, env_variables_file)
+
+		// add the enhanced result json file also to the CDS upload
+		enriched_results_file, err := writeToFile("enriched_results.json", []byte(result.String()))
+		files = append(files, enriched_results_file)
 	}
 	return files, nil
+}
+
+func writeToFile(filename string, content []byte) (string, error) {
+	path, _ := util.GetTempFilePath(filename)
+	if err := os.WriteFile(path, content, 0600); err != nil {
+		return "", err
+	}
+	return path, nil
 }
