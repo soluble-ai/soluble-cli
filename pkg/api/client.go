@@ -390,18 +390,18 @@ func getFilesForCDS(req *resty.Request, files []string, values map[string]string
 		if err != nil {
 			return nil, err
 		}
-		env_variables_file, err := writeToFile("env_variables.json", jsonContent)
+		envVariablesFile, err := writeToFile("env_variables.json", jsonContent)
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, env_variables_file)
+		files = append(files, envVariablesFile)
 
 		// add the enhanced result json file also to the CDS upload
-		enriched_results_file, err := writeToFile("enriched_results.json", []byte(result.String()))
+		enrichedResultsFile, err := writeToFile("enriched_results.json", []byte(result.String()))
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, enriched_results_file)
+		files = append(files, enrichedResultsFile)
 	}
 	return files, nil
 }
