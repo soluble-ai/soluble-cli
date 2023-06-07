@@ -20,7 +20,7 @@ require (
 	github.com/mattn/go-isatty v0.0.18
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.1
-	github.com/open-policy-agent/opa v0.49.2
+	github.com/open-policy-agent/opa v0.53.1
 	github.com/owenrumney/squealer v1.1.1
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pmezard/go-difflib v1.0.0
@@ -28,7 +28,7 @@ require (
 	github.com/soluble-ai/go-colorize v0.1.2
 	github.com/soluble-ai/go-jnode v0.1.11
 	github.com/spf13/afero v1.9.5
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.2
 	github.com/tidwall/gjson v1.14.4
@@ -49,10 +49,11 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/goleak v1.2.1 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 )
 
@@ -93,7 +94,7 @@ require (
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.0 // indirect
 	github.com/go-git/go-git/v5 v5.5.2 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -105,18 +106,18 @@ require (
 	github.com/kyokomi/emoji v2.1.0+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/sirupsen/logrus v1.9.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	golang.org/x/crypto v0.4.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/text v0.9.0
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
