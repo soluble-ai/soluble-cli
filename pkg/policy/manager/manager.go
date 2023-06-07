@@ -39,6 +39,7 @@ type TestMetrics struct {
 type PolicyTestMetrics struct {
 	Path     string        `json:"path"`
 	Target   policy.Target `json:"target"`
+	TestPath string        `json:"test_path"`
 	TestType string        `json:"test_type"`
 	Success  bool          `json:"success"`
 }
@@ -149,27 +150,30 @@ func (m *M) testPolicyTarget(metrics *TestMetrics, policyType policy.PolicyType,
 			failures++
 		}
 
-		for _, passFailResult := range passFailResults {
+		for i, passFailResult := range passFailResults {
 			if passFailResult != nil {
 				ok := *passFailResult
 				if passFailName == "fail" {
 					ok = !ok
 				}
 				p := policy.Path
+				testPath := result.Findings[i].RepoPath
+				testFile := filepath.Base(testPath)
 				if rp, err := filepath.Rel(m.Dir, policy.Path); err == nil {
 					p = rp
 				}
 				if ok {
-					log.Infof("Policy {success:%s} %s %s - {success:OK}", p, passFailName, target)
+					log.Infof("Policy {success:%s} test {success:%s} %s %s - {success:OK}", p, testFile, passFailName, target)
 					metrics.Passed++
 				} else {
-					log.Errorf("Policy {danger:%s} %s %s - {danger:FAILED}", p, passFailName, target)
+					log.Errorf("Policy {danger:%s} test {danger:%s} %s %s - {danger:FAILED}", p, testFile, passFailName, target)
 					failures++
 					metrics.Failed++
 				}
 				metrics.Policies = append(metrics.Policies, PolicyTestMetrics{
 					Path:     p,
 					Target:   target,
+					TestPath: testPath,
 					TestType: passFailName,
 					Success:  ok,
 				})
