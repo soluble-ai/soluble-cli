@@ -398,12 +398,14 @@ func getFilesForCDS(req *resty.Request, files []string, values map[string]string
 		}
 		files = append(files, envVariablesFile)
 
-		// add the enhanced result json file also to the CDS upload
-		enrichedResultsFile, err := writeToFile("enriched_results.json", []byte(result.String()))
-		if err != nil {
-			return nil, err
+		if result.Path("assessment") != jnode.MissingNode {
+			// add the enhanced result json file also to the CDS upload
+			enrichedResultsFile, err := writeToFile("enriched_results.json", []byte(result.Path("assessment").String()))
+			if err != nil {
+				return nil, err
+			}
+			files = append(files, enrichedResultsFile)
 		}
-		files = append(files, enrichedResultsFile)
 	}
 	return files, nil
 }
