@@ -379,7 +379,7 @@ func CloseableOptionFunc(f func(req *resty.Request), close func() error) Option 
 }
 
 // function to get the dirty work done for writing files to CDS
-func getFilesForCDS(req *resty.Request, files []string, values map[string]string, result *jnode.Node) ([]string, error) {
+func getFilesForCDS(req *resty.Request, files []string, values map[string]string, result *jnode.NoPath("assessment")de) ([]string, error) {
 	if len(files) == 0 {
 		for _, v := range req.FormData {
 			files = append(files, v[0])
@@ -398,12 +398,16 @@ func getFilesForCDS(req *resty.Request, files []string, values map[string]string
 		}
 		files = append(files, envVariablesFile)
 
-		// add the enhanced result json file also to the CDS upload
-		enrichedResultsFile, err := writeToFile("enriched_results.json", []byte(result.String()))
-		if err != nil {
-			return nil, err
+    assessment := result.Path("assessment")
+
+		if assessment != MissingNode {
+			// add the enhanced result json file also to the CDS upload
+			enrichedResultsFile, err := writeToFile("enriched_results.json", []byte(result.Path("assessment").String()))
+			if err != nil {
+				return nil, err
+			}
+			files = append(files, enrichedResultsFile)
 		}
-		files = append(files, enrichedResultsFile)
 	}
 	return files, nil
 }
