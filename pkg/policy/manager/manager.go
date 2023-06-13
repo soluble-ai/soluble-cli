@@ -68,6 +68,9 @@ func (m *M) RegisterUpload(cmd *cobra.Command) {
 	m.RunOpts.Register(cmd)
 	flags := cmd.Flags()
 	flags.StringVarP(&m.Dir, "directory", "d", "", "Load policies from this directory. Path should point to the parent directory of your /policies directory.")
+	flags.StringVar(&m.ConvertedPoliciesFile, "converted-policies-file", "", "Upload file to track converted policies. Path should point to policy_conversion_tracker file")
+	// hidden for internal use only
+	flags.MarkHidden("converted-policies-file")
 }
 
 func (m *M) ValidatePolicies() ValidateResult {

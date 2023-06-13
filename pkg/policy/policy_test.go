@@ -2,6 +2,7 @@ package policy
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,6 +47,27 @@ func TestLoadSinglePolicyLacework(t *testing.T) {
 	policy, err := store.LoadSinglePolicy(GetPolicyType("opal"), "testdata/downloadedpolicies/opal/downloaded_iac_aws_iam_1")
 	assert.NoError(t, err)
 	assert.Equal(t, policy.ID, "lacework-downloaded-iac-aws-iam-1")
+}
+
+func TestGetPublishedPolicyMappings(t *testing.T) {
+	store := NewStore("testdata", true)
+	store.ConvertedPoliciesFile = "testdata/policy_conversion_tracker.json"
+
+	// dummy uploaded policies
+	policy1 := &Policy{
+		Path: " testdata/uploadPolicies/policies/opal/iac_aws_iam_1",
+	}
+	policy2 := &Policy{
+		Path: " testdata/uploadPolicies/policies/opal/iac_aws_iam_2",
+	}
+	store.Policies[GetPolicyType("opal")] = append(store.Policies[GetPolicyType("opal")], policy1, policy2)
+
+	opalPolicyMappings, _ := os.ReadFile(store.ConvertedPoliciesFile)
+	duplicateTrackingFile, _ := store.getPublishedPolicyMappings(opalPolicyMappings)
+
+	var expected []string
+	expected = append(expected, "ckv-aws-1", "tfsec-aws2", "ckv-aws-2")
+	assert.Equal(t, expected, duplicateTrackingFile.ConvertedPolicies)
 }
 
 func assertPolicyIDOkay(t *testing.T, store *Store, path string, expected string) {

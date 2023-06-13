@@ -36,6 +36,9 @@ type Policy struct {
 	TargetData map[Target]interface{}
 }
 
+type ConvertedOpalPolicies struct {
+	ConvertedPolicies []string `json:"convertedPolicies"`
+}
 type Target string
 
 const (
@@ -75,6 +78,7 @@ type Store struct {
 	Policies               map[PolicyType][]*Policy
 	PolicyIds              map[string]string
 	SkipPolicyIDResolution bool
+	ConvertedPoliciesFile  string
 }
 
 func NewStore(dir string, skipPolicyIDResolution bool) *Store {
@@ -215,6 +219,12 @@ func (m *Store) CreateZipArchive(path string) error {
 	if err := m.writeUploadMetadata(zipWriter); err != nil {
 		return err
 	}
+	if m.ConvertedPoliciesFile != "" {
+		if err := m.writeOpalPolicyTracker(zipWriter); err != nil {
+			return err
+		}
+	}
+
 	zipWriter.Flush()
 	if err := zipWriter.Close(); err != nil {
 		return err
@@ -240,6 +250,38 @@ func (m *Store) writeUploadMetadata(zipWriter *zip.Writer) error {
 	if err != nil {
 		return err
 	}
+	if _, err := ioWriter.Write(dat); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Store) writeOpalPolicyTracker(zipWriter *zip.Writer) error {
+
+	opalPolicyMappings, err := os.ReadFile(m.ConvertedPoliciesFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	duplicateTrackingFile, err := m.getPublishedPolicyMappings(opalPolicyMappings)
+	if err != nil {
+		return err
+	}
+	header := &zip.FileHeader{
+		Name:               fmt.Sprintf("opal-duplicates.json"),
+		UncompressedSize64: uint64(len(duplicateTrackingFile.ConvertedPolicies)),
+		Modified:           time.Now(),
+		Method:             zip.Deflate,
+	}
+	header.SetMode(0644)
+	ioWriter, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	dat, _ := json.Marshal(duplicateTrackingFile)
 	if _, err := ioWriter.Write(dat); err != nil {
 		return err
 	}
@@ -408,4 +450,21 @@ func GetPolicyTypes() (res []PolicyType) {
 		return strings.Compare(res[i].GetName(), res[j].GetName()) > 0
 	})
 	return
+}
+
+func (m *Store) getPublishedPolicyMappings(opalPolicyMappings []byte) (*ConvertedOpalPolicies, error) {
+	var convertedPolicies map[string][]string
+	if err := json.Unmarshal(opalPolicyMappings, &convertedPolicies); err != nil {
+		return nil, err
+	}
+	duplicateTrackingFile := &ConvertedOpalPolicies{}
+	laceworkPolicies := m.Policies[GetPolicyType("opal")]
+	for trackedOpalPolicy, oldTrackedPolicy := range convertedPolicies {
+		for _, publishedOpalPolicy := range laceworkPolicies {
+			if filepath.Base(publishedOpalPolicy.Path) == trackedOpalPolicy {
+				duplicateTrackingFile.ConvertedPolicies = append(duplicateTrackingFile.ConvertedPolicies, oldTrackedPolicy...)
+			}
+		}
+	}
+	return duplicateTrackingFile, nil
 }

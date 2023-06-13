@@ -1,0 +1,7 @@
+{
+  "iac_aws_iam_1": ["ckv-aws-1"],
+  "iac_aws_iam_2": ["tfsec-aws2", "ckv-aws-2"],
+  "iac_aws_iam_3": ["ckv-aws-3"],
+  "iac_aws_iam_4": ["tfsec-aws4", "ckv-aws-4"],
+  "iac_aws_iam_5": ["tfsec-aws5"]
+}
