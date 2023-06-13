@@ -36,6 +36,9 @@ import (
 	"github.com/soluble-ai/soluble-cli/pkg/version"
 )
 
+// only upload assessments to CDS, may also need failed-assessment
+var enabledCDSModules = util.NewStringSetWithValues([]string{"checkov", "tfsec", "opal"})
+
 const (
 	orgToken = "{org}"
 )
@@ -293,7 +296,7 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		return nil, err
 	}
 	// also post results to cds using the cdk, if it is configured as lacework component
-	if cfg.IsRunningAsComponent() {
+	if isCDSUploadEnabled(module) {
 		// if files are not present directly then look in request and get the files to upload
 		// most of the tools are adding the multipart files in the options so extract them from the request and send it to CDS
 		files, _ := getFilesForCDS(req, files, values, result)
@@ -307,6 +310,10 @@ func (c *Client) XCPPost(module string, files []string, values map[string]string
 		log.Debugf("Skipping the upload of results to CDS")
 	}
 	return result, nil
+}
+
+func isCDSUploadEnabled(module string) bool {
+	return cfg.IsRunningAsComponent() && enabledCDSModules.Contains(module)
 }
 
 // function to upload results to CDS, if the iac is configured as component under lacework cli
@@ -325,7 +332,7 @@ func uploadResultsToCDS(c *Client, filesToUpload []string) error {
 			// log.Errorf("{warning:Unable to upload results %s\n}", err)
 			return err
 		}
-		log.Infof("Successfully uploaded to CDS: {info:%s}", guid)
+		log.Infof("Assessment upload reference: {info:%s}", guid)
 	}
 	return nil
 }
