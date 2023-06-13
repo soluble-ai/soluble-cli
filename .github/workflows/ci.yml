@@ -83,7 +83,7 @@ jobs:
           SOLUBLE_API_SERVER: ${{ vars.SOLUBLE_API_SERVER }}
           SOLUBLE_ORGANIZATION: ${{ vars.SOLUBLE_ORGANIZATION }}
       - name: Report Status
-        if: failure()
+        if: failure() && github.event_name != 'pull_request'
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.IAC_SLACK_WEBHOOK }}
