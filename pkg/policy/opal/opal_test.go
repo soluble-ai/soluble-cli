@@ -40,6 +40,34 @@ func TestPoliciesFail(t *testing.T) {
 	assert.Equal(1, tm.Passed)
 }
 
+// By default we do not fail for "strict" cases
+func TestNonStrictPolicies(t *testing.T) {
+	assert := assert.New(t)
+	m := &manager.M{}
+	err := m.DetectPolicy("testdata/strictfail/policies")
+	assert.NoError(err)
+	assert.Equal(1, len(m.Policies))
+	tm, err := m.TestPolicies()
+	assert.NoError(err)
+	assert.Equal(0, tm.Failed)
+	// Ensure we get all results
+	assert.Equal(4, tm.Passed)
+}
+
+// Fail for "strict" cases when StrictLoading is true
+func TestStrictPoliciesFail(t *testing.T) {
+	assert := assert.New(t)
+	m := &manager.M{}
+	m.StrictLoading = true
+	err := m.DetectPolicy("testdata/strictfail/policies")
+	assert.NoError(err)
+	assert.Equal(1, len(m.Policies))
+	tm, err := m.TestPolicies()
+	assert.Error(err)
+	assert.Equal(1, tm.Failed)
+	assert.Equal(4, tm.Passed)
+}
+
 func TestGetCustomPoliciesDir204(t *testing.T) {
 	assert := assert.New(t)
 	apiConfig := &api.Config{

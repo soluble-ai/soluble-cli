@@ -39,6 +39,7 @@ type RunOpts struct {
 	NoDocker        bool
 	Internal        bool
 	quiet           bool
+	StrictLoading   bool
 }
 
 var _ options.Interface = &RunOpts{}
@@ -53,6 +54,7 @@ func (o *RunOpts) GetRunHiddenOptions() *options.HiddenOptionsGroup {
 			flags.StringVar(&o.ToolPath, "tool-path", "", "Run `tool` directly instead of using a CLI-managed version")
 			flags.StringVar(&o.ToolVersion, "tool-version", "", "Override version of the tool to run (the image or github release name.)")
 			flags.BoolVar(&o.NoDocker, "no-docker", false, "Always run tools locally instead of using Docker")
+			flags.BoolVar(&o.StrictLoading, "strict-loading", false, "If the scan tool should fail when warnings occur when loading a file. Currently only applicable to opal terraform")
 		},
 	}
 }
