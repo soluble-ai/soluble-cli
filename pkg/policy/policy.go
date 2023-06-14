@@ -270,7 +270,7 @@ func (m *Store) writeOpalPolicyTracker(zipWriter *zip.Writer) error {
 		return err
 	}
 	header := &zip.FileHeader{
-		Name:               fmt.Sprintf("opal-duplicates.json"),
+		Name:               fmt.Sprintf("policies-opal-duplicates.json"),
 		UncompressedSize64: uint64(len(duplicateTrackingFile.ConvertedPolicies)),
 		Modified:           time.Now(),
 		Method:             zip.Deflate,
