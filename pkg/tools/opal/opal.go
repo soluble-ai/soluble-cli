@@ -195,6 +195,9 @@ func (t *Tool) Run() (*tools.Result, error) {
 	for _, varFile := range t.GetVarFiles() {
 		args = append(args, "--var-file", varFile)
 	}
+	if t.RunOpts.StrictLoading {
+		args = append(args, "--strict-loading")
+	}
 	args = append(args, t.ExtraArgs...)
 	args = append(args, ".")
 	// #nosec G204
