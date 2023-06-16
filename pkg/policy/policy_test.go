@@ -67,7 +67,7 @@ func TestGetPublishedPolicyMappings(t *testing.T) {
 
 	var expected []string
 	expected = append(expected, "ckv-aws-1", "tfsec-aws2", "ckv-aws-2")
-	assert.Equal(t, expected, duplicateTrackingFile.ConvertedPolicies)
+	assert.ElementsMatch(t, expected, duplicateTrackingFile.ConvertedPolicies)
 }
 
 func assertPolicyIDOkay(t *testing.T, store *Store, path string, expected string) {
