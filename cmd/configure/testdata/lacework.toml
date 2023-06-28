@@ -1,6 +1,0 @@
-# NB - these are just random numbers not real keys
-[test]
-  account = "test"
-  api_key = "TEST2_DF1A385F88CEA8F495EFC629EF4BD5255B1DC3A355EC67B7"
-  api_secret = "_a3bd5ee54b6be7432477f2e90a36dac9"
-  version = 2

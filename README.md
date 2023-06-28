@@ -1,3 +1,5 @@
+TODO add notice and update installation
+
 # Lacework IAC CLI
 
 This is the command line interface for [Lacework IAC Security](https://docs.lacework.com/iac/).
