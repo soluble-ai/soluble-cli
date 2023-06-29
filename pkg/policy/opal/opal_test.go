@@ -42,7 +42,6 @@ func TestPoliciesFail(t *testing.T) {
 
 // By default we do not fail for "strict" cases
 func TestNonStrictPolicies(t *testing.T) {
-	t.Skip("Skip until COD-1059 is complete")
 	assert := assert.New(t)
 	m := &manager.M{}
 	err := m.DetectPolicy("testdata/strictfail/policies")
@@ -57,7 +56,6 @@ func TestNonStrictPolicies(t *testing.T) {
 
 // Fail for "strict" cases when StrictLoading is true
 func TestStrictPoliciesFail(t *testing.T) {
-	t.Skip("Skip until COD-1059 is complete")
 	assert := assert.New(t)
 	m := &manager.M{}
 	m.StrictLoading = true
