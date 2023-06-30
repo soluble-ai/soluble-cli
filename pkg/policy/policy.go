@@ -37,7 +37,7 @@ type Policy struct {
 }
 
 type ConvertedOpalPolicies struct {
-	ConvertedPolicies []string `json:"convertedPolicies"`
+	ConvertedPolicies []string
 }
 type Target string
 
@@ -269,7 +269,7 @@ func (m *Store) writeOpalPolicyTracker(zipWriter *zip.Writer) error {
 		return err
 	}
 	header := &zip.FileHeader{
-		Name:               "policies-opal-duplicates.json",
+		Name:               "policies-opal-duplicates.txt",
 		UncompressedSize64: uint64(len(duplicateTrackingFile.ConvertedPolicies)),
 		Modified:           time.Now(),
 		Method:             zip.Deflate,
@@ -280,9 +280,10 @@ func (m *Store) writeOpalPolicyTracker(zipWriter *zip.Writer) error {
 		return err
 	}
 
-	dat, _ := json.Marshal(duplicateTrackingFile)
-	if _, err := ioWriter.Write(dat); err != nil {
-		return err
+	for _, policy := range duplicateTrackingFile.ConvertedPolicies {
+		if _, err := io.WriteString(ioWriter, policy+"\n"); err != nil {
+			return err
+		}
 	}
 	return nil
 }
