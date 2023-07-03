@@ -1,3 +1,7 @@
+> **Note**
+> Source code releases of the soluble-cli are no longer available.
+> Binary release distributions will continue to be published here. Refer to the installation guide below.
+
 # Lacework IAC CLI
 
 This is the command line interface for [Lacework IAC Security](https://docs.lacework.com/iac/).
@@ -6,11 +10,12 @@ This is the command line interface for [Lacework IAC Security](https://docs.lace
 
 On MacOS use [homebrew](https://brew.sh):
 
-    brew install soluble-ai/soluble/soluble-cli
+    brew update
+    brew install --cask soluble-ai/soluble/soluble
 
 To upgrade to the latest version:
 
-    brew upgrade soluble-ai/soluble/soluble-cli
+    brew upgrade --cask soluble-ai/soluble/soluble
 
 On linux, run:
 
